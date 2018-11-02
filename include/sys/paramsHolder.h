@@ -5,9 +5,6 @@
  *  @copyright GNU General Public License (GPLv3).
  */
 
-#ifndef _PARAMS_H_INCLUDED
-#define _PARAMS_H_INCLUDED
-
 #include <map>
 
 /** Contains `key = value` pairs that are obtained from a configuration file.
@@ -17,7 +14,7 @@ class Parameters
 {
 public:
 
-    /** Checks wether the given key already exists.
+    /** Checks whether the given key already exists.
      */
     bool exists( const std::string& key ) const {
         return count( key ) > 0;
@@ -104,5 +101,3 @@ public:
         }
     }
 };
-
-#endif // _PARAMS_H_INCLUDED

@@ -46,11 +46,13 @@
 			<Add option="-m64" />
 			<Add option="-DV_SIGN=-" />
 			<Add option="-DCFDS_ORDER=6" />
+			<Add option="-D_EVOLVE_DSIG=1" />
 			<Add directory="include" />
 		</Compiler>
 		<Linker>
 			<Add option="-m64" />
 		</Linker>
+		<Unit filename="src/bim-solver-BSSN.cpp" />
 		<Unit filename="include/bimetricModel.h" />
 		<Unit filename="include/cBSSNmaximalSlice.h" />
 		<Unit filename="include/documentation.h" />
@@ -88,7 +90,6 @@
 		<Unit filename="include/sys/paramsHolder.h" />
 		<Unit filename="include/sys/slog.h" />
 		<Unit filename="include/sys/trackUsedTime.h" />
-		<Unit filename="src/bim-solver-BSSN.cpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />
