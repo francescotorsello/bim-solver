@@ -8,7 +8,7 @@
 		<Build>
 			<Target title="Debug">
 				<Option output="bin/Debug/bim-solver-BSSN" prefix_auto="1" extension_auto="1" />
-				<Option working_dir="run/" />
+				<Option working_dir="../run/" />
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
@@ -23,7 +23,7 @@
 			</Target>
 			<Target title="Release">
 				<Option output="bin/Release/bim-solver-BSSN" prefix_auto="1" extension_auto="1" />
-				<Option working_dir="run/" />
+				<Option working_dir="../run/" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
@@ -52,7 +52,6 @@
 		<Linker>
 			<Add option="-m64" />
 		</Linker>
-		<Unit filename="src/bim-solver-BSSN.cpp" />
 		<Unit filename="include/bimetricModel.h" />
 		<Unit filename="include/cBSSNmaximalSlice.h" />
 		<Unit filename="include/documentation.h" />
@@ -90,6 +89,7 @@
 		<Unit filename="include/sys/paramsHolder.h" />
 		<Unit filename="include/sys/slog.h" />
 		<Unit filename="include/sys/trackUsedTime.h" />
+		<Unit filename="src/bim-solver-BSSN.cpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />
