@@ -52,7 +52,6 @@
 		<Linker>
 			<Add option="-m64" />
 		</Linker>
-		<Unit filename="src/bim-solver-BSSN.cpp" />
 		<Unit filename="include/bimetricModel.h" />
 		<Unit filename="include/cBSSNmaximalSlice.h" />
 		<Unit filename="include/documentation.h" />
@@ -76,10 +75,10 @@
 		<Unit filename="include/maximalSlice.h" />
 		<Unit filename="include/numMethods.h" />
 		<Unit filename="include/numMethods/SavitzkyGolayCoeff.h" />
-		<Unit filename="include/numMethods/adaptive_MoL.h" />
 		<Unit filename="include/numMethods/bandSol.h" />
 		<Unit filename="include/numMethods/cubicSpline.h" />
 		<Unit filename="include/numMethods/dataTypes.h" />
+		<Unit filename="include/numMethods/embeddedMoL.h" />
 		<Unit filename="include/numMethods/finiteDifferences.h" />
 		<Unit filename="include/numMethods/matrix.h" />
 		<Unit filename="include/numMethods/methodOfLines.h" />
@@ -90,6 +89,7 @@
 		<Unit filename="include/sys/paramsHolder.h" />
 		<Unit filename="include/sys/slog.h" />
 		<Unit filename="include/sys/trackUsedTime.h" />
+		<Unit filename="src/bim-solver-BSSN.cpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />
