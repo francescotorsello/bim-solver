@@ -23,9 +23,13 @@
     #define OBSERVER 1
 #endif // OBSERVER
 
-#ifndef OBSERVER
+#ifndef _EVOLVE_DSIG
     #define _EVOLVE_DSIG 0
 #endif // _EVOLVE_DSIG
+
+#ifndef _DETECT_NAN
+    #define _DETECT_NAN 1
+#endif // _DETECT_NAN
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Declare our grid functions (they must be in advance known to the grid-driver)
@@ -314,9 +318,12 @@ namespace fld
         { fDconf,    "fDconf",     "D _\\psi"                       },
         { gtrK,      "gtrK",       "K"                              },
         { ftrK,      "ftrK",       "\\tilde K"                      },
+
         { gA,        "gA",         "A"                              },
         { gB,        "gb",         "b"                              },
         { gDA,       "gDA",        "D_A"                            },
+        { gDA_r,     "gDA_r",      "\\partial _r D_A"               },
+        { gDB_r,     "gDb_r",      "\\partial _r  D_b"              },
         { gDB,       "gDb",        "D_b"                            },
         { gA1,       "gA1",        "A_1"                            },
         { gA2,       "gA2",        "A_2"                            },
@@ -332,7 +339,9 @@ namespace fld
         { fA,        "fA",         "\\tilde A"                      },
         { fB,        "fb",         "\\tilde b"                      },
         { fDA,       "fDA",        "\\tilde D_A"                    },
+        { fDA_r,     "fDA_r",      "\\partial _r \\tilde D_A"       },
         { fDB,       "fDb",        "\\tilde D_b"                    },
+        { fDB_r,     "fDb_r",      "\\partial _r \\tilde D_b"       },
         { fA1,       "fA1",        "\\tilde A_1"                    },
         { fA2,       "fA2",        "\\tilde A_2"                    },
         { fL,        "fL",         "\\tilde \\Lambda"               },
@@ -527,6 +536,7 @@ class BimetricEvolve
     Int cub2n;     //!< Left grid-zone cubic spline smoothing (default: `5*nGhost/2+6`)
     Real delta_t;  //!< The integration step (obtained from the integrator)
     Int smooth;    //!< Smooth the fields (level of smoothness)
+    Int nSmoothUpTo;    //!< Smooth up to this point
 
     /////////////////////////////////////////////////////////////////////////////////////
     /** @defgroup g5 Macros to access data in a grid                                   */
@@ -1122,10 +1132,11 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
     };
     std::string name = params.get( "slicing.method", slicing, 0, knownSlicings );
 
-    params.get( "slicing.lin2n",  lin2n,  nGhost             );
-    params.get( "slicing.cub2n",  cub2n,  5 * nGhost / 2 + 6 );
-    params.get( "slicing.smooth", smooth, 0                  );
-    params.get( "slicing.dissipGauge",  eta,               0.0 );
+    params.get( "slicing.lin2n",        lin2n,      nGhost              );
+    params.get( "slicing.cub2n",        cub2n,      5 * nGhost / 2 + 6  );
+    params.get( "slicing.smooth",       smooth,     0                   );
+    params.get( "slicing.dissipGauge",  eta,        0.0                 );
+    nSmoothUpTo = output.get_nOut();
 
     #if _EVOLVE_DSIG
 
@@ -1490,6 +1501,7 @@ void BimetricEvolve::determineGaugeFunctions( Int m )
             fDAlp  ( m, n ) = fAlp_r(m,n) / (TINY_Real + fAlp(m,n));
             fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) )
                                / (TINY_Real + fAlp(m,n));
+
         }
 
         cubicSplineSmooth( m, fld::gDAlp_r, lin2n, cub2n );
@@ -1505,6 +1517,26 @@ void BimetricEvolve::determineGaugeFunctions( Int m )
 
 void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 {
+
+    if( smooth >= 1 )
+    {
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gA,      fld::tmp,  fld::gA,      1 );
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gB,      fld::tmp,  fld::gB,      1 );
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gDA,     fld::tmp,  fld::gDA,     1 );
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gDB,     fld::tmp,  fld::gDB,     1 );
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gA1,     fld::tmp,  fld::gA1,     1 );
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gA2,     fld::tmp,  fld::gA2,     1 );
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gtrK,    fld::tmp,  fld::gtrK,    1 );
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gconf,   fld::tmp,  fld::gconf,   1 );
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gDconf,  fld::tmp,  fld::gDconf,  1 );
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gL,      fld::tmp,  fld::gL,      -1 );
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gLr,     fld::tmp,  fld::gLr,      1 );
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gDAlpr,  fld::tmp,  fld::gDAlpr,   1 );
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gDconfr, fld::tmp,  fld::gDconfr, 1 );
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gsig,    fld::tmp,  fld::gsig,     1 );
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gAsig,   fld::tmp,  fld::gAsig,    1 );
+
+    }
     /////////////////////////////////////////////////////////////////////////////////////
     /// - First, calculate the values of the spatial derivatives
 
@@ -1518,6 +1550,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         fA1_r    (m,n) = GF_r (fA1, m, n);
         gtrK_r   (m,n) = GF_r (gtrK, m, n);
         ftrK_r   (m,n) = GF_r (ftrK, m, n);
+
     }
 
     if( smooth >= 2 )
@@ -1666,13 +1699,16 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         fRicci     (m,n) = eq_fRicci    (m,n);
     }
 
-    if( true /*smooth >= 1*/ )
+    if( smooth >= 1 )
     {
-        //smoothenGF ( m, fld::gsig,         fld::tmp, fld::gsig,        +1 );
-        //smoothenGF ( m, fld::gsig_r,       fld::tmp, fld::gsig_r,      -1 );
-        //smoothenGF0 ( m, 5 * nGhost, fld::gDsig,       fld::tmp, fld::gDsig,      -1 );
-        //smoothenGF0 ( m, 2 * nGhost, fld::gsig_r,      fld::tmp, fld::gsig_r,      -1 );
-        cubicSplineSmooth( m, fld::gsig_r, lin2n, cub2n );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDA_r,    fld::tmp,  fld::gDA_r,     1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDB_r,    fld::tmp,  fld::gDB_r,     1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gL_r,    fld::tmp,  fld::gL_r,     1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gLr_r,   fld::tmp,  fld::gLr_r,     -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDconfr_r, fld::tmp,  fld::gDconfr_r, -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDAlpr_r, fld::tmp,  fld::gDAlpr_r, -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gsig_r, fld::tmp,  fld::gsig_r, -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gAsig_r, fld::tmp,  fld::gAsig_r, -1 );
     }
 
     if( smooth >= 2 ) /// @todo: check the parities
@@ -1919,6 +1955,78 @@ bool BimetricEvolve::integStep_Diagnostics( Int m, Int chkNaNs_nFrom, Int chkNaN
                       << ", r = " << r(m,n) << std::endl;
             return false;
         }
+
+        #if _DETECT_NAN /// Track more fields to have a better information in the output
+
+            /// The fields in the g-sector
+
+            else if( std::isnan( gB( m, n ) ) ) {
+                std::cerr << "*** Detected gB NaN at t = " << t(m,n)
+                        << ", r = " << r(m,n) << std::endl;
+                return false;
+            } else if( std::isnan( gDA( m, n ) ) ) {
+                std::cerr << "*** Detected gDA NaN at t = " << t(m,n)
+                        << ", r = " << r(m,n) << std::endl;
+                return false;
+            } else if( std::isnan( gDB( m, n ) ) ) {
+                std::cerr << "*** Detected gDB NaN at t = " << t(m,n)
+                        << ", r = " << r(m,n) << std::endl;
+                return false;
+            } else if( std::isnan( gA1( m, n ) ) ) {
+                std::cerr << "*** Detected gA1 NaN at t = " << t(m,n)
+                        << ", r = " << r(m,n) << std::endl;
+                return false;
+            } else if( std::isnan( gA2( m, n ) ) ) {
+                std::cerr << "*** Detected gA2 NaN at t = " << t(m,n)
+                        << ", r = " << r(m,n) << std::endl;
+                return false;
+            } else if( std::isnan( gconf( m, n ) ) ) {
+                std::cerr << "*** Detected gconf NaN at t = " << t(m,n)
+                        << ", r = " << r(m,n) << std::endl;
+                return false;
+            } else if( std::isnan( gtrK( m, n ) ) ) {
+                std::cerr << "*** Detected gtrK NaN at t = " << t(m,n)
+                        << ", r = " << r(m,n) << std::endl;
+                return false;
+            }
+
+            /// The fields in the f-sector
+
+            else if( std::isnan( fA( m, n ) ) ) {
+                std::cerr << "*** Detected fA NaN at t = " << t(m,n)
+                        << ", r = " << r(m,n) << std::endl;
+                return false;
+            } else if( std::isnan( fB( m, n ) ) ) {
+                std::cerr << "*** Detected fB NaN at t = " << t(m,n)
+                        << ", r = " << r(m,n) << std::endl;
+                return false;
+            } else if( std::isnan( fDA( m, n ) ) ) {
+                std::cerr << "*** Detected fDA NaN at t = " << t(m,n)
+                        << ", r = " << r(m,n) << std::endl;
+                return false;
+            } else if( std::isnan( fDB( m, n ) ) ) {
+                std::cerr << "*** Detected fDB NaN at t = " << t(m,n)
+                        << ", r = " << r(m,n) << std::endl;
+                return false;
+            } else if( std::isnan( fA1( m, n ) ) ) {
+                std::cerr << "*** Detected fA1 NaN at t = " << t(m,n)
+                        << ", r = " << r(m,n) << std::endl;
+                return false;
+            } else if( std::isnan( fA2( m, n ) ) ) {
+                std::cerr << "*** Detected fA2 NaN at t = " << t(m,n)
+                        << ", r = " << r(m,n) << std::endl;
+                return false;
+            } else if( std::isnan( fconf( m, n ) ) ) {
+                std::cerr << "*** Detected fconf NaN at t = " << t(m,n)
+                        << ", r = " << r(m,n) << std::endl;
+                return false;
+            } else if( std::isnan( ftrK( m, n ) ) ) {
+                std::cerr << "*** Detected ftrK NaN at t = " << t(m,n)
+                        << ", r = " << r(m,n) << std::endl;
+                return false;
+            }
+
+        #endif // _DETECT_NAN
     }
     return true;
 }

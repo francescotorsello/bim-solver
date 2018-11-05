@@ -47,6 +47,7 @@
 			<Add option="-DV_SIGN=-" />
 			<Add option="-DCFDS_ORDER=6" />
 			<Add option="-D_EVOLVE_DSIG=0" />
+			<Add option="-D_DETECT_NAN=1" />
 			<Add directory="include" />
 		</Compiler>
 		<Linker>
@@ -72,7 +73,6 @@
 		<Unit filename="include/grid/gridInitialData.h" />
 		<Unit filename="include/grid/gridOutput.h" />
 		<Unit filename="include/grid/integrator.h" />
-		<Unit filename="include/maximalSlice.h" />
 		<Unit filename="include/numMethods.h" />
 		<Unit filename="include/numMethods/SavitzkyGolayCoeff.h" />
 		<Unit filename="include/numMethods/adaptive_MoL.h" />

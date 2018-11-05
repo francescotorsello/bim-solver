@@ -347,7 +347,7 @@ public:
     void applyBoundaryConditions( Int m, Int gf, Int parity );
     void smoothenGF( Int m, Int outgf, Int tmpgf, Int ingf, Int parity );
     void smoothenGF2( Int m, Int outgf, Int tmpgf, Int ingf, Int parity );
-    void smoothenGF0( Int m, Int nCopyTo, Int outgf, Int tmpgf, Int ingf, Int parity );
+    void smoothenGF0( Int m, Int nCopyTo, Int sgRadius, Int outgf, Int tmpgf, Int ingf, Int parity );
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -548,10 +548,10 @@ void GridUser::smoothenGF( Int m, Int copy2gf, Int outgf, Int ingf, Int parity )
     }
 }
 
-void GridUser::smoothenGF0( Int m, Int nCopyTo, Int copy2gf, Int outgf, Int ingf, Int parity )
+void GridUser::smoothenGF0( Int m, Int nCopyTo, Int sgRadius, Int copy2gf, Int outgf, Int ingf, Int parity )
 {
     // Smoothing parameters:
-    Int sgRadius = 32;  // Default kernel radius
+    //Int sgRadius = 32;  // Default kernel radius
     Int order    = 2;   // Polynomial order is twice of this
     Int guard    = 3;   // guard buffer between NaN and the convolution window
 
@@ -615,7 +615,7 @@ void GridUser::smoothenGF0( Int m, Int nCopyTo, Int copy2gf, Int outgf, Int ingf
     //
     if( copy2gf >= 0 )
     {
-        OMP_parallel_for( Int n = nFrom; n < nCopyTo; ++n ) {
+        OMP_parallel_for( Int n = nFrom < 0 ? 0 : nFrom; n < nCopyTo; ++n ) { ///@fixme Int n = nFrom
             GF( copy2gf, m, n ) = GF( outgf, m, n );
         }
     }
