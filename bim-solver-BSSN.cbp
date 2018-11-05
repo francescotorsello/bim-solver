@@ -46,7 +46,7 @@
 			<Add option="-m64" />
 			<Add option="-DV_SIGN=-" />
 			<Add option="-DCFDS_ORDER=6" />
-			<Add option="-D_EVOLVE_DSIG=1" />
+			<Add option="-D_EVOLVE_DSIG=0" />
 			<Add directory="include" />
 		</Compiler>
 		<Linker>

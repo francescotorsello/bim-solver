@@ -23,7 +23,7 @@
  *       Algorithm for computing natural cubic splines </a>
  *  @see <a href="http://mathfaculty.fullerton.edu/mathews/n2003/CubicSplinesMod.html">
  *       Cubic splines module </a>
- *  @see Mathmatica notebook `Natural cubic spline.nb` used for tests
+ *  @see Mathematica notebook `Natural cubic spline.nb` used for tests
  */
 class CubicSpline
 {

@@ -112,7 +112,7 @@ protected:
     Int   nLen;      //!< Number of our cells in `r`-direction
     Int   nGhost;    //!< Number of virtual (ghost) cells on the `r`-boundary
     Int   nTotal;    //!< Total number of `r`-cells (`nTotal = nLen + 2 * nGhost`)
-    Real  delta_r;   //!< The grid spacing accross `r`
+    Real  delta_r;   //!< The grid spacing across `r`
                      //   Temporal discretization:
     Int   mLen;      //!< Number of cached cells in `t`-direction
     Int   mExtra;    //!< Number of extra cells (for integration substeps)
@@ -308,15 +308,15 @@ public:
 
     /** Cubic spline smoother of a grid function.
      */
-    void cubicSplineShmooth( Int m, Int gf, Int lin2n, Int cub2n )
+    void cubicSplineSmooth( Int m, Int gf, Int lin2n, Int cub2n )
     {
         // The accuracy is very low at low r. Assume that a few first cells are linear.
         //
         if( lin2n > 0 )
         {
-            Real dydx = delta_r * GF(gf,m,nGhost+lin2n) / r(m,nGhost+lin2n);
+            Real dydx = delta_r * GF( gf, m, nGhost + lin2n ) / r( m, nGhost + lin2n );
             for ( Int i = 0; i < lin2n; ++i ) {
-                GF(gf,m,nGhost+i) = ( i + 0.5 ) * dydx;
+                GF( gf , m, nGhost + i ) = ( i + 0.5 ) * dydx;
             }
         }
 
@@ -327,17 +327,17 @@ public:
             static CubicSpline spline( 6 );
 
             Real pts[6][2] = {
-                { r(m,nGhost           ),   GF(gf,m,nGhost           ) },
-                { r(m,nGhost + 3       ),   GF(gf,m,nGhost + 3       ) },
-                { r(m,nGhost + cub2n/2 ),   GF(gf,m,nGhost + cub2n/2 ) },
-                { r(m,nGhost + cub2n-6 ),   GF(gf,m,nGhost + cub2n-6 ) },
-                { r(m,nGhost + cub2n-3 ),   GF(gf,m,nGhost + cub2n-3 ) },
-                { r(m,nGhost + cub2n   ),   GF(gf,m,nGhost + cub2n   ) }
+                { r( m, nGhost           ),   GF( gf, m, nGhost           ) },
+                { r( m, nGhost + 3       ),   GF( gf, m, nGhost + 3       ) },
+                { r( m, nGhost + cub2n/2 ),   GF( gf, m, nGhost + cub2n/2 ) },
+                { r( m, nGhost + cub2n-6 ),   GF( gf, m, nGhost + cub2n-6 ) },
+                { r( m, nGhost + cub2n-3 ),   GF( gf, m, nGhost + cub2n-3 ) },
+                { r( m, nGhost + cub2n   ),   GF( gf, m, nGhost + cub2n   ) }
             };
             spline.initialize( pts );
 
             for( Int i = 0; i < cub2n; ++i ) {
-                GF(gf,m,nGhost+i) = spline( r(m,nGhost+i) );
+                GF( gf, m, nGhost + i ) = spline( r( m, nGhost + i ) );
             }
         }
     }
@@ -347,6 +347,7 @@ public:
     void applyBoundaryConditions( Int m, Int gf, Int parity );
     void smoothenGF( Int m, Int outgf, Int tmpgf, Int ingf, Int parity );
     void smoothenGF2( Int m, Int outgf, Int tmpgf, Int ingf, Int parity );
+    void smoothenGF0( Int m, Int nCopyTo, Int outgf, Int tmpgf, Int ingf, Int parity );
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -492,7 +493,6 @@ void GridUser::smoothenGF( Int m, Int copy2gf, Int outgf, Int ingf, Int parity )
     while( nTo >= nGhost && std::isnan( GF( ingf, m, nTo - 1 ) ) ) {
         --nTo;
     }
-    nTo = 2*nGhost; ///@fixme this line should be removed
 
     OMP_parallel_for( Int n = nFrom < 0 ? 0 : nFrom ; n < nTo; ++n )
     {
@@ -542,7 +542,80 @@ void GridUser::smoothenGF( Int m, Int copy2gf, Int outgf, Int ingf, Int parity )
     //
     if( copy2gf >= 0 )
     {
-        OMP_parallel_for( Int n = 0; n < nTotal; ++n ) {
+        OMP_parallel_for( Int n = nFrom; n < nTotal; ++n ) {
+            GF( copy2gf, m, n ) = GF( outgf, m, n );
+        }
+    }
+}
+
+void GridUser::smoothenGF0( Int m, Int nCopyTo, Int copy2gf, Int outgf, Int ingf, Int parity )
+{
+    // Smoothing parameters:
+    Int sgRadius = 32;  // Default kernel radius
+    Int order    = 2;   // Polynomial order is twice of this
+    Int guard    = 3;   // guard buffer between NaN and the convolution window
+
+    // Find the first not-NaN from the left
+    //
+    Int nFrom = nGhost;
+    while( nFrom < nTotal && std::isnan( GF( ingf, m, nFrom ) ) ) {
+        ++nFrom;
+    }
+
+    // If there were no NaN's, move nFrom as far as possible to the left
+    //
+    if( nFrom == nGhost ) {
+        nFrom = -nLen;
+    }
+
+    // Smoothen only within a region close to r=0
+    //
+    Int nTo = nGhost + nLen;
+    while( nTo >= nGhost && std::isnan( GF( ingf, m, nTo - 1 ) ) ) {
+        --nTo;
+    }
+
+    OMP_parallel_for( Int n = nFrom < 0 ? 0 : nFrom ; n < nTo; ++n )
+    {
+        // Find the minimum radius (between 0 and sgRadius)
+        //
+        Int left = n - nFrom;
+        Int right = nTo - guard - 1 - n;
+        Int rad = right < left ? right : left;
+        if ( rad < 0 ) {
+            rad = 0;
+        }
+        else if( rad > sgRadius ) {
+            rad = sgRadius;
+        }
+
+        // Convolve with the coefficients.
+        // Parity pair on the staggered grid where r(m,nGhost-1) = -r(m,nGhost) reads:
+        //
+        //    gf( m, nGhost + k ) == gf( m, nGhost-1 - k ) * parity,  where k >= 0
+        //
+        // Let k = n + i - nGhost; then:
+        //
+        //    if( k >= 0 )
+        //    then: use gf( m, nGhost + k )
+        //    else: use gf( m, nGhost-1 - k ) * parity
+        //          which is the same as gf( m, nGhost-1 - (n + i - nGhost) ) * parity
+        //          or gf( m, 2*nGhost - n - i - 1 ) * parity
+        //
+        Real sum = 0;
+        for( Int i = -rad; i <= rad; ++i ) {
+            sum += SG_coeff[rad][order][ rad + i ]
+                   * ( n + i >= nGhost ? GF( ingf, m, n + i )
+                                       : parity * GF( ingf, m, 2 * nGhost - n - i - 1 ) );
+        }
+        GF( outgf, m, n ) = sum;
+    }
+
+    // Optionally copy the output to a new location, up to the grid point nCopyTo (this is to avoid issues with the right boundary conditions)
+    //
+    if( copy2gf >= 0 )
+    {
+        OMP_parallel_for( Int n = nFrom; n < nCopyTo; ++n ) {
             GF( copy2gf, m, n ) = GF( outgf, m, n );
         }
     }

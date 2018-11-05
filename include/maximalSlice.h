@@ -313,7 +313,7 @@ void BimetricEvolve::maximalSlice_PostSteps( Int m, Int N )
     // The accuracy is very low at low r. Assume that a few first cells are linear,
     // then apply a six-point cubic spline to smooth the region around r = 0.
     //
-    cubicSplineShmooth( m, fld::gDAlp, lin2n, cub2n );
+    cubicSplineSmooth( m, fld::gDAlp, lin2n, cub2n );
 
     // Fix the left boundary using parity BC
     //

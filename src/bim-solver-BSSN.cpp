@@ -24,7 +24,7 @@
 #endif // OBSERVER
 
 #ifndef OBSERVER
-    #define _EVOLVE_DSIG 1
+    #define _EVOLVE_DSIG 0
 #endif // _EVOLVE_DSIG
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -304,8 +304,10 @@ namespace fld
     {
         { gAlp,      "gAlp",       "\\alpha"                        },
         { gDAlp,     "gDAlp",      "D_\\alpha"                      },
+        { gDAlp_r,   "gDAlp_r",    "\\partial _r D_\\alpha"         },
         { fAlp,      "fAlp",       "\\tilde \\alpha"                },
         { fDAlp,     "fDAlp",      "\\tilde D_\\alpha"              },
+        { fDAlp_r,   "fDAlp_r",    "\\partial _r \\tilde D_\\alpha" },
         { gconf,     "gconf",      "\\phi"                          },
         { fconf,     "fconf",      "\\psi"                          },
         { gDconf,    "gDconf",     "D _\\phi"                       },
@@ -1432,6 +1434,9 @@ void BimetricEvolve::determineGaugeFunctions( Int m )
             Real dbg3 = fDAlp_r(m,n);*/
 
         }
+
+        cubicSplineSmooth( m, fld::gDAlp_r, lin2n, cub2n );
+        cubicSplineSmooth( m, fld::fDAlp_r, lin2n, cub2n );
     }
     else // if not GR
     {
@@ -1486,6 +1491,9 @@ void BimetricEvolve::determineGaugeFunctions( Int m )
             fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) )
                                / (TINY_Real + fAlp(m,n));
         }
+
+        cubicSplineSmooth( m, fld::gDAlp_r, lin2n, cub2n );
+        cubicSplineSmooth( m, fld::fDAlp_r, lin2n, cub2n );
     }
 }
 
@@ -1662,7 +1670,9 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
     {
         //smoothenGF ( m, fld::gsig,         fld::tmp, fld::gsig,        +1 );
         //smoothenGF ( m, fld::gsig_r,       fld::tmp, fld::gsig_r,      -1 );
-        smoothenGF ( m, fld::gDsig,       fld::tmp, fld::gDsig,      -1 );
+        //smoothenGF0 ( m, 5 * nGhost, fld::gDsig,       fld::tmp, fld::gDsig,      -1 );
+        //smoothenGF0 ( m, 2 * nGhost, fld::gsig_r,      fld::tmp, fld::gsig_r,      -1 );
+        cubicSplineSmooth( m, fld::gsig_r, lin2n, cub2n );
     }
 
     if( smooth >= 2 ) /// @todo: check the parities
