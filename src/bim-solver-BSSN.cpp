@@ -18,6 +18,7 @@
 #include "sys/trackUsedTime.h" // Keep track of the elapsed time of the application
 #include "sys/paramsHolder.h"  // Holds 'key=value' pairs got from the parameter file
 #include "sys/hpc.h"           // High-Performance Computing (HPC) support
+//#include "sys/nr3.h"
 
 #ifndef OBSERVER
     #define OBSERVER 1
@@ -1520,6 +1521,11 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     if( smooth >= 1 )
     {
+        //smoothenGF0 ( m, nSmoothUpTo, 32,  fld::q,       fld::tmp,  fld::q,      1 );
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::qr,      fld::tmp,  fld::qr,      1 );
+        //smoothenGF0 ( m, nSmoothUpTo, 32,  fld::p,       fld::tmp,  fld::p,      1 );
+        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::pr,      fld::tmp,  fld::pr,      1 );
+
         smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gA,      fld::tmp,  fld::gA,      1 );
         smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gB,      fld::tmp,  fld::gB,      1 );
         smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gDA,     fld::tmp,  fld::gDA,     1 );
@@ -1701,6 +1707,15 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     if( smooth >= 1 )
     {
+        /*smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::q_r,    fld::tmp,  fld::q_r,     1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::q_rr,    fld::tmp,  fld::q_rr,     -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::qr_r,    fld::tmp,  fld::qr_r,     -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::qr_rr,    fld::tmp,  fld::qr_rr,     1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::p_r,    fld::tmp,  fld::p_r,     1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::p_rr,    fld::tmp,  fld::p_rr,     -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::pr_r,    fld::tmp,  fld::pr_r,     -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::pr_rr,    fld::tmp,  fld::pr_rr,     1 );*/
+
         smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDA_r,    fld::tmp,  fld::gDA_r,     1 );
         smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDB_r,    fld::tmp,  fld::gDB_r,     1 );
         smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gL_r,    fld::tmp,  fld::gL_r,     1 );
@@ -1709,51 +1724,38 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDAlpr_r, fld::tmp,  fld::gDAlpr_r, -1 );
         smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gsig_r, fld::tmp,  fld::gsig_r, -1 );
         smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gAsig_r, fld::tmp,  fld::gAsig_r, -1 );
+
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gconf_r,    fld::tmp,  fld::gconf_r,     -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gconf_rr,    fld::tmp,  fld::gconf_rr,     1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fconf_r,    fld::tmp,  fld::fconf_r,     -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fconf_rr,    fld::tmp,  fld::fconf_rr,     1 );
+
     }
 
-    if( smooth >= 2 ) /// @todo: check the parities
+
+    if( smooth >= 1 )
     {
-        smoothenGF( m, fld::gconf_r,      fld::tmp, fld::gconf_r,     -1 );
-        smoothenGF( m, fld::gDconf_r,     fld::tmp, fld::gDconf_r,    +1 );
-        smoothenGF( m, fld::fconf_r,      fld::tmp, fld::fconf_r,     -1 );
-        smoothenGF( m, fld::fDconf_r,     fld::tmp, fld::fDconf_r,    +1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA_r,    fld::tmp,  fld::gA_r,     -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA_rr,    fld::tmp,  fld::gA_rr,     1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gB_r,    fld::tmp,  fld::gB_r,     -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gB_rr,    fld::tmp,  fld::gB_rr,     1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fA_r,    fld::tmp,  fld::fA_r,     -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fA_rr,    fld::tmp,  fld::fA_rr,     1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fB_r,    fld::tmp,  fld::fB_r,     -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fB_rr,    fld::tmp,  fld::fB_rr,     1 );
 
-        smoothenGF( m, fld::gA_r,         fld::tmp, fld::gA_r,        -1 );
-        smoothenGF( m, fld::gDA_r,        fld::tmp, fld::gDA_r,       +1 );
-        smoothenGF( m, fld::fA_r,         fld::tmp, fld::fA_r,        -1 );
-        smoothenGF( m, fld::fDA_r,        fld::tmp, fld::fDA_r,       +1 );
-        smoothenGF( m, fld::gB_r,         fld::tmp, fld::gB_r,        -1 );
-        smoothenGF( m, fld::gDB_r,        fld::tmp, fld::gDB_r,       +1 );
-        smoothenGF( m, fld::fB_r,         fld::tmp, fld::fB_r,        -1 );
-        smoothenGF( m, fld::fDB_r,        fld::tmp, fld::fDB_r,       +1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA1_r,    fld::tmp,  fld::gA1_r,     -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA1_rr,    fld::tmp,  fld::gA1_rr,     1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA2_r,    fld::tmp,  fld::gA2_r,     -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fA1_r,    fld::tmp,  fld::fA1_r,     -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fA1_rr,    fld::tmp,  fld::fA1_rr,     1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fA2_r,    fld::tmp,  fld::fA2_r,     -1 );
 
-        smoothenGF( m, fld::gA1_r,        fld::tmp, fld::gA1_r,       -1 );
-        smoothenGF( m, fld::fA2_r,        fld::tmp, fld::fA2_r,       -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gtrK_r,    fld::tmp,  fld::gtrK_r,     -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gtrK_rr,    fld::tmp,  fld::gtrK_rr,     1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::ftrK_r,    fld::tmp,  fld::ftrK_r,     -1 );
+        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::ftrK_rr,    fld::tmp,  fld::ftrK_rr,     1 );
 
-        smoothenGF( m, fld::gL_r,         fld::tmp, fld::gL_r,        +1 );
-        smoothenGF( m, fld::gAsig_r,      fld::tmp, fld::gAsig_r,     -1 );
-        smoothenGF( m, fld::fL_r,         fld::tmp, fld::fL_r,        +1 );
-        smoothenGF( m, fld::fAsig_r,      fld::tmp, fld::fAsig_r,     -1 );
-
-        smoothenGF( m, fld::gDconfr_r,    fld::tmp, fld::gDconfr_r,   -1 );
-        smoothenGF( m, fld::fDconfr_r,    fld::tmp, fld::fDconfr_r,   -1 );
-
-        smoothenGF( m, fld::gDAlpr_r,     fld::tmp, fld::gDAlpr_r,    -1 );
-        smoothenGF( m, fld::fDAlpr_r,     fld::tmp, fld::fDAlpr_r,    -1 );
-
-        smoothenGF( m, fld::gLr_r,        fld::tmp, fld::gLr_r,       -1 );
-        smoothenGF( m, fld::fLr_r,        fld::tmp, fld::fLr_r,       -1 );
-
-        smoothenGF( m, fld::pr_r,         fld::tmp, fld::pr_r,        -1 );
-        smoothenGF( m, fld::qr_r,         fld::tmp, fld::qr_r,        -1 );
-
-        smoothenGF( m, fld::R_r,          fld::tmp, fld::R_r,         -1 );
-
-        smoothenGF( m, fld::pfD_r,        fld::tmp, fld::pfD_r,       -1 );
-        smoothenGF( m, fld::pfS_r,        fld::tmp, fld::pfS_r,       -1 );
-        smoothenGF( m, fld::pftau_r,      fld::tmp, fld::pftau_r,     -1 );
-        smoothenGF( m, fld::pfv_r,        fld::tmp, fld::pfv_r,       -1 );
-        smoothenGF( m, fld::gj_r,         fld::tmp, fld::gj_r,        -1 );
     }
 
     /////////////////////////////////////////////////////////////////////////////////////
@@ -1874,12 +1876,6 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     }
 
-    if( smooth >= 2 ) /// @todo: check the parities
-    {
-        smoothenGF2( m, fld::gAsig_t, fld::tmp, fld::gAsig_t,  +1 );
-        smoothenGF2( m, fld::fAsig_t, fld::tmp, fld::fAsig_t,  +1 );
-    }
-
     /////////////////////////////////////////////////////////////////////////////////////
     /// - Smoothen the time derivatives inside the grid zone near the outer boundary
     /// @todo Smoothen the time derivatives inside the left grid zone
@@ -1957,6 +1953,17 @@ bool BimetricEvolve::integStep_Diagnostics( Int m, Int chkNaNs_nFrom, Int chkNaN
         }
 
         #if _DETECT_NAN /// Track more fields to have a better information in the output
+
+            /*for( auto e: evolvedGF ) {
+
+                if( std::isnan( GF( e.f, m, n ) ) )
+                {
+                    std::cerr << "*** Detected " <<  << " NaN at t = " << t(m,n)
+                            << ", r = " << r(m,n) << std::endl;
+                    return false;
+                }
+
+            }*/ ///@fixme how to print the field names? Use bimOutput?
 
             /// The fields in the g-sector
 

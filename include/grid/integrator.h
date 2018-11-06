@@ -20,9 +20,9 @@
 
 /** Encapsulates an adaptive stepper for Runge-Kutta methods.
  *
- *  The implementation is based on ode45.m that was originally written 
- *  by Marc Compere (2001-07-03) under the GPL for octave, which was further adapted 
- *  by Thomas Treichl (2006-08-10) to the new syntax that is used by the odepkg 
+ *  The implementation is based on ode45.m that was originally written
+ *  by Marc Compere (2001-07-03) under the GPL for octave, which was further adapted
+ *  by Thomas Treichl (2006-08-10) to the new syntax that is used by the odepkg
  *  for octave to be compatible to LabMat's ode45.
  *
  *  References: @cite Dormand:1980rk, @cite Ascher:1998com, @cite Butcher:2008num
@@ -112,10 +112,10 @@ public:
     void showParameters ()
     {
         slog << "Using adaptive stepper:" << std::endl << std::endl
-             << "    minStepsize = " << minStepsize
-             << ",  maxStepsize = " << maxStepsize << std::endl
+             << "    minStepsize = "  << minStepsize
+             << ",  maxStepsize = "   << maxStepsize << std::endl
              << "    absTolerance = " << absTolerance
-             << ",  relTolerance = " << relTolerance
+             << ",  relTolerance = "  << relTolerance
              << ",  maxIterations = " << maxIterations
              << std::endl << std::endl;
     }

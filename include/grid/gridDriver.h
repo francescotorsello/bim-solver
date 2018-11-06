@@ -623,4 +623,6 @@ void GridUser::smoothenGF0( Int m, Int nCopyTo, Int sgRadius, Int copy2gf, Int o
                                                                                    /*@}*/
 /////////////////////////////////////////////////////////////////////////////////////////
 
+//#include "numMethods/SavitzkyGolayFilter.h"
+
 #endif // _GRID_DRIVER_H_INCLUDED
