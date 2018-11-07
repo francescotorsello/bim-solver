@@ -10,7 +10,7 @@
 #define _FINITE_DIFFERENCES_H_INCLUDED
 
 /////////////////////////////////////////////////////////////////////////////////////////
-/** @defgroup g11 Numerical Methods                                                    */
+/** @defgroup g11 Centered stencils                                                    */
 /////////////////////////////////////////////////////////////////////////////////////////
                                                                                    /*@{*/
 #ifndef CFDS_ORDER
@@ -147,6 +147,84 @@
 #endif
 
 /////////////////////////////////////////////////////////////////////////////////////////
+/** @defgroup g12 Upwind differencing scheme for convection
+  * References
+  * [1] arXiv:1810.12346 [gr-qc] (p.5),
+  * [2] https://en.wikipedia.org/wiki/Upwind_scheme,
+  * [3] https://en.wikipedia.org/wiki/Upwind_differencing_scheme _for _convection,
+  * [4] Patankar, S. V. (1980). Numerical Heat Transfer and Fluid Flow. Taylor &
+  *     Francis. ISBN 978-0-89116-522-4 (p.83).
+  */
+/////////////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// Macros to emit the convective spatial derivatives (upwind stencils)
+//
+// Convention. If f() denotes a function, then f_r() denotes a spatial derivative,
+// f_t() denotes a time derivative, and f_rr() denotes the 2nd derivative in r.
+//
+
+#ifndef _UPWIND
+    #define _UPWIND 1
+#endif // _UPWIND
+
+#if _UPWIND
+
+    #define GF_convr(bf,f,m,n)     ( bf(m,n) > 0 ? bf(m,n) * GF_convru(f,m,n) \
+                                             : bf(m,n) * GF_convrd(f,m,n) )
+
+#else
+
+    #define GF_convr(bf,f,m,n)     bf(m,n) * GF_r(f,m,n)
+
+#endif // _UPWIND
+
+#if CFDS_ORDER == 2 // Second order central finite difference scheme
+
+    #define GF_convru(f,m,n)   ( ((-3.*f(m,n))/2. + 2.*f(m,1 + n) - f(m,2 + n)/2.) * inv_delta_r )
+
+    #define GF_convrru(f,m,n)  ( ( f(m,n) - 2.*f(m,1 + n) + f(m,2 + n) ) * inv_delta_rr )
+
+    #define GF_convrd(f,m,n)   ( (f(m,-2 + n)/2. - 2.*f(m,-1 + n) + (3.*f(m,n))/2.) * inv_delta_r )
+
+    #define GF_convrrd(f,m,n)  ( ( f(m,-2 + n) - 2.*f(m,-1 + n) + f(m,n) ) * inv_delta_rr )
+
+#elif CFDS_ORDER == 4 // Fourth order central finite difference scheme
+
+    #define GF_convru(f,m,n)   (( -f(m,-1 + n)/4. - (5.*f(m,n))/6. + (3.*f(m,1 + n))/2. - f(m,2 + n)/2. + f(m,3 + n)/12. ) * inv_delta_r )
+
+    #define GF_convrru(f,m,n)  ( ( (11.*f(m,-1 + n))/12. - (5.*f(m,n))/3. + f(m,1 + n)/2. + f(m,2 + n)/3. - f(m,3 + n)/12. ) * inv_delta_rr )
+
+    #define GF_convrd(f,m,n)   (( -f(m,-3 + n)/12. + f(m,-2 + n)/2. - (3.*f(m,-1 + n))/2. + (5.*f(m,n))/6. + f(m,1 + n)/4. ) * inv_delta_r )
+
+    #define GF_convrrd(f,m,n)  ( ( -f(m,-3 + n)/12. + f(m,-2 + n)/3. + f(m,-1 + n)/2. - (5.*f(m,n))/3. + (11.*f(m,1 + n))/12. ) * inv_delta_rr )
+
+
+#elif CFDS_ORDER == 6 // Sixth order central finite difference scheme
+
+    #define GF_convru(f,m,n)   (( -f(m,-1 + n)/6. - (77.*f(m,n))/60. + (5.*f(m,1 + n))/2. - (5.*f(m,2 + n))/3. + (5.*f(m,3 + n))/6. - f(m,4 + n)/4. + f(m,5 + n)/30. ) * inv_delta_r )
+
+    #define GF_convrru(f,m,n)  ( ( (137.*f(m,-1 + n))/180. - (49.*f(m,n))/60. - (17.*f(m,1 + n))/12. + (47.*f(m,2 + n))/18. - (19.*f(m,3 + n))/12. + (31.*f(m,4 + n))/60. - (13.*f(m,5 + n))/180. ) * inv_delta_rr )
+
+    #define GF_convrd(f,m,n)   (( -f(m,-5 + n)/30. + f(m,-4 + n)/4. - (5.*f(m,-3 + n))/6. + (5.*f(m,-2 + n))/3. - (5.*f(m,-1 + n))/2. + (77.*f(m,n))/60. + f(m,1 + n)/6. ) * inv_delta_r )
+
+    #define GF_convrrd(f,m,n)  ( ( (-13.*f(m,-5 + n))/180. + (31.*f(m,-4 + n))/60. - (19.*f(m,-3 + n))/12. + (47.*f(m,-2 + n))/18. - (17.*f(m,-1 + n))/12. - (49.*f(m,n))/60. + (137.*f(m,1 + n))/180. ) * inv_delta_rr )
+
+#elif CFDS_ORDER == 8 // Eighth order central finite difference scheme
+
+    #define GF_convru(f,m,n)   (( -f(m,-1 + n)/8. - (223.*f(m,n))/140. + (7.*f(m,1 + n))/2. - (7.*f(m,2 + n))/2. + (35.*f(m,3 + n))/12. - (7.*f(m,4 + n))/4. + (7.*f(m,5 + n))/10. - f(m,6 + n)/6. + f(m,7 + n)/56. ) * inv_delta_r )
+
+    #define GF_convrru(f,m,n)  ( ( (363.*f(m,-1 + n))/560. + (8.*f(m,n))/315. - (83.*f(m,1 + n))/20. + (153.*f(m,2 + n))/20. - (529.*f(m,3 + n))/72. + (47.*f(m,4 + n))/10. - (39.*f(m,5 + n))/20. + (599.*f(m,6 + n))/1260. - (29.*f(m,7 + n))/560. ) * inv_delta_rr )
+
+    #define GF_convrd(f,m,n)   (( -f(m,-7 + n)/56. + f(m,-6 + n)/6. - (7.*f(m,-5 + n))/10. + (7.*f(m,-4 + n))/4. - (35.*f(m,-3 + n))/12. + (7.*f(m,-2 + n))/2. - (7.*f(m,-1 + n))/2. + (223.*f(m,n))/140. + f(m,1 + n)/8. ) * inv_delta_r )
+
+    #define GF_convrrd(f,m,n)  ( ( (-29.*f(m,-7 + n))/560. + (599.*f(m,-6 + n))/1260. - (39.*f(m,-5 + n))/20. + (47.*f(m,-4 + n))/10. - (529.*f(m,-3 + n))/72. + (153.*f(m,-2 + n))/20. - (83.*f(m,-1 + n))/20. + (8.*f(m,n))/315. + (363.*f(m,1 + n))/560. ) * inv_delta_rr )
+
+#else
+    #error "CFDS_ORDER must be either 2, 4, 6, or 8"
+#endif
+
+/////////////////////////////////////////////////////////////////////////////////////////
 /** `KreissOligerTerm` is a macro that gives a Kreiss-Oliger dissipation term.
  *
  *  Coefficients d_k at gridpoints for the centred finite-difference discretisation
@@ -179,6 +257,10 @@
  *
  *  @see Rezzolla and Zanotti, Relativistic Hydrodynamics, 2013,
  *       @cite Rezzolla:2013rel
+ *
+ *  @fixme The order of the Kreiss-Oliger term depends on the order of the TIME
+ *         integration. This is not implemented yet. Check [1, p.5].
+ *
  */
 #if CFDS_ORDER == 2
 
