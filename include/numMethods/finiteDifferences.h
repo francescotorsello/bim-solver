@@ -10,7 +10,17 @@
 #define _FINITE_DIFFERENCES_H_INCLUDED
 
 /////////////////////////////////////////////////////////////////////////////////////////
-/** @defgroup g11a Centered stencils                                                   */
+/** @defgroup 11a Finite differences
+ *
+ *  Here are the macros to emit the spatial derivatives (centered, up-, or downwind)
+ *
+ *  Convention: If f() denotes a function, then f_r() denotes a spatial derivative,
+ *  f_t() denotes a time derivative, and f_rr() denotes the 2nd derivative in r.
+ *  Upwind derivatives are denoted as f_up_r() and downwind as f_down_r().
+ *
+ *  The following code is generated in the Mathematica notebook "Finite differences.nb"
+ *  which is in the directory "algorithms".
+ */
 /////////////////////////////////////////////////////////////////////////////////////////
                                                                                    /*@{*/
 #ifndef CFDS_ORDER
@@ -21,63 +31,142 @@
 
 /// @todo A run-time CFDS_ORDER?
 
-/////////////////////////////////////////////////////////////////////////////////////////
-// Macros to emit the spatial derivatives (centered in space)
-//
-// Convention. If f() denotes a function, then f_r() denotes a spatial derivative,
-// f_t() denotes a time derivative, and f_rr() denotes the 2nd derivative in r.
-//
-#if CFDS_ORDER == 2 // Second order central finite difference scheme
+#if CFDS_ORDER == 2
 
-    #define GF_r(f)   ( 0.5 * ( f(m,n+1) - f(m,n-1) ) * inv_delta_r )
+    #define GF_r(f,m,n)  ( ( \
+        1./2. * f(m,n+1) - 1./2. * f(m,n-1) \
+    ) * inv_delta_r )
 
-    #define GF_rr(f)  ( ( f(m,n+1) - 2. * f(m,n) + f(m,n-1) ) * inv_delta_rr )
+    #define GF_rr(f,m,n)  ( ( \
+        f(m,n+1) - 2 * f(m,n) + f(m,n-1) \
+    ) * inv_delta_rr )
 
-#elif CFDS_ORDER == 4 // Fourth order central finite difference scheme
+    #define GF_up_r(f,m,n)  ( ( \
+        1./2. * f(m,n+1) - 1./2. * f(m,n-1) \
+    ) * inv_delta_r )
 
-    #define GF_r(f,m,n)  \
-        ( ( - 1./12. * f(m,n+2) + 2./3.  * f(m,n+1) \
-            -  2./3. * f(m,n-1) + 1./12. * f(m,n-2) \
-           ) * inv_delta_r )
+    #define GF_up_rr(f,m,n)  ( ( \
+        f(m,n+1) - 2 * f(m,n) + f(m,n-1) \
+    ) * inv_delta_rr )
 
-    #define GF_rr(f,m,n) \
-        ( ( - 1./12. * f(m,n+2) +  4./3. * f(m,n+1) - 5./2. * f(m,n) \
-            +  4./3. * f(m,n-1) - 1./12. * f(m,n-2) \
-           ) * inv_delta_rr )
+    #define GF_down_r(f,m,n)  ( ( \
+        1./2. * f(m,n+1) - 1./2. * f(m,n-1) \
+    ) * inv_delta_r )
 
-#elif CFDS_ORDER == 6 // Sixth order central finite difference scheme
+    #define GF_down_rr(f,m,n)  ( ( \
+        f(m,n+1) - 2 * f(m,n) + f(m,n-1) \
+    ) * inv_delta_rr )
 
-    #define GF_r(f,m,n) \
-        ( (    1./60. * f(m,n+3) - 9./60. * f(m,n+2) + 45./60. * f(m,n+1) \
-            - 45./60. * f(m,n-1) + 9./60. * f(m,n-2) -  1./60. * f(m,n-3) \
-           ) * inv_delta_r )
+#elif CFDS_ORDER == 4
 
-    #define GF_rr(f,m,n) \
-        ( (     2./180. * f(m,n+3) -  27./180. * f(m,n+2) + 270./180. * f(m,n+1) \
-            - 490./180. * f(m,n)   + 270./180. * f(m,n-1) -  27./180. * f(m,n-2) \
-            +   2./180. * f(m,n-3) \
-           ) * inv_delta_rr )
+    #define GF_r(f,m,n)  ( ( \
+        - 1./12. * f(m,n+2) + 2./3. * f(m,n+1) - 2./3. * f(m,n-1) + 1./12.  \
+        * f(m,n-2) \
+    ) * inv_delta_r )
 
-#elif CFDS_ORDER == 8 // Eighth order central finite difference scheme
+    #define GF_rr(f,m,n)  ( ( \
+        - 1./12. * f(m,n+2) + 4./3. * f(m,n+1) - 5./2. * f(m,n) + 4./3. * f(m,n-1) \
+        - 1./12. * f(m,n-2) \
+    ) * inv_delta_rr )
 
-    #define GF_r(f,m,n) \
-        ( ( - 1./280. * f(m,n+4) + 4./105. * f(m,n+3) - 1./5. * f(m,n+2) \
-            +   4./5. * f(m,n+1) -   4./5. * f(m,n-1) + 1./5. * f(m,n-2) \
-            - 4./105. * f(m,n-3) + 1./280. * f(m,n-4) \
-           ) * inv_delta_r )
+    #define GF_up_r(f,m,n)  ( ( \
+        1./12. * f(m,n+3) - 1./2. * f(m,n+2) + 3./2. * f(m,n+1) - 5./6. * f(m,n) \
+        - 1./4. * f(m,n-1) \
+    ) * inv_delta_r )
 
-    #define GF_rr(f,m,n) \
-        ( ( - 1./560. * f(m,n+4) +  8./135. * f(m,n+3) -   1./5. * f(m,n+2) \
-            +   8./5. * f(m,n+1) - 205./72. * f(m,n)   +   8./5. * f(m,n-1) \
-            -   1./5. * f(m,n-2) +  8./315. * f(m,n-3) - 1./560. * f(m,n-4) \
-           ) * inv_delta_rr )
+    #define GF_up_rr(f,m,n)  ( ( \
+        - 1./12. * f(m,n+3) + 1./3. * f(m,n+2) + 1./2. * f(m,n+1) - 5./3. * f(m,n) \
+        + 11./12. * f(m,n-1) \
+    ) * inv_delta_rr )
+
+    #define GF_down_r(f,m,n)  ( ( \
+        1./4. * f(m,n+1) + 5./6. * f(m,n) - 3./2. * f(m,n-1) + 1./2. * f(m,n-2) \
+        - 1./12. * f(m,n-3) \
+    ) * inv_delta_r )
+
+    #define GF_down_rr(f,m,n)  ( ( \
+        11./12. * f(m,n+1) - 5./3. * f(m,n) + 1./2. * f(m,n-1) + 1./3.  \
+        * f(m,n-2) - 1./12. * f(m,n-3) \
+    ) * inv_delta_rr )
+
+#elif CFDS_ORDER == 6
+
+    #define GF_r(f,m,n)  ( ( \
+        1./60. * f(m,n+3) - 3./20. * f(m,n+2) + 3./4. * f(m,n+1) - 3./4.  \
+        * f(m,n-1) + 3./20. * f(m,n-2) - 1./60. * f(m,n-3) \
+    ) * inv_delta_r )
+
+    #define GF_rr(f,m,n)  ( ( \
+        1./90. * f(m,n+3) - 3./20. * f(m,n+2) + 3./2. * f(m,n+1) - 49./18.  \
+        * f(m,n) + 3./2. * f(m,n-1) - 3./20. * f(m,n-2) + 1./90. * f(m,n-3) \
+    ) * inv_delta_rr )
+
+    #define GF_up_r(f,m,n)  ( ( \
+        1./30. * f(m,n+5) - 1./4. * f(m,n+4) + 5./6. * f(m,n+3) - 5./3.  \
+        * f(m,n+2) + 5./2. * f(m,n+1) - 77./60. * f(m,n) - 1./6. * f(m,n-1) \
+    ) * inv_delta_r )
+
+    #define GF_up_rr(f,m,n)  ( ( \
+        - 13./180. * f(m,n+5) + 31./60. * f(m,n+4) - 19./12. * f(m,n+3) + 47./18. \
+        * f(m,n+2) - 17./12. * f(m,n+1) - 49./60. * f(m,n) + 137./180. * f(m,n-1) \
+    ) * inv_delta_rr )
+
+    #define GF_down_r(f,m,n)  ( ( \
+        1./6. * f(m,n+1) + 77./60. * f(m,n) - 5./2. * f(m,n-1) + 5./3.  \
+        * f(m,n-2) - 5./6. * f(m,n-3) + 1./4. * f(m,n-4) - 1./30. * f(m,n-5) \
+    ) * inv_delta_r )
+
+    #define GF_down_rr(f,m,n)  ( ( \
+        137./180. * f(m,n+1) - 49./60. * f(m,n) - 17./12. * f(m,n-1) + 47./18.  \
+        * f(m,n-2) - 19./12. * f(m,n-3) + 31./60. * f(m,n-4) - 13./180. * f(m,n-5) \
+    ) * inv_delta_rr )
+
+#elif CFDS_ORDER == 8
+
+    #define GF_r(f,m,n)  ( ( \
+        - 1./280. * f(m,n+4) + 4./105. * f(m,n+3) - 1./5. * f(m,n+2) + 4./5.  \
+        * f(m,n+1) - 4./5. * f(m,n-1) + 1./5. * f(m,n-2) - 4./105. * f(m,n-3)  \
+        + 1./280. * f(m,n-4) \
+    ) * inv_delta_r )
+
+    #define GF_rr(f,m,n)  ( ( \
+        - 1./560. * f(m,n+4) + 8./315. * f(m,n+3) - 1./5. * f(m,n+2) + 8./5.  \
+        * f(m,n+1) - 205./72. * f(m,n) + 8./5. * f(m,n-1) - 1./5. * f(m,n-2)  \
+        + 8./315. * f(m,n-3) - 1./560. * f(m,n-4) \
+    ) * inv_delta_rr )
+
+    #define GF_up_r(f,m,n)  ( ( \
+        1./56. * f(m,n+7) - 1./6. * f(m,n+6) + 7./10. * f(m,n+5) - 7./4.  \
+        * f(m,n+4) + 35./12. * f(m,n+3) - 7./2. * f(m,n+2) + 7./2. * f(m,n+1)  \
+        - 223./140. * f(m,n) - 1./8. * f(m,n-1) \
+    ) * inv_delta_r )
+
+    #define GF_up_rr(f,m,n)  ( ( \
+        - 29./560. * f(m,n+7) + 599./1260. * f(m,n+6) - 39./20. * f(m,n+5)  \
+        + 47./10. * f(m,n+4) - 529./72. * f(m,n+3) + 153./20. * f(m,n+2) - 83./20.  \
+        * f(m,n+1) + 8./315. * f(m,n) + 363./560. * f(m,n-1) \
+    ) * inv_delta_rr )
+
+    #define GF_down_r(f,m,n)  ( ( \
+        1./8. * f(m,n+1) + 223./140. * f(m,n) - 7./2. * f(m,n-1) + 7./2.  \
+        * f(m,n-2) - 35./12. * f(m,n-3) + 7./4. * f(m,n-4) - 7./10. * f(m,n-5)  \
+        + 1./6. * f(m,n-6) - 1./56. * f(m,n-7) \
+    ) * inv_delta_r )
+
+    #define GF_down_rr(f,m,n)  ( ( \
+        363./560. * f(m,n+1) + 8./315. * f(m,n) - 83./20. * f(m,n-1) + 153./20. \
+        * f(m,n-2) - 529./72. * f(m,n-3) + 47./10. * f(m,n-4) - 39./20. * f(m,n-5) \
+        + 599./1260. * f(m,n-6) - 29./560. * f(m,n-7) \
+    ) * inv_delta_rr )
 
 #else
     #error "CFDS_ORDER must be either 2, 4, 6, or 8"
 #endif
-
+                                                                                   /*@}*/
 /////////////////////////////////////////////////////////////////////////////////////////
-
+/** @defgroup g11b Extrapolation macros                                                */
+/////////////////////////////////////////////////////////////////////////////////////////
+                                                                                   /*@{*/
 /** extrapolate_TO4 is an optimized version of 4th order in accuracy extrapolation
  *  using the 4th order Taylor expansion.
  */
@@ -160,22 +249,11 @@
   */
 /////////////////////////////////////////////////////////////////////////////////////////
                                                                                    /*@{*/
-/////////////////////////////////////////////////////////////////////////////////////////
-// Macros to emit the convective spatial derivatives (upwind stencils)
-//
-// Convention. If f() denotes a function, then f_r() denotes a spatial derivative,
-// f_t() denotes a time derivative, and f_rr() denotes the 2nd derivative in r.
-//
-
-/// @todo Why is _UPWIND=1 by default?
-
 #ifndef _UPWIND
-    #define _UPWIND 1
-#endif // _UPWIND
+    #define _UPWIND 1     /// @todo Why is _UPWIND=1 by default?
+#endif
 
-#if _UPWIND
-
-    #define UPWIND_ORDER CFDS_ORDER
+#if _UPWIND == 1
 
     #define GF_convr(bf,f,m,n)   ( bf(m,n) > 0 ? bf(m,n) * GF_up_r(f,m,n) \
                                                : bf(m,n) * GF_down_r(f,m,n) )
@@ -183,51 +261,12 @@
 
     #define GF_convr(bf,f,m,n)   ( bf(m,n) * GF_r(f,m,n) )
 
-#endif // _UPWIND
-
-#if UPWIND_ORDER == 2 // Second order upwind/downwind
-
-    #define GF_up_r(f,m,n)   ( ((-3.*f(m,n))/2. + 2.*f(m,1 + n) - f(m,2 + n)/2.) * inv_delta_r )
-
-    #define GF_up_rr(f,m,n)  ( ( f(m,n) - 2.*f(m,1 + n) + f(m,2 + n) ) * inv_delta_rr )
-
-    #define GF_down_r(f,m,n)   ( (f(m,-2 + n)/2. - 2.*f(m,-1 + n) + (3.*f(m,n))/2.) * inv_delta_r )
-
-    #define GF_down_rr(f,m,n)  ( ( f(m,-2 + n) - 2.*f(m,-1 + n) + f(m,n) ) * inv_delta_rr )
-
-#elif UPWIND_ORDER == 4 // Fourth order upwind/downwind
-
-    #define GF_up_r(f,m,n)   (( -f(m,-1 + n)/4. - (5.*f(m,n))/6. + (3.*f(m,1 + n))/2. - f(m,2 + n)/2. + f(m,3 + n)/12. ) * inv_delta_r )
-
-    #define GF_up_rr(f,m,n)  ( ( (11.*f(m,-1 + n))/12. - (5.*f(m,n))/3. + f(m,1 + n)/2. + f(m,2 + n)/3. - f(m,3 + n)/12. ) * inv_delta_rr )
-
-    #define GF_down_r(f,m,n)   (( -f(m,-3 + n)/12. + f(m,-2 + n)/2. - (3.*f(m,-1 + n))/2. + (5.*f(m,n))/6. + f(m,1 + n)/4. ) * inv_delta_r )
-
-    #define GF_down_rr(f,m,n)  ( ( -f(m,-3 + n)/12. + f(m,-2 + n)/3. + f(m,-1 + n)/2. - (5.*f(m,n))/3. + (11.*f(m,1 + n))/12. ) * inv_delta_rr )
-
-#elif UPWIND_ORDER == 6 // Sixth order upwind/downwind
-
-    #define GF_up_r(f,m,n)   (( -f(m,-1 + n)/6. - (77.*f(m,n))/60. + (5.*f(m,1 + n))/2. - (5.*f(m,2 + n))/3. + (5.*f(m,3 + n))/6. - f(m,4 + n)/4. + f(m,5 + n)/30. ) * inv_delta_r )
-
-    #define GF_up_rr(f,m,n)  ( ( (137.*f(m,-1 + n))/180. - (49.*f(m,n))/60. - (17.*f(m,1 + n))/12. + (47.*f(m,2 + n))/18. - (19.*f(m,3 + n))/12. + (31.*f(m,4 + n))/60. - (13.*f(m,5 + n))/180. ) * inv_delta_rr )
-
-    #define GF_down_r(f,m,n)   (( -f(m,-5 + n)/30. + f(m,-4 + n)/4. - (5.*f(m,-3 + n))/6. + (5.*f(m,-2 + n))/3. - (5.*f(m,-1 + n))/2. + (77.*f(m,n))/60. + f(m,1 + n)/6. ) * inv_delta_r )
-
-    #define GF_down_rr(f,m,n)  ( ( (-13.*f(m,-5 + n))/180. + (31.*f(m,-4 + n))/60. - (19.*f(m,-3 + n))/12. + (47.*f(m,-2 + n))/18. - (17.*f(m,-1 + n))/12. - (49.*f(m,n))/60. + (137.*f(m,1 + n))/180. ) * inv_delta_rr )
-
-#elif UPWIND_ORDER == 8 // Eighth order upwind/downwind
-
-    #define GF_up_r(f,m,n)   (( -f(m,-1 + n)/8. - (223.*f(m,n))/140. + (7.*f(m,1 + n))/2. - (7.*f(m,2 + n))/2. + (35.*f(m,3 + n))/12. - (7.*f(m,4 + n))/4. + (7.*f(m,5 + n))/10. - f(m,6 + n)/6. + f(m,7 + n)/56. ) * inv_delta_r )
-
-    #define GF_up_rr(f,m,n)  ( ( (363.*f(m,-1 + n))/560. + (8.*f(m,n))/315. - (83.*f(m,1 + n))/20. + (153.*f(m,2 + n))/20. - (529.*f(m,3 + n))/72. + (47.*f(m,4 + n))/10. - (39.*f(m,5 + n))/20. + (599.*f(m,6 + n))/1260. - (29.*f(m,7 + n))/560. ) * inv_delta_rr )
-
-    #define GF_down_r(f,m,n)   (( -f(m,-7 + n)/56. + f(m,-6 + n)/6. - (7.*f(m,-5 + n))/10. + (7.*f(m,-4 + n))/4. - (35.*f(m,-3 + n))/12. + (7.*f(m,-2 + n))/2. - (7.*f(m,-1 + n))/2. + (223.*f(m,n))/140. + f(m,1 + n)/8. ) * inv_delta_r )
-
-    #define GF_down_rr(f,m,n)  ( ( (-29.*f(m,-7 + n))/560. + (599.*f(m,-6 + n))/1260. - (39.*f(m,-5 + n))/20. + (47.*f(m,-4 + n))/10. - (529.*f(m,-3 + n))/72. + (153.*f(m,-2 + n))/20. - (83.*f(m,-1 + n))/20. + (8.*f(m,n))/315. + (363.*f(m,1 + n))/560. ) * inv_delta_rr )
-
 #endif
-
+                                                                                   /*@}*/
 /////////////////////////////////////////////////////////////////////////////////////////
+/** @defgroup g11c Kreiss-Oliger terms                                                 */
+/////////////////////////////////////////////////////////////////////////////////////////
+                                                                                   /*@{*/
 /** `KreissOligerTerm` is a macro that gives a Kreiss-Oliger dissipation term.
  *
  *  Coefficients d_k at gridpoints for the centred finite-difference discretisation
