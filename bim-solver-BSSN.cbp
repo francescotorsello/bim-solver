@@ -46,7 +46,7 @@
 			<Add option="-m64" />
 			<Add option="-DV_SIGN=-" />
 			<Add option="-DCFDS_ORDER=6" />
-			<Add option="-D_EVOLVE_DSIG=0" />
+			<Add option="-D_EVOLVE_DSIG=1" />
 			<Add option="-D_UPWIND=1" />
 			<Add directory="include" />
 		</Compiler>
@@ -58,7 +58,6 @@
 		<Unit filename="include/documentation.h" />
 		<Unit filename="include/eom-BSSN.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNBimetricSourcesReg.h" />
-		<Unit filename="include/eom-BSSN/eomBSSNBonaMassoReg.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNConstraintsReg.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNEvolutionDR.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNEvolutionReg.h" />
@@ -67,6 +66,7 @@
 		<Unit filename="include/eom-BSSN/eomBSSNMiscEquationsReg.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNObserver.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNSourcesReg.h" />
+		<Unit filename="include/eom-BSSN/eomBSSNStdGaugeReg.h" />
 		<Unit filename="include/eom-BSSN/eomGauge.h" />
 		<Unit filename="include/grid/gridDriver.h" />
 		<Unit filename="include/grid/gridFunctions.h" />
