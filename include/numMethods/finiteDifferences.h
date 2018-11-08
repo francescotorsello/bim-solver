@@ -154,6 +154,9 @@
   * [3] https://en.wikipedia.org/wiki/Upwind_differencing_scheme _for _convection,
   * [4] Patankar, S. V. (1980). Numerical Heat Transfer and Fluid Flow. Taylor &
   *     Francis. ISBN 978-0-89116-522-4 (p.83).
+  * [5] Versteeg, H.K. and Malalasekera, W., An Introduction to Computational Fluid
+  *     Dynamics: The Finite Volume Method, Pearson Education, 2007,
+  *     ISBN: 9780131274983 (Chapter 5, p.134)
   */
 /////////////////////////////////////////////////////////////////////////////////////////
 
