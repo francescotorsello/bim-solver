@@ -1,34 +1,32 @@
 /** @file  eomBSSNMatterReg.h
  *  @author Francesco Torsello
  *  @brief The regularized Valencia formulation of the hydrodynamical equations for a perfect fluid.
- *  @version 2018-10-01T16:45:45
+ *  @version 2018-11-07T10:13:17
  *  @image html BSSNevolutionReg.png
  */
 
 Real BimetricEvolve::eq_pf_gD_t( Int m, Int n )
 {
-    return (pfD_r(m,n) * (gBet(m,n) - gAlp(m,n) * pfv(m,n)) * (TINY_Real + r(m,n)) 
-    /*1*/  + pfD(m,n) * (2 * gBet(m,n) + gBet_r(m,n) * r(m,n) - gAlp(m,n) * (pfv_r(m,n)
-    /*3*/  * r(m,n) + pfv(m,n) * (2 + gDAlp(m,n) * r(m,n))))) / (TINY_Real + r(m,n));
+    return pfD_convr(m,n) - pfD_r(m,n) * gAlp(m,n) * pfv(m,n) + pfD(m,n) 
+    /*0*/  * (gBet_r(m,n) + 2 * gBetr(m,n) + gAlp(m,n) * (-pfv_r(m,n) + pfv(m,n) 
+    /*2*/  * (-gDAlp(m,n) - 2 / (TINY_Real + r(m,n)))));
 }
 Real BimetricEvolve::eq_pf_gS_t( Int m, Int n )
 {
-    return gBet_r(m,n) * pfS(m,n) + gBet(m,n) * pfS_r(m,n) + gDA(m,n) * gAlp(m,n) 
-    /*0*/  * pfS(m,n) * pfv(m,n) + 2 * gconf(m,n) * gDconf(m,n) * gAlp(m,n) * pfS(m,n) 
-    /*0*/  * pfv(m,n) - gAlp(m,n) * pfS_r(m,n) * pfv(m,n) - gAlp(m,n) * pfS(m,n) 
-    /*0*/  * pfv_r(m,n) - gDAlp(m,n) * gAlp(m,n) * (pfD(m,n) + pfS(m,n) * pfv(m,n) 
-    /*1*/  + pftau(m,n)) + (2 * pfS(m,n) * (gBet(m,n) - gAlp(m,n) * pfv(m,n))) / r(m,n);
+    return pfS_convr(m,n) - gAlp(m,n) * pfS_r(m,n) * pfv(m,n) + pfS(m,n) * (2 
+    /*1*/  * gBet_r(m,n) + 2 * gBetr(m,n) - gDAlp(m,n) * gAlp(m,n) * pfv(m,n) 
+    /*1*/  + gAlp(m,n) * ((gDA(m,n) + 2 * gconf(m,n) * gDconf(m,n)) * pfv(m,n) 
+    /*2*/  - pfv_r(m,n))) - gDAlp(m,n) * gAlp(m,n) * (pfD(m,n) + pftau(m,n)) - (2 
+    /*1*/  * gAlp(m,n) * pfS(m,n) * pfv(m,n)) / (TINY_Real + r(m,n));
 }
 Real BimetricEvolve::eq_pf_gtau_t( Int m, Int n )
 {
-    return gDAlp(m,n) * pfD(m,n) * gAlp(m,n) * pfv(m,n) + gBet(m,n) * pftau_r(m,n) 
-    /*0*/  - (2 * gDAlp(m,n) * gAlp(m,n) * pfS(m,n)) / (TINY_Real + exp(4 * gconf(m,n))
-    /*1*/  * Power(gA(m,n),2)) + (pftau(m,n) * (2 * gBet(m,n) + gBet_r(m,n) * r(m,n)))
-    /*0*/  / (TINY_Real + r(m,n)) + gAlp(m,n) * (pfD_r(m,n) * pfv(m,n) + pfD(m,n) 
-    /*1*/  * pfv_r(m,n) + pfv(m,n) * (gK1(m,n) * pfS(m,n) + (2 * pfD(m,n)) / r(m,n)) 
-    /*1*/  + (exp(-4 * gconf(m,n)) * (-(pfS_r(m,n) * r(m,n)) + 2 * pfS(m,n) * (-1 
-    /*4*/  + gDA(m,n) * r(m,n) + 2 * gconf(m,n) * gDconf(m,n) * r(m,n)))) 
-    /*1*/  / (pow2(gA(m,n)) * r(m,n)));
+    return pftau_convr(m,n) + gK1(m,n) * gAlp(m,n) * pfS(m,n) * pfv(m,n) 
+    /*0*/  + (gBet_r(m,n) + 2 * gBetr(m,n) - gDAlp(m,n) * gAlp(m,n) * pfv(m,n) 
+    /*1*/  - gAlp(m,n) * pfv_r(m,n)) * pftau(m,n) - gAlp(m,n) * pfv(m,n) * pftau_r(m,n)
+    /*0*/  - (gDAlp(m,n) * gAlp(m,n) * pfS(m,n)) / (TINY_Real + exp(4 * gconf(m,n)) 
+    /*1*/  * Power(gA(m,n),2)) - (2 * gAlp(m,n) * pfv(m,n) * pftau(m,n)) / (TINY_Real 
+    /*1*/  + r(m,n));
 }
 Real BimetricEvolve::eq_pf_gv( Int m, Int n )
 {
@@ -37,8 +35,7 @@ Real BimetricEvolve::eq_pf_gv( Int m, Int n )
 Real BimetricEvolve::eq_pf_gv_r( Int m, Int n )
 {
     return (pfS_r(m,n) * (pfD(m,n) + pftau(m,n)) - pfS(m,n) * (pfD_r(m,n) 
-    /*2*/  + pftau_r(m,n))) / (TINY_Real + Power(pfD(m,n),2) + 2 * pfD(m,n) * pftau(m,n)
-    /*1*/  + Power(pftau(m,n),2));
+    /*2*/  + pftau_r(m,n))) / (TINY_Real + Power(pfD(m,n) + pftau(m,n),2));
 }
 Real BimetricEvolve::eq_pf_gW( Int m, Int n )
 {
