@@ -492,7 +492,7 @@ void GridUser::smoothenGF( Int m, Int copy2gf, Int outgf, Int ingf, Int parity )
     while( nTo >= nGhost && std::isnan( GF( ingf, m, nTo - 1 ) ) ) {
         --nTo;
     }
-    nTo = 2*nGhost; ///@fixme this line should be removed
+    // nTo = 2*nGhost; /// @todo fixme this line should be removed (MK: now removed)
 
     OMP_parallel_for( Int n = nFrom < 0 ? 0 : nFrom ; n < nTo; ++n )
     {
@@ -534,7 +534,7 @@ void GridUser::smoothenGF( Int m, Int copy2gf, Int outgf, Int ingf, Int parity )
     //
     for( Int n = nTo; n < nTotal; ++n )
     {
-        extrapolate_R( outgf, m, n );
+        extrapolate_R( outgf, m, n );  /// @todo should be a choice of extrapolation
         //extrapolate_D( outgf, m, n );
     }
 
