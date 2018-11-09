@@ -493,10 +493,6 @@ void GridUser::smoothenGF( Int m, Int copy2gf, Int outgf, Int ingf, Int parity )
     while( nTo >= nGhost && std::isnan( GF( ingf, m, nTo - 1 ) ) ) {
         --nTo;
     }
-<<<<<<< HEAD
-=======
-    // nTo = 2*nGhost; /// @todo fixme this line should be removed (MK: now removed)
->>>>>>> master
 
     OMP_parallel_for( Int n = nFrom < 0 ? 0 : nFrom ; n < nTo; ++n )
     {
@@ -619,7 +615,7 @@ void GridUser::smoothenGF0( Int m, Int nCopyTo, Int sgRadius, Int copy2gf, Int o
     //
     if( copy2gf >= 0 )
     {
-        OMP_parallel_for( Int n = nFrom < 0 ? 0 : nFrom; n < nCopyTo; ++n ) { ///@fixme Int n = nFrom
+        OMP_parallel_for( Int n = nFrom < 0 ? 0 : nFrom; n < nCopyTo; ++n ) {
             GF( copy2gf, m, n ) = GF( outgf, m, n );
         }
     }

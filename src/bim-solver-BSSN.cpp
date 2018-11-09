@@ -337,17 +337,12 @@ namespace fld
     {
         { gAlp,      "gAlp",       "\\alpha"                        },
         { gDAlp,     "gDAlp",      "D_\\alpha"                      },
-<<<<<<< HEAD
+        { gAlp_rr,   "gAlp_rr",    "\\partial _{rr} \\alpha"        },
         { gDAlp_r,   "gDAlp_r",    "\\partial _r D_\\alpha"         },
         { fAlp,      "fAlp",       "\\tilde \\alpha"                },
         { fDAlp,     "fDAlp",      "\\tilde D_\\alpha"              },
+        { fAlp_rr,   "fAlp_rr",    "\\partial _{rr} \\tilde \\alpha"},
         { fDAlp_r,   "fDAlp_r",    "\\partial _r \\tilde D_\\alpha" },
-=======
-        { gAlp_rr,   "gAlp_rr",    "\\partial _{rr} \\alpha"          },
-        { fAlp,      "fAlp",       "\\tilde \\alpha"                },
-        { fDAlp,     "fDAlp",      "\\tilde D_\\alpha"              },
-        { fAlp_rr,   "fAlp_rr",    "\\partial _{rr} \\tilde \\alpha"  },
->>>>>>> master
         { gconf,     "gconf",      "\\phi"                          },
         { fconf,     "fconf",      "\\psi"                          },
         { gDconf,    "gDconf",     "D _\\phi"                       },
@@ -1812,11 +1807,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         fRicci     (m,n) = eq_fRicci    (m,n);
     }
 
-<<<<<<< HEAD
     if( smooth >= 1 )
-=======
-    if( false /*smooth >= 1*/ )
->>>>>>> master
     {
         /*smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::q_r,    fld::tmp,  fld::q_r,     1 );
         smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::q_rr,    fld::tmp,  fld::q_rr,     -1 );

@@ -46,13 +46,9 @@
 			<Add option="-m64" />
 			<Add option="-DV_SIGN=-" />
 			<Add option="-DCFDS_ORDER=6" />
-<<<<<<< HEAD
-			<Add option="-D_EVOLVE_DSIG=0" />
 			<Add option="-D_DETECT_NAN=1" />
-=======
-			<Add option="-D_EVOLVE_DSIG=1" />
+			<Add option="-D_EVOLVE_DSIG=0" />
 			<Add option="-D_UPWIND=1" />
->>>>>>> master
 			<Add directory="include" />
 		</Compiler>
 		<Linker>
@@ -80,11 +76,7 @@
 		<Unit filename="include/grid/integrator.h" />
 		<Unit filename="include/numMethods.h" />
 		<Unit filename="include/numMethods/SavitzkyGolayCoeff.h" />
-<<<<<<< HEAD
-		<Unit filename="include/numMethods/SavitzkyGolayFilter.h" />
 		<Unit filename="include/numMethods/adaptive_MoL.h" />
-=======
->>>>>>> master
 		<Unit filename="include/numMethods/bandSol.h" />
 		<Unit filename="include/numMethods/cubicSpline.h" />
 		<Unit filename="include/numMethods/dataTypes.h" />
