@@ -1,6 +1,6 @@
 # bim-solver
 
-Bimetric 3+1 Toolkit implements the standard 3+1 evolution for
+Bimetric 3+1 Toolkit implements the standard 3+1 evolution and the covariant BSSN evolution schemes for
 spherically symmetric bimetric and GR spacetimes.
 
 The project goal is the construction of a computational toolkit for the evolution of

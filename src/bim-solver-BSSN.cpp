@@ -115,7 +115,7 @@ namespace fld
         /// RHS for the evolution of `p`
         p_t,
 
-        /// Shift of the mean metric, and auxiliary variable for BM slicing
+        /// Shift of the mean metric, and auxiliary variable for standard gauge
         q, qr, q_t,
         Bq, Bq_t, Bq_r,
 
@@ -131,25 +131,6 @@ namespace fld
         gA1_r,       fA1_r,
         gA2_r,       fA2_r,
         gL_r,        fL_r,
-
-
-        gDsig,
-        fDsig, ///@fixme these fields must be declared here because otherwise they cannot be read from the initial data. This change needs a restructure of the Mathematica file
-
-        #if _EVOLVE_DSIG
-
-                gDsig_t,
-                fDsig_t,
-                gDsig_r,
-                fDsig_r,
-
-        #else
-                gsig_r,
-                fsig_r,
-                gsig_rr,
-                fsig_rr,
-
-        #endif // _EVOLVE_DSIG
 
         gAsig_r,     fAsig_r,
 
@@ -168,6 +149,53 @@ namespace fld
 
     // The radial derivatives of the utility function R = fB/gB
         R_r,
+
+        /// Convective derivatives
+        // The convective derivatives of the evolved fields; they arise from the Pfaffians (i.e., from the Lie derivatives along the shifts)
+        gAlp_convr,   fAlp_convr,
+        //gBet_convr,   fBet_convr,
+        q_qconvr,     Bq_qconvr,
+
+        gconf_convr,  fconf_convr,
+        gDconf_convr, fDconf_convr,
+        gtrK_convr,   ftrK_convr,
+
+        gA_convr,     fA_convr,
+        gB_convr,     fB_convr,
+        gDA_convr,    fDA_convr,
+        gDB_convr,    fDB_convr,
+
+        gA1_convr,    fA1_convr,
+        gA2_convr,    fA2_convr,
+
+        gL_convr,     fL_convr,
+        gL_qconvr,
+
+        gsig_convr,   fsig_convr,
+        gAsig_convr,  fAsig_convr,
+
+        pfD_convr,    pfS_convr,
+        pftau_convr,
+
+        gDsig,
+        fDsig, ///@fixme these fields must be declared here because otherwise they cannot be read from the initial data. The present implementation reads these two fields from the initial data anyways. Then, if they are not evolved, they are not touched anymore. This is because otherwise the Mathematica file should be also changed.
+
+        #if _EVOLVE_DSIG
+
+                gDsig_t,
+                fDsig_t,
+                gDsig_r,
+                fDsig_r,
+                gDsig_convr,
+                fDsig_convr,
+
+        #else
+                gsig_r,
+                fsig_r,
+                gsig_rr,
+                fsig_rr,
+
+        #endif // _EVOLVE_DSIG
 
     // These are the only spatial second derivatives that are needed:
 
@@ -309,10 +337,17 @@ namespace fld
     {
         { gAlp,      "gAlp",       "\\alpha"                        },
         { gDAlp,     "gDAlp",      "D_\\alpha"                      },
+<<<<<<< HEAD
         { gDAlp_r,   "gDAlp_r",    "\\partial _r D_\\alpha"         },
         { fAlp,      "fAlp",       "\\tilde \\alpha"                },
         { fDAlp,     "fDAlp",      "\\tilde D_\\alpha"              },
         { fDAlp_r,   "fDAlp_r",    "\\partial _r \\tilde D_\\alpha" },
+=======
+        { gAlp_rr,   "gAlp_rr",    "\\partial _{rr} \\alpha"          },
+        { fAlp,      "fAlp",       "\\tilde \\alpha"                },
+        { fDAlp,     "fDAlp",      "\\tilde D_\\alpha"              },
+        { fAlp_rr,   "fAlp_rr",    "\\partial _{rr} \\tilde \\alpha"  },
+>>>>>>> master
         { gconf,     "gconf",      "\\phi"                          },
         { fconf,     "fconf",      "\\psi"                          },
         { gDconf,    "gDconf",     "D _\\phi"                       },
@@ -330,12 +365,6 @@ namespace fld
         { gA2,       "gA2",        "A_2"                            },
         { gL,        "gL",         "\\Lambda"                       },
         { gsig,      "gsig",       "\\sigma"                        },
-        #if _EVOLVE_DSIG
-
-        { gDsig,     "gDsig",      "D_\\sigma"                      },
-
-        #endif // _EVOLVE_DSIG
-
         { gAsig,     "gAsig",      "A_\\sigma"                      },
         { fA,        "fA",         "\\tilde A"                      },
         { fB,        "fb",         "\\tilde b"                      },
@@ -347,10 +376,6 @@ namespace fld
         { fA2,       "fA2",        "\\tilde A_2"                    },
         { fL,        "fL",         "\\tilde \\Lambda"               },
         { fsig,      "fsig",       "\\tilde \\sigma"                },
-        #if _EVOLVE_DSIG
-
-        { fDsig,     "fDsig",      "\\tilde D_\\sigma"              },
-        #endif // _EVOLVE_DSIG
 
         { fAsig,     "fAsig",      "\\tilde A_\\sigma"              },
         { gBetr,     "gBetr",      "N r^{-1}"                       },
@@ -376,10 +401,6 @@ namespace fld
         { gA2_t,     "gA2_t",      "\\partial_t A_2"                },
         { gL_t,      "gL_t",       "\\partial_t \\Lambda"           },
         { gsig_t,    "gsig_t",     "\\partial_t \\sigma"            },
-        #if _EVOLVE_DSIG
-
-        { gDsig_t,   "gDsig_t",    "\\partial_t D_ \\sigma"         },
-        #endif // _EVOLVE_DSIG
 
         { gAsig_t,   "gAsig_t",    "\\partial_t A_\\sigma"          },
         { fA_t,      "fA_t",       "\\partial_t \\tilde A"          },
@@ -390,11 +411,6 @@ namespace fld
         { fA2_t,     "fA2_t",      "\\partial_t \\tilde A_2"        },
         { fL_t,      "fL_t",       "\\partial_t \\tilde \\Lambda"   },
         { fsig_t,    "fsig_t",     "\\partial_t \\tilde \\sigma"    },
-        #if _EVOLVE_DSIG
-
-        { fDsig_t,   "fDsig_t",    "\\partial_t \\tilde D_ \\sigma" },
-        #endif // _EVOLVE_DSIG
-
         { fAsig_t,   "fAsig_t",    "\\partial_t \\tilde A_\\sigma"  },
     //
         { gdet,      "gdet",       "\\Delta"                        },
@@ -421,10 +437,67 @@ namespace fld
         { fBet,      "fBet",       "M"                              },
         { fBet_r,    "fBet_r",     "\\partial_r M"                  },
         { fBet_rr,   "fBet_rr",    "\\partial_{rr} M"               },
-        #if !_EVOLVE_DSIG
-            { gsig_r,    "gsig_r",     "\\partial_r \\sigma"            },
-            { fsig_r,    "fsig_r",     "\\partial_r \\tilde \\sigma"    },
-        #endif
+
+        { gAlp_convr,"gAlp_convr", "N^r \\partial _r \\alpha"       },
+        { fAlp_convr,"fAlp_convr", "M^r \\partial _r \\tilde \\alpha" },
+
+        { gconf_convr, "gconf_convr", "N^r \\partial _r \\phi"      },
+        { fconf_convr, "fconf_convr", "M^r \\partial _r \\psi"      },
+        { gDconf_convr,"gDconf_convr","N^r \\partial _r D_\\phi"    },
+        { fDconf_convr,"fDconf_convr","M^r \\partial _r D_\\psi"    },
+        { gtrK_convr,  "gtrK_convr",  "N^r \\partial _r K"          },
+        { ftrK_convr,  "ftrK_convr",  "M^r \\partial _r \\tilde K"  },
+
+        { gA_convr,    "gA_convr", "N^r \\partial _r A"             },
+        { fA_convr,    "fA_convr", "M^r \\partial _r \\tilde A"     },
+        { gB_convr,    "gB_convr", "N^r \\partial _r B"             },
+        { fB_convr,    "fB_convr", "M^r \\partial _r \\tilde B"     },
+        { gDA_convr,   "gDA_convr", "N^r \\partial _r D_A"          },
+        { fDA_convr,   "fDA_convr", "M^r \\partial _r \\tilde D_A"  },
+        { gDB_convr,   "gDB_convr", "N^r \\partial _r D_B"          },
+        { fDB_convr,   "fDB_convr", "M^r \\partial _r \\tilde D_B"  },
+
+        { gA1_convr,   "gA1_convr", "N^r \\partial _r A_1"          },
+        { fA1_convr,   "fA1_convr", "M^r \\partial _r \\tilde A_1"  },
+        { gA2_convr,   "gA2_convr", "N^r \\partial _r A_2"          },
+        { fA2_convr,   "fA2_convr", "M^r \\partial _r \\tilde A_2"  },
+
+        { gL_convr,    "gL_convr", "N^r \\partial _r \\Lambda"      },
+        { fL_convr,    "fL_convr", "M^r \\partial _r \\tilde \\Lambda"},
+
+        { gsig_convr,  "gsig_convr","N^r \\partial _r \\sigma"      },
+        { fsig_convr,  "fsig_convr","M^r \\partial _r \\tilde \\sigma"},
+        { gAsig_convr, "gAsig_convr","N^r \\partial _r A_\\sigma"      },
+        { fAsig_convr, "fAsig_convr","M^r \\partial _r \\tilde A_\\sigma"},
+
+        { pfD_convr,   "pfD_convr", "N^r \\partial _r \\hat D"      },
+        { pfS_convr,   "pfS_convr", "N^r \\partial _r \\hat S"},
+        { pftau_convr, "pftau_convr","N^r \\partial _r \\hat \\tau"    },
+
+        #if _EVOLVE_DSIG
+
+        { gDsig,     "gDsig",      "D_\\sigma"                      },
+        { fDsig,     "fDsig",      "\\tilde D_\\sigma"              },
+        { gDsig_convr,"gDsig_convr","N^r \\partial _r D_\\sigma"      },
+        { fDsig_convr,"fDsig_convr","M^r \\partial _r \\tilde D_\\sigma"},
+        { gDsig_t,   "gDsig_t",    "\\partial_t D_ \\sigma"         },
+        { fDsig_t,   "fDsig_t",    "\\partial_t \\tilde D_ \\sigma" },
+
+        #else
+
+        { gsig_r,    "gsig_r",     "\\partial_r \\sigma"            },
+        { fsig_r,    "fsig_r",     "\\partial_r \\tilde \\sigma"    },
+
+        #endif // _EVOLVE_DSIG
+
+        /*if( slicing == SG )
+        {
+
+            { q_qconvr,  "q_qconvr",   "q^r \\partial _r q"         },
+            { Bq_qconvr, "Bq_qconvr",  "M^r \\partial _r Bq"        },
+            { gL_qconvr,   "gL_qconvr","q^r \\partial _r \\Lambda"      },
+
+        }*/
     //
         { gBetr_r,   "gBetr_r",    "\\partial_r \\left(N r^{-1}\\right)"},
         { fBetr_r,   "fBetr_r",    "\\partial_r \\left(M r^{-1}\\right)"},
@@ -528,7 +601,7 @@ class BimetricEvolve
         SLICE_MS2     = 2,  // Maximal slicing, 2nd order FD
         SLICE_MS4     = 3,  // Maximal slicing, 4th order FD
         SLICE_MS2OPT  = 4,  // Maximal slicing, 2nd order FD, optimized algorithm
-        SLICE_BM      = 5   // Bona-Masso slicing
+        SLICE_SG      = 5   // The standard gauge
     };
 
     Int slicing;   //!< Select the slicing: maximal, Bona-Masso, ...
@@ -639,6 +712,8 @@ class BimetricEvolve
 
     // The utility function R = fB/gB
     emitField(R)
+
+    emitField(dbg)
 
     /* Declarations of the determinants and traces
         (the definitions are in eomBSSNObserver.h)
@@ -751,6 +826,38 @@ class BimetricEvolve
         emitDerivative_rr( fsig  )
 
     #endif // _EVOLVE_DSIG
+
+    // The convective derivatives of the evolved fields
+    emitField(gAlp_convr)    emitField(fAlp_convr)
+    //emitField(gBet_convr)    emitField(fBet_convr)
+    emitField(q_qconvr)       emitField(Bq_qconvr)
+
+    emitField(gconf_convr)   emitField(fconf_convr)
+    emitField(gDconf_convr)  emitField(fDconf_convr)
+    emitField(gtrK_convr)    emitField(ftrK_convr)
+
+    emitField(gA_convr)      emitField(fA_convr)
+    emitField(gB_convr)      emitField(fB_convr)
+    emitField(gDA_convr)     emitField(fDA_convr)
+    emitField(gDB_convr)     emitField(fDB_convr)
+
+    emitField(gA1_convr)     emitField(fA1_convr)
+    emitField(gA2_convr)     emitField(fA2_convr)
+
+    emitField(gL_convr)      emitField(fL_convr)
+    emitField(gL_qconvr)
+
+    emitField(gsig_convr)    emitField(fsig_convr)
+    emitField(gAsig_convr)   emitField(fAsig_convr)
+
+    #if _EVOLVE_DSIG
+
+         emitField( gDsig_convr )
+         emitField( fDsig_convr )
+
+    #endif // _EVOLVE_DSIG
+
+    emitField(pfD_convr)   emitField(pfS_convr)    emitField(pftau_convr)
     /////////////////////////////////////////////////////////////////////////////////////
     /** @defgroup g12 Extrinsic curvatures
         @todo maybe create a header file which converts everything to the standard ADM variables?
@@ -818,10 +925,10 @@ class BimetricEvolve
     Real eq_gRicci      ( Int m, Int n );
     Real eq_fRicci      ( Int m, Int n );
 
-    Real eq_BM_gAlp_t   ( Int m, Int n );
-    Real eq_BM_gDAlp_t  ( Int m, Int n );
-    Real eq_BM_gBet_t   ( Int m, Int n );
-    Real eq_BM_gBq_t    ( Int m, Int n );
+    Real eq_SG_gAlp_t   ( Int m, Int n );
+    Real eq_SG_gDAlp_t  ( Int m, Int n );
+    Real eq_SG_gBet_t   ( Int m, Int n );
+    Real eq_SG_gBq_t    ( Int m, Int n );
     /////////////////////////////////////////////////////////////////////////////////////
     // The constraints (here used as the error estimators) and the equation for `p`
     /////////////////////////////////////////////////////////////////////////////////////
@@ -1129,7 +1236,7 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
         { "const",  SLICE_CONSTG },
         { "constg", SLICE_CONSTG },  { "constgf", SLICE_CONSTGF },
         { "MS2OPT", SLICE_MS2OPT },  { "MS2",     SLICE_MS2     },
-        { "MS4",    SLICE_MS4    },  { "BM",      SLICE_BM      }
+        { "MS4",    SLICE_MS4    },  { "SG",      SLICE_SG      }
     };
     std::string name = params.get( "slicing.method", slicing, 0, knownSlicings );
 
@@ -1159,7 +1266,7 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
          << ", smooth = " << smooth
          << std::endl << std::endl;
 
-    if( slicing == SLICE_BM ){
+    if( slicing == SLICE_SG ){
 
              slog << "The standard gauge (Bona-Masso & Gamma-driver):" << std::endl << std::endl
                   << "    Gamma-driver dissipation = " << eta
@@ -1184,7 +1291,7 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
 
     // Add our grid functions to the evolution
     //
-    if( slicing != SLICE_BM ){
+    if( slicing != SLICE_SG ){
         integ.keepConstant( { fld::q } );
     }  // GFs that are kept constant in time
     integ.keepEvolved( fld::bimEvolvedGF ); // GFs that are evolved by the integrator
@@ -1196,7 +1303,7 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
     if ( slicing == SLICE_CONSTG || slicing == SLICE_CONSTGF ) {
         integ.keepConstant( { fld::gAlp, fld::gDAlp } );
     }
-    else if ( slicing == SLICE_BM )
+    else if ( slicing == SLICE_SG )
     {
         const static std::vector<fld::EvolvedBy> evolvedGaugeGF = {
             { fld::gAlp,  fld::gAlp_t  },
@@ -1705,7 +1812,11 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         fRicci     (m,n) = eq_fRicci    (m,n);
     }
 
+<<<<<<< HEAD
     if( smooth >= 1 )
+=======
+    if( false /*smooth >= 1*/ )
+>>>>>>> master
     {
         /*smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::q_r,    fld::tmp,  fld::q_r,     1 );
         smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::q_rr,    fld::tmp,  fld::q_rr,     -1 );
@@ -1794,6 +1905,55 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
         }
 
+    // The convective derivatives of the evolved fields
+       gAlp_convr     (m,n) = GF_convr (gBet, gAlp, m ,n);
+       fAlp_convr     (m,n) = GF_convr (fBet, fAlp, m ,n);
+       //gBet_convr     (m,n) = GF_convr (gBet, gBet, m ,n);
+       //fBet_convr     (m,n) = GF_convr (fBet, fBet, m ,n);
+       q_qconvr       (m,n) = GF_convr (q,    q, m ,n);
+       Bq_qconvr      (m,n) = GF_convr (q,    Bq, m ,n);
+
+       gconf_convr    (m,n) = GF_convr (gBet, gconf, m ,n);
+       fconf_convr    (m,n) = GF_convr (fBet, fconf, m ,n);
+       gDconf_convr   (m,n) = GF_convr (gBet, gDconf, m ,n);
+       fDconf_convr   (m,n) = GF_convr (fBet, fDconf, m ,n);
+       gtrK_convr     (m,n) = GF_convr (gBet, gtrK, m ,n);
+       ftrK_convr     (m,n) = GF_convr (fBet, ftrK, m ,n);
+
+       gA_convr       (m,n) = GF_convr (gBet, gA, m ,n);
+       fA_convr       (m,n) = GF_convr (fBet, fA, m ,n);
+       gB_convr       (m,n) = GF_convr (gBet, gB, m ,n);
+       fB_convr       (m,n) = GF_convr (fBet, fB, m ,n);
+       gDA_convr      (m,n) = GF_convr (gBet, gDA, m ,n);
+       fDA_convr      (m,n) = GF_convr (fBet, fDA, m ,n);
+       gDB_convr      (m,n) = GF_convr (gBet, gDB, m ,n);
+       fDB_convr      (m,n) = GF_convr (fBet, fDB, m ,n);
+
+       gA1_convr      (m,n) = GF_convr (gBet, gA1, m ,n);
+       fA1_convr      (m,n) = GF_convr (fBet, fA1, m ,n);
+       gA2_convr      (m,n) = GF_convr (gBet, gA2, m ,n);
+       fA2_convr      (m,n) = GF_convr (fBet, fA2, m ,n);
+
+       gL_convr       (m,n) = GF_convr (gBet, gL, m ,n);
+       gL_qconvr      (m,n) = GF_convr (q,    gL, m ,n);
+       fL_convr       (m,n) = GF_convr (fBet, fL, m ,n);
+
+       gsig_convr     (m,n) = GF_convr (gBet, gsig, m ,n);
+       fsig_convr     (m,n) = GF_convr (fBet, fsig, m ,n);
+       gAsig_convr    (m,n) = GF_convr (gBet, gAsig, m ,n);
+       fAsig_convr    (m,n) = GF_convr (fBet, fAsig, m ,n);
+
+       pfD_convr      (m,n) = GF_convr (gBet, pfD, m ,n);
+       pfS_convr      (m,n) = GF_convr (gBet, pfS, m ,n);
+       pftau_convr    (m,n) = GF_convr (gBet, pftau, m ,n);
+
+       #if _EVOLVE_DSIG
+
+         gDsig_convr   (m,n) = GF_convr (gBet, gDsig, m ,n);
+         fDsig_convr   (m,n) = GF_convr (fBet, fDsig, m ,n);
+
+       #endif // _EVOLVE_DSIG
+
         // The sources (dependent on both p and the primary dynamical fields)
         //
         grhobar(m,n)= eq_pf_grhobar(m,n);
@@ -1813,6 +1973,8 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         gjb_u  (m,n) = eq_gjb_u  (m,n);   fjb_u  (m,n) = eq_fjb_u  (m,n);
         gJb1_ud(m,n) = eq_gJb1_ud(m,n);   fJb1_ud(m,n) = eq_fJb1_ud(m,n);
         gJb2_ud(m,n) = eq_gJb2_ud(m,n);   fJb2_ud(m,n) = eq_fJb2_ud(m,n);
+
+        dbg (m,n) = gAlp_convr(m,n);
 
     }
 
@@ -1859,12 +2021,12 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         pfS_t    (m,n) = eq_pf_gS_t  (m,n);
         pftau_t  (m,n) = eq_pf_gtau_t(m,n);
 
-        if( slicing == SLICE_BM )
+        if( slicing == SLICE_SG )
         {
-            gAlp_t  (m,n) = eq_BM_gAlp_t  (m,n);
-            gDAlp_t (m,n) = eq_BM_gDAlp_t (m,n);
-            q_t     (m,n) = eq_BM_gBet_t  (m,n);
-            Bq_t    (m,n) = eq_BM_gBq_t   (m,n);
+            gAlp_t  (m,n) = eq_SG_gAlp_t  (m,n);
+            gDAlp_t (m,n) = eq_SG_gDAlp_t (m,n);
+            q_t     (m,n) = eq_SG_gBet_t  (m,n);
+            Bq_t    (m,n) = eq_SG_gBq_t   (m,n);
         }
 
         #if _EVOLVE_DSIG
@@ -1873,6 +2035,44 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             fDsig_t  (m,n) = eq_fDsig_t  (m,n);
 
         #endif // _EVOLVE_DSIG
+
+       /*Real dbg1 = gAlp_convr     (m,n);
+       Real dbg2 = fAlp_convr     (m,n);
+       Real dbg3 = q_qconvr        (m,n);
+       Real dbg5 = Bq_qconvr       (m,n);
+
+       Real dbg6 = gconf_convr    (m,n);
+       Real dbg7 = fconf_convr    (m,n);
+       Real dbg8 = gDconf_convr   (m,n);
+       Real dbg9 = fDconf_convr   (m,n);
+       Real dbg10 = gtrK_convr     (m,n);
+       Real dbg11 = ftrK_convr     (m,n);
+
+       Real dbg12 = gA_convr       (m,n);
+       Real dbg13 =  fA_convr       (m,n);
+       Real dbg14 = gB_convr       (m,n);
+       Real dbg15 = fB_convr       (m,n);
+       Real dbg16 = gDA_convr      (m,n);
+       Real dbg17 = fDA_convr      (m,n);
+       Real dbg18 = gDB_convr      (m,n);
+       Real dbg19 = fDB_convr      (m,n);
+
+       Real dbg20 = gA1_convr      (m,n);
+       Real dbg21 = fA1_convr      (m,n);
+       Real dbg22 = gA2_convr      (m,n);
+       Real dbg23 = fA2_convr      (m,n);
+
+       Real dbg24 = gL_convr       (m,n);
+       Real dbg25 = fL_convr       (m,n);
+
+       Real dbg26 = gsig_convr     (m,n);
+       Real dbg27 = fsig_convr     (m,n);
+       Real dbg28 = gAsig_convr    (m,n);
+       Real dbg29 = fAsig_convr    (m,n);
+
+       Real dbg30 = pfD_convr      (m,n);
+       Real dbg31 = pfS_convr      (m,n);
+       Real dbg32 = pftau_convr    (m,n);*/
 
     }
 
