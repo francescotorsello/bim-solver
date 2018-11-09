@@ -10,12 +10,13 @@
 #define _FINITE_DIFFERENCES_H_INCLUDED
 
 /////////////////////////////////////////////////////////////////////////////////////////
-/** @defgroup g11a Finite differences
+/** @defgroup g11a Finite differences (FD)
  *
  *  Here are the macros to emit the spatial derivatives (centered, up-, or downwind)
  *
  *  Convention: If f() denotes a function, then f_t() denotes a time derivative,
  *  f_r() denotes a spatial derivative, f_rr() denotes the 2nd derivative in r, etc.
+ *  The centered FD scheme is used by default.
  *  Upwind derivatives are denoted as f_up_r() and downwind as f_down_r().
  *
  *  @warning The code in this group is generated in the Mathematica notebook
@@ -24,7 +25,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
                                                                                    /*@{*/
 #ifndef CFDS_ORDER
-    /** The order of the centered final difference scheme.
+    /** The order of the centered final difference scheme (CFDS).
      *  @todo A run-time CFDS_ORDER?
      */
     #define CFDS_ORDER 4
@@ -248,12 +249,20 @@
   */
 /////////////////////////////////////////////////////////////////////////////////////////
                                                                                    /*@{*/
+/** GF_ud_r(bf,f,m,n) applies either up or down difference scheme based on
+ *  the sign of the velocity field grid function `bf`.
+ */
+#define GF_ud_r(bf,f,m,n)   ( bf(m,n) > 0 ? GF_up_r(f,m,n) : GF_down_r(f,m,n) )
+
 #ifndef _UPWIND
     #define _UPWIND 1     /// @todo Why is _UPWIND=1 by default?
 #endif
 
 #if _UPWIND == 1
 
+    /** Convective derivative term, where a velocity field `bf` is multiplying
+     *  the spatial derivative of `f`: `bf(m,n) * GF_ud_r(bf,f,m,n)`.
+     */
     #define GF_convr(bf,f,m,n)   ( bf(m,n) > 0 ? bf(m,n) * GF_up_r(f,m,n) \
                                                : bf(m,n) * GF_down_r(f,m,n) )
 #else
@@ -263,7 +272,7 @@
 #endif
                                                                                    /*@}*/
 /////////////////////////////////////////////////////////////////////////////////////////
-/** @defgroup g11d Kreiss-Oliger terms                                                 */
+/** @defgroup g11d Kreiss-Oliger term                                                  */
 /////////////////////////////////////////////////////////////////////////////////////////
                                                                                    /*@{*/
 /** `KreissOligerTerm` is a macro that gives a Kreiss-Oliger dissipation term.
@@ -303,25 +312,33 @@
  *        integration? This is not implemented yet. Check [1, p.5].
  *
  */
-#if CFDS_ORDER == 2
+
+#if !defined(KO_ORDER) || KO_ORDER <= 0
+    /** KO_ORDER defines the order of the Kreiss-Oliger term order.
+     *  Defaults to CFDS_ORDER, if it is undefined or set to a non-positive value.
+     */
+    #define KO_ORDER CFDS_ORDER
+#endif
+
+#if KO_ORDER == 2
 
     #define KreissOligerTerm(f,dt) \
         ( - ( GF(f,m,n-1) - 2* GF(f,m,n) + GF(f,m,n+1) ) * dissip_delta_r * (dt) )
 
-#elif CFDS_ORDER == 4
+#elif KO_ORDER == 4
 
     #define KreissOligerTerm(f,dt) \
         ( ( GF(f,m,n-2) - 4* GF(f,m,n-1) + 6* GF(f,m,n) - 4* GF(f,m,n+1) + GF(f,m,n+2) \
            ) * dissip_delta_r * (dt) )
 
-#elif CFDS_ORDER == 6
+#elif KO_ORDER == 6
 
     #define KreissOligerTerm(f,dt) \
         ( - (      GF(f,m,n-3) - 6* GF(f,m,n-2) + 15* GF(f,m,n-1) - 20* GF(f,m,n) \
              + 15* GF(f,m,n+1) - 6* GF(f,m,n+2) +     GF(f,m,n+3) \
             ) * dissip_delta_r * (dt) )
 
-##elif CFDS_ORDER == 8
+#elif KO_ORDER == 8
 
     #define KreissOligerTerm(f,dt) \
         ( (       GF(f,m,n-4) -  8* GF(f,m,n-3) + 28* GF(f,m,n-2) - 56* GF(f,m,n-1) \

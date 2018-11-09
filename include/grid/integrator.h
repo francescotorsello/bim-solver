@@ -20,9 +20,9 @@
 
 /** Encapsulates an adaptive stepper for Runge-Kutta methods.
  *
- *  The implementation is based on ode45.m that was originally written 
- *  by Marc Compere (2001-07-03) under the GPL for octave, which was further adapted 
- *  by Thomas Treichl (2006-08-10) to the new syntax that is used by the odepkg 
+ *  The implementation is based on ode45.m that was originally written
+ *  by Marc Compere (2001-07-03) under the GPL for octave, which was further adapted
+ *  by Thomas Treichl (2006-08-10) to the new syntax that is used by the odepkg
  *  for octave to be compatible to LabMat's ode45.
  *
  *  References: @cite Dormand:1980rk, @cite Ascher:1998com, @cite Butcher:2008num
@@ -340,7 +340,8 @@ class MoL : GridUser
         slog << "Integrator:" << std::endl << std::endl
              << "    t_0 = " << t_0 << ",  t_1 = " << t_1 << ",  delta_t = " << delta_t
              << ",  method = " << methodID << " (#" << method << ")" << std::endl
-             << "    Kreiss-Oliger dissipation = " << dissip << std::endl
+             << "    Kreiss-Oliger dissipation = " << dissip
+             << ", order = " << KO_ORDER << std::endl
              << "    Expected output data size = "
              << round( ( sz < 1e3 ? sz : sz < 1e6 ? sz/1e3 : sz/1e6 ) * 10 ) / 10
              << ( sz < 1e3 ? "" : sz < 1e6 ? " kB" : " MB" )
