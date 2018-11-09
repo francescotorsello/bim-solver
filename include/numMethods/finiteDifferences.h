@@ -10,26 +10,25 @@
 #define _FINITE_DIFFERENCES_H_INCLUDED
 
 /////////////////////////////////////////////////////////////////////////////////////////
-/** @defgroup 11a Finite differences
+/** @defgroup g11a Finite differences
  *
  *  Here are the macros to emit the spatial derivatives (centered, up-, or downwind)
  *
- *  Convention: If f() denotes a function, then f_r() denotes a spatial derivative,
- *  f_t() denotes a time derivative, and f_rr() denotes the 2nd derivative in r.
+ *  Convention: If f() denotes a function, then f_t() denotes a time derivative,
+ *  f_r() denotes a spatial derivative, f_rr() denotes the 2nd derivative in r, etc.
  *  Upwind derivatives are denoted as f_up_r() and downwind as f_down_r().
  *
- *  The following code is generated in the Mathematica notebook "Finite differences.nb"
- *  which is in the directory "algorithms".
+ *  @warning The code in this group is generated in the Mathematica notebook
+ *          "Finite differences.nb" which is in the directory "algorithms".
  */
 /////////////////////////////////////////////////////////////////////////////////////////
                                                                                    /*@{*/
 #ifndef CFDS_ORDER
     /** The order of the centered final difference scheme.
+     *  @todo A run-time CFDS_ORDER?
      */
     #define CFDS_ORDER 4
 #endif
-
-/// @todo A run-time CFDS_ORDER?
 
 #if CFDS_ORDER == 2
 
@@ -236,7 +235,7 @@
 #endif
                                                                                    /*@}*/
 /////////////////////////////////////////////////////////////////////////////////////////
-/** @defgroup g11b Upwind differencing scheme for convection terms.
+/** @defgroup g11c Upwind differencing scheme for convection terms.
   * References:
   * [1] arXiv:1810.12346 [gr-qc] (p.5),
   * [2] https://en.wikipedia.org/wiki/Upwind_scheme,
@@ -264,7 +263,7 @@
 #endif
                                                                                    /*@}*/
 /////////////////////////////////////////////////////////////////////////////////////////
-/** @defgroup g11c Kreiss-Oliger terms                                                 */
+/** @defgroup g11d Kreiss-Oliger terms                                                 */
 /////////////////////////////////////////////////////////////////////////////////////////
                                                                                    /*@{*/
 /** `KreissOligerTerm` is a macro that gives a Kreiss-Oliger dissipation term.
@@ -300,8 +299,8 @@
  *  @see Rezzolla and Zanotti, Relativistic Hydrodynamics, 2013,
  *       @cite Rezzolla:2013rel
  *
- *  @fixme The order of the Kreiss-Oliger term depends on the order of the TIME
- *         integration. This is not implemented yet. Check [1, p.5].
+ *  @todo fixme: The order of the Kreiss-Oliger term depends on the order of the TIME
+ *        integration? This is not implemented yet. Check [1, p.5].
  *
  */
 #if CFDS_ORDER == 2
@@ -322,7 +321,7 @@
              + 15* GF(f,m,n+1) - 6* GF(f,m,n+2) +     GF(f,m,n+3) \
             ) * dissip_delta_r * (dt) )
 
-#else
+##elif CFDS_ORDER == 8
 
     #define KreissOligerTerm(f,dt) \
         ( (       GF(f,m,n-4) -  8* GF(f,m,n-3) + 28* GF(f,m,n-2) - 56* GF(f,m,n-1) \
