@@ -340,7 +340,8 @@ class MoL : GridUser
         slog << "Integrator:" << std::endl << std::endl
              << "    t_0 = " << t_0 << ",  t_1 = " << t_1 << ",  delta_t = " << delta_t
              << ",  method = " << methodID << " (#" << method << ")" << std::endl
-             << "    Kreiss-Oliger dissipation = " << dissip << std::endl
+             << "    Kreiss-Oliger dissipation = " << dissip
+             << ", order = " << KO_ORDER << std::endl
              << "    Expected output data size = "
              << round( ( sz < 1e3 ? sz : sz < 1e6 ? sz/1e3 : sz/1e6 ) * 10 ) / 10
              << ( sz < 1e3 ? "" : sz < 1e6 ? " kB" : " MB" )
