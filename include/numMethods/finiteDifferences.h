@@ -57,6 +57,22 @@
         f(m,n+1) - 2 * f(m,n) + f(m,n-1) \
     ) * inv_delta_rr )
 
+    #define GF_left_r(f,m,n)  ( ( \
+        3./2. * f(m,n) - 2 * f(m,n-1) + 1./2. * f(m,n-2) \
+    ) * inv_delta_r )
+
+    #define GF_left_rr(f,m,n)  ( ( \
+        f(m,n) - 2 * f(m,n-1) + f(m,n-2) \
+    ) * inv_delta_rr )
+
+    #define GF_right_r(f,m,n)  ( ( \
+        - 1./2. * f(m,n+2) + 2 * f(m,n+1) - 3./2. * f(m,n) \
+    ) * inv_delta_r )
+
+    #define GF_right_rr(f,m,n)  ( ( \
+        f(m,n+2) - 2 * f(m,n+1) + f(m,n) \
+    ) * inv_delta_rr )
+
 #elif CFDS_ORDER == 4
 
     #define GF_r(f,m,n)  ( ( \
@@ -89,6 +105,26 @@
         * f(m,n-2) - 1./12. * f(m,n-3) \
     ) * inv_delta_rr )
 
+    #define GF_left_r(f,m,n)  ( ( \
+        25./12. * f(m,n) - 4 * f(m,n-1) + 3 * f(m,n-2) - 4./3. * f(m,n-3)  \
+        + 1./4. * f(m,n-4) \
+    ) * inv_delta_r )
+
+    #define GF_left_rr(f,m,n)  ( ( \
+        35./12. * f(m,n) - 26./3. * f(m,n-1) + 19./2. * f(m,n-2) - 14./3.  \
+        * f(m,n-3) + 11./12. * f(m,n-4) \
+    ) * inv_delta_rr )
+
+    #define GF_right_r(f,m,n)  ( ( \
+        - 1./4. * f(m,n+4) + 4./3. * f(m,n+3) - 3 * f(m,n+2) + 4 * f(m,n+1)  \
+        - 25./12. * f(m,n) \
+    ) * inv_delta_r )
+
+    #define GF_right_rr(f,m,n)  ( ( \
+        11./12. * f(m,n+4) - 14./3. * f(m,n+3) + 19./2. * f(m,n+2) - 26./3.  \
+        * f(m,n+1) + 35./12. * f(m,n) \
+    ) * inv_delta_rr )
+
 #elif CFDS_ORDER == 6
 
     #define GF_r(f,m,n)  ( ( \
@@ -119,6 +155,26 @@
     #define GF_down_rr(f,m,n)  ( ( \
         137./180. * f(m,n+1) - 49./60. * f(m,n) - 17./12. * f(m,n-1) + 47./18.  \
         * f(m,n-2) - 19./12. * f(m,n-3) + 31./60. * f(m,n-4) - 13./180. * f(m,n-5) \
+    ) * inv_delta_rr )
+
+    #define GF_left_r(f,m,n)  ( ( \
+        49./20. * f(m,n) - 6 * f(m,n-1) + 15./2. * f(m,n-2) - 20./3. * f(m,n-3) \
+        + 15./4. * f(m,n-4) - 6./5. * f(m,n-5) + 1./6. * f(m,n-6) \
+    ) * inv_delta_r )
+
+    #define GF_left_rr(f,m,n)  ( ( \
+        203./45. * f(m,n) - 87./5. * f(m,n-1) + 117./4. * f(m,n-2) - 254./9.  \
+        * f(m,n-3) + 33./2. * f(m,n-4) - 27./5. * f(m,n-5) + 137./180. * f(m,n-6) \
+    ) * inv_delta_rr )
+
+    #define GF_right_r(f,m,n)  ( ( \
+        - 1./6. * f(m,n+6) + 6./5. * f(m,n+5) - 15./4. * f(m,n+4) + 20./3.  \
+        * f(m,n+3) - 15./2. * f(m,n+2) + 6 * f(m,n+1) - 49./20. * f(m,n) \
+    ) * inv_delta_r )
+
+    #define GF_right_rr(f,m,n)  ( ( \
+        137./180. * f(m,n+6) - 27./5. * f(m,n+5) + 33./2. * f(m,n+4) - 254./9.  \
+        * f(m,n+3) + 117./4. * f(m,n+2) - 87./5. * f(m,n+1) + 203./45. * f(m,n) \
     ) * inv_delta_rr )
 
 #elif CFDS_ORDER == 8
@@ -157,6 +213,30 @@
         363./560. * f(m,n+1) + 8./315. * f(m,n) - 83./20. * f(m,n-1) + 153./20. \
         * f(m,n-2) - 529./72. * f(m,n-3) + 47./10. * f(m,n-4) - 39./20. * f(m,n-5) \
         + 599./1260. * f(m,n-6) - 29./560. * f(m,n-7) \
+    ) * inv_delta_rr )
+
+    #define GF_left_r(f,m,n)  ( ( \
+        761./280. * f(m,n) - 8 * f(m,n-1) + 14 * f(m,n-2) - 56./3. * f(m,n-3)  \
+        + 35./2. * f(m,n-4) - 56./5. * f(m,n-5) + 14./3. * f(m,n-6) - 8./7.  \
+        * f(m,n-7) + 1./8. * f(m,n-8) \
+    ) * inv_delta_r )
+
+    #define GF_left_rr(f,m,n)  ( ( \
+        29531./5040. * f(m,n) - 962./35. * f(m,n-1) + 621./10. * f(m,n-2)  \
+        - 4006./45. * f(m,n-3) + 691./8. * f(m,n-4) - 282./5. * f(m,n-5) + 2143./90. \
+        * f(m,n-6) - 206./35. * f(m,n-7) + 363./560. * f(m,n-8) \
+    ) * inv_delta_rr )
+
+    #define GF_right_r(f,m,n)  ( ( \
+        - 1./8. * f(m,n+8) + 8./7. * f(m,n+7) - 14./3. * f(m,n+6) + 56./5.  \
+        * f(m,n+5) - 35./2. * f(m,n+4) + 56./3. * f(m,n+3) - 14 * f(m,n+2) + 8  \
+        * f(m,n+1) - 761./280. * f(m,n) \
+    ) * inv_delta_r )
+
+    #define GF_right_rr(f,m,n)  ( ( \
+        363./560. * f(m,n+8) - 206./35. * f(m,n+7) + 2143./90. * f(m,n+6)  \
+        - 282./5. * f(m,n+5) + 691./8. * f(m,n+4) - 4006./45. * f(m,n+3) + 621./10.  \
+        * f(m,n+2) - 962./35. * f(m,n+1) + 29531./5040. * f(m,n) \
     ) * inv_delta_rr )
 
 #else
