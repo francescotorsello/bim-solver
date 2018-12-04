@@ -606,6 +606,7 @@ class BimetricEvolve
     Real delta_t;  //!< The integration step (obtained from the integrator)
     Int smooth;    //!< Smooth the fields (level of smoothness)
     Int nSmoothUpTo;    //!< Smooth up to this point
+    Int sgRadius;       //!< The Savitzky-Golay smoothing radius
 
     /////////////////////////////////////////////////////////////////////////////////////
     /** @defgroup g5 Macros to access data in a grid                                   */
@@ -1235,11 +1236,14 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
     };
     std::string name = params.get( "slicing.method", slicing, 0, knownSlicings );
 
-    params.get( "slicing.lin2n",        lin2n,      nGhost              );
-    params.get( "slicing.cub2n",        cub2n,      5 * nGhost / 2 + 6  );
-    params.get( "slicing.smooth",       smooth,     0                   );
-    params.get( "slicing.dissipGauge",  eta,        0.0                 );
-    nSmoothUpTo = output.get_nOut();
+    params.get( "slicing.lin2n",        lin2n,       nGhost              );
+    params.get( "slicing.cub2n",        cub2n,       5 * nGhost / 2 + 6  );
+    params.get( "slicing.smooth",       smooth,      0                   );
+    params.get( "slicing.dissipGauge",  eta,         0.0                 );
+
+    params.get( "smoothing.nSmoothUpTo",  nSmoothUpTo, output.get_nOut()   );
+    params.get( "smoothing.sgRadius",     sgRadius,    10.0                );
+    //nSmoothUpTo = output.get_nOut();
 
     #if _EVOLVE_DSIG
 
@@ -1260,6 +1264,14 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
          << ", lin2n = " << lin2n << ", cub2n = " << cub2n
          << ", smooth = " << smooth
          << std::endl << std::endl;
+
+    if (smooth >= 1)
+    {
+        slog << "Smoothing:" << std::endl << std::endl
+            << "    Smoothing up to radial grid point " << nSmoothUpTo
+            << ", Savitzky-Golay radius = " << sgRadius
+            << std::endl << std::endl;
+    }
 
     if( slicing == SLICE_SG ){
 
@@ -1530,7 +1542,7 @@ void BimetricEvolve::determineGaugeFunctions( Int m )
     if ( isGR () || slicing == SLICE_CONSTGF )
     {
 
-        OMP_parallel_for( Int n = nGhost; n < 2*nGhost + nLen; ++n )
+        OMP_parallel_for( Int n = 0+0*(nGhost +1) ; n < 2*nGhost + nLen; ++n )
         {
             gAlp_r ( m, n ) = GF_r( gAlp,  m, n );
             gDAlp_r( m, n ) = GF_r( gDAlp, m, n );
@@ -1540,14 +1552,49 @@ void BimetricEvolve::determineGaugeFunctions( Int m )
             fAlp_rr( m, n ) = GF_rr( fAlp, m, n );
 
             fDAlp  ( m, n ) = fAlp_r(m,n) / (TINY_Real + fAlp(m,n));
-            fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) )
-                              / (TINY_Real + fAlp(m,n));
+            fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) )/ (TINY_Real + fAlp(m,n));
 
             /*Real dbg1 = fAlp(m,n);
             Real dbg2 = fDAlp(m,n);
             Real dbg3 = fDAlp_r(m,n);*/
 
         }
+
+        /*OMP_parallel_for( Int n = nGhost + nLen +1; n < 2*nGhost + nLen; ++n )
+        {
+            gAlp_r ( m, n ) = GF_down_r( gAlp,  m, n );
+            gDAlp_r( m, n ) = GF_down_r( gDAlp, m, n );
+
+            fAlp   ( m, n ) = gAlp( m, n );
+            fAlp_r ( m, n ) = GF_down_r ( fAlp,  m, n );
+            fAlp_rr( m, n ) = GF_down_rr( fAlp, m, n );
+
+            fDAlp  ( m, n ) = fAlp_r(m,n) / (TINY_Real + fAlp(m,n));
+            fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) ) / (TINY_Real + fAlp(m,n));
+
+            /*Real dbg1 = fAlp(m,n);
+            Real dbg2 = fDAlp(m,n);
+            Real dbg3 = fDAlp_r(m,n);*/
+
+        /*}
+
+        OMP_parallel_for( Int n = 0; n < nGhost; ++n )
+        {
+            gAlp_r ( m, n ) = GF_up_r( gAlp,  m, n );
+            gDAlp_r( m, n ) = GF_up_r( gDAlp, m, n );
+
+            fAlp   ( m, n ) = gAlp( m, n );
+            fAlp_r ( m, n ) = GF_up_r ( fAlp,  m, n );
+            fAlp_rr( m, n ) = GF_up_rr( fAlp, m, n );
+
+            fDAlp  ( m, n ) = fAlp_r(m,n) / (TINY_Real + fAlp(m,n));
+            fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) ) / (TINY_Real + fAlp(m,n));
+
+            /*Real dbg1 = fAlp(m,n);
+            Real dbg2 = fDAlp(m,n);
+            Real dbg3 = fDAlp_r(m,n);*/
+
+       // }
 
         cubicSplineSmooth( m, fld::gDAlp_r, lin2n, cub2n );
         cubicSplineSmooth( m, fld::fDAlp_r, lin2n, cub2n );
@@ -1623,34 +1670,35 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     if( smooth >= 1 )
     {
-        //smoothenGF0 ( m, nSmoothUpTo, 32,  fld::q,       fld::tmp,  fld::q,      1 );
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::qr,      fld::tmp,  fld::qr,      1 );
-        //smoothenGF0 ( m, nSmoothUpTo, 32,  fld::p,       fld::tmp,  fld::p,      1 );
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::pr,      fld::tmp,  fld::pr,      1 );
+        //smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::q,       fld::tmp,  fld::q,      1 );
+        //smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::qr,      fld::tmp,  fld::qr,      1 );
+        //smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::p,       fld::tmp,  fld::p,      1 );
+        //smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::pr,      fld::tmp,  fld::pr,      1 );
 
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gA,      fld::tmp,  fld::gA,      1 );
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gB,      fld::tmp,  fld::gB,      1 );
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gDA,     fld::tmp,  fld::gDA,     1 );
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gDB,     fld::tmp,  fld::gDB,     1 );
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gA1,     fld::tmp,  fld::gA1,     1 );
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gA2,     fld::tmp,  fld::gA2,     1 );
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gtrK,    fld::tmp,  fld::gtrK,    1 );
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gconf,   fld::tmp,  fld::gconf,   1 );
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gDconf,  fld::tmp,  fld::gDconf,  1 );
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gL,      fld::tmp,  fld::gL,      -1 );
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gLr,     fld::tmp,  fld::gLr,      1 );
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gDAlpr,  fld::tmp,  fld::gDAlpr,   1 );
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gDconfr, fld::tmp,  fld::gDconfr, 1 );
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gsig,    fld::tmp,  fld::gsig,     1 );
-        smoothenGF0 ( m, nSmoothUpTo, 32,  fld::gAsig,   fld::tmp,  fld::gAsig,    1 );
+        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gA,      fld::tmp,  fld::gA,      1 );
+        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gB,      fld::tmp,  fld::gB,      1 );
+        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gDA,     fld::tmp,  fld::gDA,     1 );
+        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gDB,     fld::tmp,  fld::gDB,     1 );
+        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gA1,     fld::tmp,  fld::gA1,     1 );
+        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gA2,     fld::tmp,  fld::gA2,     1 );
+        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gtrK,    fld::tmp,  fld::gtrK,    1 );
+        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gconf,   fld::tmp,  fld::gconf,   1 );
+        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gDconf,  fld::tmp,  fld::gDconf,  1 );
+        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gL,      fld::tmp,  fld::gL,      -1 );
+        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gLr,     fld::tmp,  fld::gLr,      1 );
+        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gDAlpr,  fld::tmp,  fld::gDAlpr,   1 );
+        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gDconfr, fld::tmp,  fld::gDconfr, 1 );
+        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gsig,    fld::tmp,  fld::gsig,     1 );
+        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gAsig,   fld::tmp,  fld::gAsig,    1 );
 
     }
     /////////////////////////////////////////////////////////////////////////////////////
     /// - First, calculate the values of the spatial derivatives
 
-    OMP_parallel_for( Int n = 0+0*nGhost; n < 2*nGhost + nLen; ++n )
+    OMP_parallel_for( Int n = 0+0*(nGhost +1); n < 2*nGhost + nLen; ++n )
     {
-       // The radial derivatives of the fields inside the ratio of the lapses (which is inside the maximal slicing's equation) over the entire grid, including ghosts
+       // The radial derivatives of the fields inside the ratio of the lapses (which is inside the maximal slicing's equation) over the entire gird but not the ghosts
+
         p_r      (m,n) = GF_r (p, m, n);
         q_r      (m,n) = GF_r (q, m, n);
         Bq_r     (m,n) = GF_r (Bq, m, n);
@@ -1660,6 +1708,34 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         ftrK_r   (m,n) = GF_r (ftrK, m, n);
 
     }
+
+    /*OMP_parallel_for( Int n = nGhost + nLen + 1; n < 2*nGhost + nLen; ++n )
+    {
+       // The radial derivatives of the fields inside the ratio of the lapses (which is inside the maximal slicing's equation) over the right ghosts
+
+        p_r      (m,n) = GF_down_r (p, m, n);
+        q_r      (m,n) = GF_down_r (q, m, n);
+        Bq_r     (m,n) = GF_down_r (Bq, m, n);
+        gA2_r    (m,n) = GF_down_r (gA2, m, n);
+        fA1_r    (m,n) = GF_down_r (fA1, m, n);
+        gtrK_r   (m,n) = GF_down_r (gtrK, m, n);
+        ftrK_r   (m,n) = GF_down_r (ftrK, m, n);
+
+    }
+
+    OMP_parallel_for( Int n = 0; n < 2*nGhost; ++n )
+    {
+       // The radial derivatives of the fields inside the ratio of the lapses (which is inside the maximal slicing's equation) over the left ghosts
+
+        p_r      (m,n) = GF_up_r (p, m, n);
+        q_r      (m,n) = GF_up_r (q, m, n);
+        Bq_r     (m,n) = GF_up_r (Bq, m, n);
+        gA2_r    (m,n) = GF_up_r (gA2, m, n);
+        fA1_r    (m,n) = GF_up_r (fA1, m, n);
+        gtrK_r   (m,n) = GF_up_r (gtrK, m, n);
+        ftrK_r   (m,n) = GF_up_r (ftrK, m, n);
+
+    }*/
 
     if( smooth >= 2 )
     {
@@ -1692,13 +1768,13 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         }
     }
 
-    OMP_parallel_for( Int n = 0+0*nGhost; n < 2*nGhost + nLen; ++n )
+    OMP_parallel_for( Int n = 0+0*nGhost; n < /* 2* */nGhost + nLen; ++n )
     {
         gDAlpr   (m,n) = (gDAlp(m,n) * gAlp(m,n)) / r(m,n);
         fDAlpr   (m,n) = (fDAlp(m,n) * fAlp(m,n)) / r(m,n);
     }
 
-    OMP_parallel_for( Int n = nGhost; n < 2*nGhost + nLen; ++n )
+    OMP_parallel_for( Int n = nGhost+1; n < /* 2* */nGhost + nLen; ++n )
     {
         gAlp_r   (m,n) = GF_r (gAlp, m, n);
         fAlp_r   (m,n) = GF_r (fAlp, m, n);
@@ -1719,7 +1795,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         smoothenGF( m, fld::gL,       fld::tmp, fld::gL,      +1 );
     }
 
-    OMP_parallel_for( Int n = nGhost; n < 2*nGhost + nLen; ++n )
+    OMP_parallel_for( Int n = 0 + 0*(nGhost+1); n < 2*nGhost + nLen; ++n )
     {
 
     // The radial derivatives of the evolved fields
@@ -1807,6 +1883,200 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         fRicci     (m,n) = eq_fRicci    (m,n);
     }
 
+    /*OMP_parallel_for( Int n = nGhost + nLen; n < 2* nGhost + nLen; ++n )
+    {
+
+    // The radial derivatives of the evolved fields
+        gconf_r  (m,n) = GF_down_r (gconf, m, n),
+        fconf_r  (m,n) = GF_down_r (fconf, m, n),
+        gDconf_r (m,n) = GF_down_r (gDconf, m, n),
+        fDconf_r (m,n) = GF_down_r (fDconf, m, n),
+        //gtrK_r   (m,n) = GF_r (gtrK, m, n),      ftrK_r   (m,n) = GF_r (ftrK, m, n),
+        gA_r     (m,n) = GF_down_r (gA, m, n),
+        fA_r     (m,n) = GF_down_r (fA, m, n),
+        gB_r     (m,n) = GF_down_r (gB, m, n),
+        fB_r     (m,n) = GF_down_r (fB, m, n),
+        gDA_r    (m,n) = GF_down_r (gDA, m, n),
+        fDA_r    (m,n) = GF_down_r (fDA, m, n),
+        gDB_r    (m,n) = GF_down_r (gDB, m, n),
+        fDB_r    (m,n) = GF_down_r (fDB, m, n),
+        //gA2_r    (m,n) = GF_r (gA2, m, n),       fA1_r    (m,n) = GF_r (fA1, m, n),
+        gA1_r    (m,n) = GF_down_r (gA1, m, n),
+        fA2_r    (m,n) = GF_down_r (fA2, m, n),
+        gL_r     (m,n) = GF_down_r (gL, m, n),
+        fL_r     (m,n) = GF_down_r (fL, m, n),
+        gAsig_r  (m,n) = GF_down_r (gAsig, m, n),
+        fAsig_r  (m,n) = GF_down_r (fAsig, m, n),
+
+        //Lt_r     (m,n) = GF_r (Lt, m, n),
+
+        // The radial derivatives of the regularizing functions
+
+        gDconfr_r(m,n) = GF_down_r (gDconfr, m, n),
+        gDAlpr_r (m,n) = GF_down_r (gDAlpr, m, n),
+        gLr_r    (m,n) = GF_down_r (gLr, m, n),
+        fDconfr_r(m,n) = GF_down_r (fDconfr, m, n),
+        fDAlpr_r (m,n) = GF_down_r (fDAlpr, m, n),
+        fLr_r    (m,n) = GF_down_r (fLr, m, n);
+
+        pr_r      (m,n) = GF_down_r (pr, m, n);
+        qr_r      (m,n) = GF_down_r (qr, m, n);
+
+    // The radial derivatives of the Valencia variables and the external sources
+        pfD_r    (m,n) = GF_down_r (pfD, m, n),
+        pfS_r    (m,n) = GF_down_r (pfS, m, n),
+        pftau_r  (m,n) = GF_down_r (pftau, m, n),
+        gj_r     (m,n) = GF_down_r (gj, m, n),
+        pfv_r    (m,n) = eq_pf_gv_r(m,n);
+
+    // The radial derivatives of the utility function R = fB/gB
+        R_r      (m,n) = GF_down_r (R, m, n),
+
+    // These are the only spatial second derivatives that are needed:
+
+    // The second radial derivatives of the evolved fields
+        gconf_rr (m,n) = GF_down_rr (gconf, m, n),
+        fconf_rr (m,n) = GF_down_rr (fconf, m, n),
+        gA_rr    (m,n) = GF_down_rr (gA, m, n),
+        gB_rr    (m,n) = GF_down_rr (gB, m, n),
+        fA_rr    (m,n) = GF_down_rr (fA, m, n),
+        fB_rr    (m,n) = GF_down_rr (fB, m, n),
+        gA1_rr   (m,n) = GF_down_rr (gA1, m, n),
+        fA1_rr   (m,n) = GF_down_rr (fA1, m, n),
+        gtrK_rr  (m,n) = GF_down_rr (gtrK, m, n),
+        ftrK_rr  (m,n) = GF_down_rr (ftrK, m, n),
+
+    // The second radial derivatives of the gauge fields
+        p_rr     (m,n) = GF_down_rr (p, m, n),   // used in eq_gDA_t and eq_fDA_t
+        q_rr     (m,n) = GF_down_rr (q, m, n),   // used in eq_gDA_t and eq_fDA_t
+        gAlp_rr  (m,n) = GF_down_rr (gAlp, m, n),
+        fAlp_rr  (m,n) = GF_down_rr (fAlp, m, n),   // used in fDAlp_r
+
+    // The second radial derivatives of the traces of the conformal extrinsic curvatures (these traces are usually set to 0 in eomBSSNObserver.h)
+        gtrA_rr  (m,n) = GF_down_rr (gtrA, m, n),
+        ftrA_rr  (m,n) = GF_down_rr (ftrA, m, n),
+
+        #if _EVOLVE_DSIG
+
+            gDsig_r  (m,n) = GF_down_r (gDsig, m, n),
+            fDsig_r  (m,n) = GF_down_r (fDsig, m, n),
+
+        #else
+
+            gsig_r   (m,n) = GF_down_r (gsig, m, n),
+            fsig_r   (m,n) = GF_down_r (fsig, m, n),
+            gsig_rr  (m,n) = GF_down_rr (gsig, m, n),
+            fsig_rr  (m,n) = GF_down_rr (fsig, m, n),
+
+        #endif // _EVOLVE_DSIG
+
+    // The second radial derivatives of the regularizing functions
+
+        pr_rr      (m,n) = GF_down_rr (pr, m, n);
+        qr_rr      (m,n) = GF_down_rr (qr, m, n);
+
+    // The terms involving the Ricci tensors in the evolution equations
+        gRicci     (m,n) = eq_gRicci    (m,n);
+        fRicci     (m,n) = eq_fRicci    (m,n);
+    }
+
+    OMP_parallel_for( Int n = 0; n < nGhost; ++n )
+    {
+
+    // The radial derivatives of the evolved fields
+        gconf_r  (m,n) = GF_up_r (gconf, m, n),
+        fconf_r  (m,n) = GF_up_r (fconf, m, n),
+        gDconf_r (m,n) = GF_up_r (gDconf, m, n),
+        fDconf_r (m,n) = GF_up_r (fDconf, m, n),
+        //gtrK_r   (m,n) = GF_r (gtrK, m, n),      ftrK_r   (m,n) = GF_r (ftrK, m, n),
+        gA_r     (m,n) = GF_up_r (gA, m, n),
+        fA_r     (m,n) = GF_up_r (fA, m, n),
+        gB_r     (m,n) = GF_up_r (gB, m, n),
+        fB_r     (m,n) = GF_up_r (fB, m, n),
+        gDA_r    (m,n) = GF_up_r (gDA, m, n),
+        fDA_r    (m,n) = GF_up_r (fDA, m, n),
+        gDB_r    (m,n) = GF_up_r (gDB, m, n),
+        fDB_r    (m,n) = GF_up_r (fDB, m, n),
+        //gA2_r    (m,n) = GF_r (gA2, m, n),       fA1_r    (m,n) = GF_r (fA1, m, n),
+        gA1_r    (m,n) = GF_up_r (gA1, m, n),
+        fA2_r    (m,n) = GF_up_r (fA2, m, n),
+        gL_r     (m,n) = GF_up_r (gL, m, n),
+        fL_r     (m,n) = GF_up_r (fL, m, n),
+        gAsig_r  (m,n) = GF_up_r (gAsig, m, n),
+        fAsig_r  (m,n) = GF_up_r (fAsig, m, n),
+
+        //Lt_r     (m,n) = GF_r (Lt, m, n),
+
+        // The radial derivatives of the regularizing functions
+
+        gDconfr_r(m,n) = GF_up_r (gDconfr, m, n),
+        gDAlpr_r (m,n) = GF_up_r (gDAlpr, m, n),
+        gLr_r    (m,n) = GF_up_r (gLr, m, n),
+        fDconfr_r(m,n) = GF_up_r (fDconfr, m, n),
+        fDAlpr_r (m,n) = GF_up_r (fDAlpr, m, n),
+        fLr_r    (m,n) = GF_up_r (fLr, m, n);
+
+        pr_r      (m,n) = GF_up_r (pr, m, n);
+        qr_r      (m,n) = GF_up_r (qr, m, n);
+
+    // The radial derivatives of the Valencia variables and the external sources
+        pfD_r    (m,n) = GF_up_r (pfD, m, n),
+        pfS_r    (m,n) = GF_up_r (pfS, m, n),
+        pftau_r  (m,n) = GF_up_r (pftau, m, n),
+        gj_r     (m,n) = GF_up_r (gj, m, n),
+        pfv_r    (m,n) = eq_pf_gv_r(m,n);
+
+    // The radial derivatives of the utility function R = fB/gB
+        R_r      (m,n) = GF_up_r (R, m, n),
+
+    // These are the only spatial second derivatives that are needed:
+
+    // The second radial derivatives of the evolved fields
+        gconf_rr (m,n) = GF_up_rr (gconf, m, n),
+        fconf_rr (m,n) = GF_up_rr (fconf, m, n),
+        gA_rr    (m,n) = GF_up_rr (gA, m, n),
+        gB_rr    (m,n) = GF_up_rr (gB, m, n),
+        fA_rr    (m,n) = GF_up_rr (fA, m, n),
+        fB_rr    (m,n) = GF_up_rr (fB, m, n),
+        gA1_rr   (m,n) = GF_up_rr (gA1, m, n),
+        fA1_rr   (m,n) = GF_up_rr (fA1, m, n),
+        gtrK_rr  (m,n) = GF_up_rr (gtrK, m, n),
+        ftrK_rr  (m,n) = GF_up_rr (ftrK, m, n),
+
+    // The second radial derivatives of the gauge fields
+        p_rr     (m,n) = GF_up_rr (p, m, n),   // used in eq_gDA_t and eq_fDA_t
+        q_rr     (m,n) = GF_up_rr (q, m, n),   // used in eq_gDA_t and eq_fDA_t
+        gAlp_rr  (m,n) = GF_up_rr (gAlp, m, n),
+        fAlp_rr  (m,n) = GF_up_rr (fAlp, m, n),   // used in fDAlp_r
+
+    // The second radial derivatives of the traces of the conformal extrinsic curvatures (these traces are usually set to 0 in eomBSSNObserver.h)
+        gtrA_rr  (m,n) = GF_up_rr (gtrA, m, n),
+        ftrA_rr  (m,n) = GF_up_rr (ftrA, m, n),
+
+        #if _EVOLVE_DSIG
+
+            gDsig_r  (m,n) = GF_down_r (gDsig, m, n),
+            fDsig_r  (m,n) = GF_down_r (fDsig, m, n),
+
+        #else
+
+            gsig_r   (m,n) = GF_up_r (gsig, m, n),
+            fsig_r   (m,n) = GF_up_r (fsig, m, n),
+            gsig_rr  (m,n) = GF_up_rr (gsig, m, n),
+            fsig_rr  (m,n) = GF_up_rr (fsig, m, n),
+
+        #endif // _EVOLVE_DSIG
+
+    // The second radial derivatives of the regularizing functions
+
+        pr_rr      (m,n) = GF_up_rr (pr, m, n);
+        qr_rr      (m,n) = GF_up_rr (qr, m, n);
+
+    // The terms involving the Ricci tensors in the evolution equations
+        gRicci     (m,n) = eq_gRicci    (m,n);
+        fRicci     (m,n) = eq_fRicci    (m,n);
+    }*/
+
     if( smooth >= 1 )
     {
         /*smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::q_r,    fld::tmp,  fld::q_r,     1 );
@@ -1863,7 +2133,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
     /////////////////////////////////////////////////////////////////////////////////////
     /// - Calculate the intermediate variables that do not depend on derivatives.
 
-    OMP_parallel_for( Int n = 0+0*nGhost; n < 2*nGhost + nLen; ++n )
+    OMP_parallel_for( Int n = 0+0*nGhost; n <  2* nGhost + nLen; ++n )
     {
         // The shifts and their radial derivatives
         gBet     (m,n) = eq_gBet    (m,n);
