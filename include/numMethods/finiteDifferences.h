@@ -288,30 +288,39 @@
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef FIXED_EXTRAPOLATION
+#ifdef CONST_EXTRAPOLATION
 
-    #define extrapolate_R(f,m,n)  extrapolate_TO4(f,m,n)
-    #define extrapolate_D(f,m,n)  extrapolate_LIN4(f,m,n)
+    #define extrapolate_R(f,m,n)  GF(f,m,n) = GF(f,m,n-1)
+    #define extrapolate_D(f,m,n)  GF(f,m,n) = GF(f,m,n-1)
 
-#elif CFDS_ORDER == 2
+#else
 
-    #define extrapolate_R(f,m,n)  extrapolate_TO2(f,m,n)
-    #define extrapolate_D(f,m,n)  extrapolate_TO2(f,m,n)
+    #ifdef FIXED_EXTRAPOLATION
 
-#elif CFDS_ORDER == 4
+        #define extrapolate_R(f,m,n)  extrapolate_TO4(f,m,n)
+        #define extrapolate_D(f,m,n)  extrapolate_LIN4(f,m,n)
 
-    #define extrapolate_R(f,m,n)  extrapolate_TO4(f,m,n)
-    #define extrapolate_D(f,m,n)  extrapolate_TO4(f,m,n)
+    #elif CFDS_ORDER == 2
 
-#elif CFDS_ORDER == 6
+        #define extrapolate_R(f,m,n)  extrapolate_TO2(f,m,n)
+        #define extrapolate_D(f,m,n)  extrapolate_TO2(f,m,n)
 
-    #define extrapolate_R(f,m,n)  extrapolate_TO6(f,m,n)
-    #define extrapolate_D(f,m,n)  extrapolate_TO6(f,m,n)
+    #elif CFDS_ORDER == 4
 
-#elif CFDS_ORDER == 8
+        #define extrapolate_R(f,m,n)  extrapolate_TO4(f,m,n)
+        #define extrapolate_D(f,m,n)  extrapolate_TO4(f,m,n)
 
-    #define extrapolate_R(f,m,n)  extrapolate_TO8(f,m,n)
-    #define extrapolate_D(f,m,n)  extrapolate_TO8(f,m,n)
+    #elif CFDS_ORDER == 6
+
+        #define extrapolate_R(f,m,n)  extrapolate_TO6(f,m,n)
+        #define extrapolate_D(f,m,n)  extrapolate_TO6(f,m,n)
+
+    #elif CFDS_ORDER == 8
+
+        #define extrapolate_R(f,m,n)  extrapolate_TO8(f,m,n)
+        #define extrapolate_D(f,m,n)  extrapolate_TO8(f,m,n)
+
+    #endif
 
 #endif
                                                                                    /*@}*/
@@ -393,14 +402,19 @@
  *
  */
 
-#if !defined(KO_ORDER) || KO_ORDER <= 0
+#if !defined(KO_ORDER) || KO_ORDER < 0
     /** KO_ORDER defines the order of the Kreiss-Oliger term order.
      *  Defaults to CFDS_ORDER, if it is undefined or set to a non-positive value.
      */
     #define KO_ORDER CFDS_ORDER
 #endif
 
-#if KO_ORDER == 2
+#if KO_ORDER == 0
+
+    #define KreissOligerTerm(f,dt) \
+        0
+
+#elif KO_ORDER == 2
 
     #define KreissOligerTerm(f,dt) \
         ( - ( GF(f,m,n-1) - 2* GF(f,m,n) + GF(f,m,n+1) ) * dissip_delta_r * (dt) )

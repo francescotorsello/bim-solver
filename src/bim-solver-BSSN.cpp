@@ -288,7 +288,7 @@ namespace fld
         gsig, fsig,
         gDsig, fDsig,
         gAsig, fAsig,
-        q, Bq, p,
+        q, Bq, p, ///@note the initial value for p is not free!
         gAlp, fAlp,
         gDAlp, fDAlp,
         pfD, pfS, pftau
@@ -826,7 +826,7 @@ class BimetricEvolve
     // The convective derivatives of the evolved fields
     emitField(gAlp_convr)    emitField(fAlp_convr)
     //emitField(gBet_convr)    emitField(fBet_convr)
-    emitField(q_qconvr)       emitField(Bq_qconvr)
+    emitField(q_qconvr)      emitField(Bq_qconvr)
 
     emitField(gconf_convr)   emitField(fconf_convr)
     emitField(gDconf_convr)  emitField(fDconf_convr)
@@ -1117,6 +1117,7 @@ class BimetricEvolve
      */
     void calculateDerivedVariables( Int m, Int n )
     {
+
         R(m,n)     = isGR() ? 1 : ( fB(m,n)*exp(2 * fconf(m,n)) ) /(gB(m,n)*exp(2 * gconf(m,n)));
 
         Lt(m,n)    = isGR() ? 1 : sqrt( 1 + p(m,n) * p(m,n) );
@@ -1158,6 +1159,7 @@ class BimetricEvolve
         pr    (m,n) = p(m,n) / r(m,n);
 
         qr    (m,n) = q(m,n) / r(m,n);
+
     }
 
     /** Determine gAlp (e.g. by maximal slicing). Then find fAlp and also calculate
@@ -1385,7 +1387,7 @@ void BimetricEvolve::applyLeftBoundaryCondition( Int m )
         fDAlp(m,n) = -fDAlp(m,nR);
 
         Lt   (m,n) = Lt    (m,nR);
-        Lt2  (m,n) = Lt2    (m,nR);
+        Lt2  (m,n) = Lt2   (m,nR);
         R    (m,n) = R     (m,nR);
         pfv  (m,n) = -pfv  (m,nR);
 
@@ -1402,10 +1404,13 @@ void BimetricEvolve::applyLeftBoundaryCondition( Int m )
 
 void BimetricEvolve::applyRightBoundaryCondition( Int m )
 {
-    for( Int n = nGhost + nLen; n < nTotal + 1; ++n )
+    for( Int n = nGhost + nLen; n < 2*nGhost + nLen; ++n )
+    {
+        r(m,n) = r(m,n-1) + delta_r;
+    }
+    for( Int n = nGhost + nLen; n < nTotal; ++n )
     {
         t(m,n) = t(m,n-1);
-        r(m,n) = r(m,n-1) + delta_r;
 
         extrapolate_R( fld::p,     m, n );   // Extrapolate [n] from [n-1], [n-2], ...
         extrapolate_R( fld::pr,    m, n );
@@ -1453,7 +1458,7 @@ void BimetricEvolve::applyRightBoundaryCondition( Int m )
         extrapolate_R( fld::fDAlpr,  m, n );
         extrapolate_R( fld::fLr,     m, n );
 
-        calculateDerivedVariables( m, n ); // Calculate R, Lt, and pfv.
+        //calculateDerivedVariables( m, n ); // Calculate R, Lt, and pfv.
 
         extrapolate_R( fld::pfv, m, n ); // Nevertheless, we extrapolate pfv!
     }
@@ -1494,7 +1499,7 @@ void BimetricEvolve::applySommerfeldBC
 
 void BimetricEvolve::integStep_Prepare( Int m )
 {
-    OMP_parallel_for( Int n = 0*nGhost; n < 2*nGhost + nLen; ++n )
+    OMP_parallel_for( Int n = 0+0*nGhost; n < 2*nGhost + nLen + 1; ++n )
     {
         calculateDerivedVariables( m, n );
     }
@@ -1543,12 +1548,10 @@ void BimetricEvolve::determineGaugeFunctions( Int m )
     {
 
 
-        OMP_parallel_for( Int n = 0; n < nGhost + 1; ++n )
+        OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n )
         {
             gAlp_r ( m, n ) = GF_right_r( gAlp,  m, n );
-            gDAlp_r( m, n ) = 1+0*GF_right_r( gDAlp, m, n );
-
-            Real db3 = gDAlp_r( m, n );
+            gDAlp_r( m, n ) = GF_right_r( gDAlp, m, n );
 
             fAlp   ( m, n ) = gAlp( m, n );
             fAlp_r ( m, n ) = GF_right_r ( fAlp,  m, n );
@@ -1602,12 +1605,12 @@ void BimetricEvolve::determineGaugeFunctions( Int m )
         //cubicSplineSmooth( m, fld::gDAlp_r, lin2n, cub2n );
         //cubicSplineSmooth( m, fld::fDAlp_r, lin2n, cub2n );
     }
-    else // if not GR
+    else // if not GR and not geodesic slicing (constant lapse)
     {
         // gAlp and gDAlp must the BC fixed at this point
         //
 
-        OMP_parallel_for( Int n = 0; n < nGhost + 1; ++n ) {
+        OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n ) {
             gAlp_r ( m, n ) = GF_right_r( gAlp,  m, n );
             gDAlp_r( m, n ) = GF_right_r( gDAlp, m, n );
         }
@@ -1702,14 +1705,14 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gLr,     fld::tmp,  fld::gLr,      1 );
         smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gDAlpr,  fld::tmp,  fld::gDAlpr,   1 );
         smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gDconfr, fld::tmp,  fld::gDconfr, 1 );
-        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gsig,    fld::tmp,  fld::gsig,     1 );
-        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gAsig,   fld::tmp,  fld::gAsig,    1 );
+        //smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gsig,    fld::tmp,  fld::gsig,     1 );
+        //smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gAsig,   fld::tmp,  fld::gAsig,    1 );
 
     }
     /////////////////////////////////////////////////////////////////////////////////////
     /// - First, calculate the values of the spatial derivatives
 
-    OMP_parallel_for( Int n = 0; n < 2*nGhost + nLen + 1; ++n )
+    OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost +1; ++n )
     {
        // The radial derivatives of the fields inside the ratio of the lapses (which is inside the maximal slicing's equation) over the left ghosts
 
@@ -1723,7 +1726,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     }
 
-    OMP_parallel_for( Int n = 0+1*(nGhost +1); n < 1*nGhost + nLen + 1; ++n )
+    OMP_parallel_for( Int n = nGhost +1; n < 1*nGhost + nLen + 1; ++n )
     {
        // The radial derivatives of the fields inside the ratio of the lapses (which is inside the maximal slicing's equation) over the entire gird but not the ghosts
 
@@ -1782,13 +1785,13 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         }
     }
 
-    OMP_parallel_for( Int n = 0+0*nGhost; n <  2*nGhost + nLen; ++n )
+    OMP_parallel_for( Int n = 0+0*nGhost; n <  2*nGhost + nLen +1; ++n )
     {
         gDAlpr   (m,n) = (gDAlp(m,n) * gAlp(m,n)) / r(m,n);
         fDAlpr   (m,n) = (fDAlp(m,n) * fAlp(m,n)) / r(m,n);
     }
 
-    OMP_parallel_for( Int n = 0; n < /* 2* */nGhost + 1; ++n )
+    OMP_parallel_for( Int n = 0 + 0*nGhost; n < /* 2* */nGhost + 1; ++n )
     {
         gAlp_r   (m,n) = GF_right_r (gAlp, m, n);
         fAlp_r   (m,n) = GF_right_r (fAlp, m, n);
@@ -1825,7 +1828,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         smoothenGF( m, fld::gL,       fld::tmp, fld::gL,      +1 );
     }
 
-    OMP_parallel_for( Int n = 0; n < nGhost + 1; ++n )
+    OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n )
     {
 
     // The radial derivatives of the evolved fields
@@ -1922,7 +1925,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         fRicci     (m,n) = eq_fRicci    (m,n);
     }
 
-    OMP_parallel_for( Int n = 0 + 1*(nGhost+1); n < nGhost + nLen + 1; ++n )
+    OMP_parallel_for( Int n = nGhost+1; n < nGhost + nLen + 1; ++n )
     {
 
     // The radial derivatives of the evolved fields
@@ -2046,8 +2049,8 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         fDAlpr_r (m,n) = GF_left_r (fDAlpr, m, n),
         fLr_r    (m,n) = GF_left_r (fLr, m, n);
 
-        pr_r      (m,n) = GF_down_r (pr, m, n);
-        qr_r      (m,n) = GF_down_r (qr, m, n);
+        pr_r      (m,n) = GF_left_r (pr, m, n);
+        qr_r      (m,n) = GF_left_r (qr, m, n);
 
     // The radial derivatives of the Valencia variables and the external sources
         pfD_r    (m,n) = GF_left_r (pfD, m, n),
@@ -2057,7 +2060,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         pfv_r    (m,n) = eq_pf_gv_r(m,n);
 
     // The radial derivatives of the utility function R = fB/gB
-        R_r      (m,n) = GF_down_r (R, m, n),
+        R_r      (m,n) = GF_left_r (R, m, n),
 
     // These are the only spatial second derivatives that are needed:
 
@@ -2107,7 +2110,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         fRicci     (m,n) = eq_fRicci    (m,n);
     }
 
-    if( smooth >= 1 )
+    if( false )
     {
         /*smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::q_r,    fld::tmp,  fld::q_r,     1 );
         smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::q_rr,    fld::tmp,  fld::q_rr,     -1 );
@@ -2135,7 +2138,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
     }
 
 
-    if( smooth >= 1 )
+    if( false )
     {
         smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA_r,    fld::tmp,  fld::gA_r,     -1 );
         smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA_rr,    fld::tmp,  fld::gA_rr,     1 );
@@ -2163,7 +2166,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
     /////////////////////////////////////////////////////////////////////////////////////
     /// - Calculate the intermediate variables that do not depend on derivatives.
 
-    OMP_parallel_for( Int n = 0; n <  2*nGhost + nLen + 1; ++n )
+    OMP_parallel_for( Int n = 0 + 0*nGhost; n <  2*nGhost + nLen + 1; ++n )
     {
         // The shifts and their radial derivatives
         gBet     (m,n) = eq_gBet    (m,n);
@@ -2197,50 +2200,50 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         }
     }
 
-    OMP_parallel_for( Int n = 0; n <  nGhost + 1; ++n )
+    OMP_parallel_for( Int n = 0 + 0*nGhost; n <  nGhost + 1; ++n )
     {
 
     // The convective derivatives of the evolved fields
-       gAlp_convr     (m,n) = gBet(m,n) * GF_left_r (gAlp, m ,n);
-       fAlp_convr     (m,n) = fBet(m,n) * GF_left_r (fAlp, m ,n);
+       gAlp_convr     (m,n) = gBet(m,n) * GF_right_r (gAlp, m ,n);
+       fAlp_convr     (m,n) = fBet(m,n) * GF_right_r (fAlp, m ,n);
        //gBet_convr     (m,n) = GF_convr (gBet, gBet, m ,n);
        //fBet_convr     (m,n) = GF_convr (fBet, fBet, m ,n);
-       q_qconvr       (m,n) = q(m,n)    * GF_left_r (q, m ,n);
-       Bq_qconvr      (m,n) = q(m,n)    * GF_left_r (Bq, m ,n);
+       q_qconvr       (m,n) = q(m,n)    * GF_right_r (q, m ,n);
+       Bq_qconvr      (m,n) = q(m,n)    * GF_right_r (Bq, m ,n);
 
-       gconf_convr    (m,n) = gBet(m,n) * GF_left_r (gconf, m ,n);
-       fconf_convr    (m,n) = fBet(m,n) * GF_left_r (fconf, m ,n);
-       gDconf_convr   (m,n) = gBet(m,n) * GF_left_r (gDconf, m ,n);
-       fDconf_convr   (m,n) = fBet(m,n) * GF_left_r (fDconf, m ,n);
-       gtrK_convr     (m,n) = gBet(m,n) * GF_left_r (gtrK, m ,n);
-       ftrK_convr     (m,n) = fBet(m,n) * GF_left_r (ftrK, m ,n);
+       gconf_convr    (m,n) = gBet(m,n) * GF_right_r (gconf, m ,n);
+       fconf_convr    (m,n) = fBet(m,n) * GF_right_r (fconf, m ,n);
+       gDconf_convr   (m,n) = gBet(m,n) * GF_right_r (gDconf, m ,n);
+       fDconf_convr   (m,n) = fBet(m,n) * GF_right_r (fDconf, m ,n);
+       gtrK_convr     (m,n) = gBet(m,n) * GF_right_r (gtrK, m ,n);
+       ftrK_convr     (m,n) = fBet(m,n) * GF_right_r (ftrK, m ,n);
 
-       gA_convr       (m,n) = gBet(m,n) * GF_left_r (gA, m ,n);
-       fA_convr       (m,n) = fBet(m,n) * GF_left_r (fA, m ,n);
-       gB_convr       (m,n) = gBet(m,n) * GF_left_r (gB, m ,n);
-       fB_convr       (m,n) = fBet(m,n) * GF_left_r (fB, m ,n);
-       gDA_convr      (m,n) = gBet(m,n) * GF_left_r (gDA, m ,n);
-       fDA_convr      (m,n) = fBet(m,n) * GF_left_r (fDA, m ,n);
-       gDB_convr      (m,n) = gBet(m,n) * GF_left_r (gDB, m ,n);
-       fDB_convr      (m,n) = fBet(m,n) * GF_left_r (fDB, m ,n);
+       gA_convr       (m,n) = gBet(m,n) * GF_right_r (gA, m ,n);
+       fA_convr       (m,n) = fBet(m,n) * GF_right_r (fA, m ,n);
+       gB_convr       (m,n) = gBet(m,n) * GF_right_r (gB, m ,n);
+       fB_convr       (m,n) = fBet(m,n) * GF_right_r (fB, m ,n);
+       gDA_convr      (m,n) = gBet(m,n) * GF_right_r (gDA, m ,n);
+       fDA_convr      (m,n) = fBet(m,n) * GF_right_r (fDA, m ,n);
+       gDB_convr      (m,n) = gBet(m,n) * GF_right_r (gDB, m ,n);
+       fDB_convr      (m,n) = fBet(m,n) * GF_right_r (fDB, m ,n);
 
-       gA1_convr      (m,n) = gBet(m,n) * GF_left_r (gA1, m ,n);
-       fA1_convr      (m,n) = fBet(m,n) * GF_left_r (fA1, m ,n);
-       gA2_convr      (m,n) = gBet(m,n) * GF_left_r (gA2, m ,n);
-       fA2_convr      (m,n) = fBet(m,n) * GF_left_r (fA2, m ,n);
+       gA1_convr      (m,n) = gBet(m,n) * GF_right_r (gA1, m ,n);
+       fA1_convr      (m,n) = fBet(m,n) * GF_right_r (fA1, m ,n);
+       gA2_convr      (m,n) = gBet(m,n) * GF_right_r (gA2, m ,n);
+       fA2_convr      (m,n) = fBet(m,n) * GF_right_r (fA2, m ,n);
 
-       gL_convr       (m,n) = gBet(m,n) * GF_left_r (gL, m ,n);
-       gL_qconvr      (m,n) = q(m,n)    * GF_left_r (gL, m ,n);
-       fL_convr       (m,n) = fBet(m,n) * GF_left_r (fL, m ,n);
+       gL_convr       (m,n) = gBet(m,n) * GF_right_r (gL, m ,n);
+       gL_qconvr      (m,n) = q(m,n)    * GF_right_r (gL, m ,n);
+       fL_convr       (m,n) = fBet(m,n) * GF_right_r (fL, m ,n);
 
-       gsig_convr     (m,n) = gBet(m,n) * GF_left_r (gsig, m ,n);
-       fsig_convr     (m,n) = fBet(m,n) * GF_left_r (fsig, m ,n);
-       gAsig_convr    (m,n) = gBet(m,n) * GF_left_r (gAsig, m ,n);
-       fAsig_convr    (m,n) = fBet(m,n) * GF_left_r (fAsig, m ,n);
+       gsig_convr     (m,n) = gBet(m,n) * GF_right_r (gsig, m ,n);
+       fsig_convr     (m,n) = fBet(m,n) * GF_right_r (fsig, m ,n);
+       gAsig_convr    (m,n) = gBet(m,n) * GF_right_r (gAsig, m ,n);
+       fAsig_convr    (m,n) = fBet(m,n) * GF_right_r (fAsig, m ,n);
 
-       pfD_convr      (m,n) = gBet(m,n) * GF_left_r (pfD, m ,n);
-       pfS_convr      (m,n) = gBet(m,n) * GF_left_r (pfS, m ,n);
-       pftau_convr    (m,n) = gBet(m,n) * GF_left_r (pftau, m ,n);
+       pfD_convr      (m,n) = gBet(m,n) * GF_right_r (pfD, m ,n);
+       pfS_convr      (m,n) = gBet(m,n) * GF_right_r (pfS, m ,n);
+       pftau_convr    (m,n) = gBet(m,n) * GF_right_r (pftau, m ,n);
 
        #if _EVOLVE_DSIG
 
@@ -2251,7 +2254,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     }
 
-    OMP_parallel_for( Int n = 0+1*(nGhost+1); n <  1* nGhost + nLen + 1; ++n )
+    OMP_parallel_for( Int n = nGhost+1; n <  nGhost + nLen + 1; ++n )
     {
 
     // The convective derivatives of the evolved fields
@@ -2309,46 +2312,46 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
     {
 
     // The convective derivatives of the evolved fields
-       gAlp_convr     (m,n) = gBet(m,n) * GF_right_r (gAlp, m ,n);
-       fAlp_convr     (m,n) = fBet(m,n) * GF_right_r (fAlp, m ,n);
+       gAlp_convr     (m,n) = gBet(m,n) * GF_left_r (gAlp, m ,n);
+       fAlp_convr     (m,n) = fBet(m,n) * GF_left_r (fAlp, m ,n);
        //gBet_convr     (m,n) = GF_convr (gBet, gBet, m ,n);
        //fBet_convr     (m,n) = GF_convr (fBet, fBet, m ,n);
-       q_qconvr       (m,n) = q(m,n)    * GF_right_r (q, m ,n);
-       Bq_qconvr      (m,n) = q(m,n)    * GF_right_r (Bq, m ,n);
+       q_qconvr       (m,n) = q(m,n)    * GF_left_r (q, m ,n);
+       Bq_qconvr      (m,n) = q(m,n)    * GF_left_r (Bq, m ,n);
 
-       gconf_convr    (m,n) = gBet(m,n) * GF_right_r (gconf, m ,n);
-       fconf_convr    (m,n) = fBet(m,n) * GF_right_r (fconf, m ,n);
-       gDconf_convr   (m,n) = gBet(m,n) * GF_right_r (gDconf, m ,n);
-       fDconf_convr   (m,n) = fBet(m,n) * GF_right_r (fDconf, m ,n);
-       gtrK_convr     (m,n) = gBet(m,n) * GF_right_r (gtrK, m ,n);
-       ftrK_convr     (m,n) = fBet(m,n) * GF_right_r (ftrK, m ,n);
+       gconf_convr    (m,n) = gBet(m,n) * GF_left_r (gconf, m ,n);
+       fconf_convr    (m,n) = fBet(m,n) * GF_left_r (fconf, m ,n);
+       gDconf_convr   (m,n) = gBet(m,n) * GF_left_r (gDconf, m ,n);
+       fDconf_convr   (m,n) = fBet(m,n) * GF_left_r (fDconf, m ,n);
+       gtrK_convr     (m,n) = gBet(m,n) * GF_left_r (gtrK, m ,n);
+       ftrK_convr     (m,n) = fBet(m,n) * GF_left_r (ftrK, m ,n);
 
-       gA_convr       (m,n) = gBet(m,n) * GF_right_r (gA, m ,n);
-       fA_convr       (m,n) = fBet(m,n) * GF_right_r (fA, m ,n);
-       gB_convr       (m,n) = gBet(m,n) * GF_right_r (gB, m ,n);
-       fB_convr       (m,n) = fBet(m,n) * GF_right_r (fB, m ,n);
-       gDA_convr      (m,n) = gBet(m,n) * GF_right_r (gDA, m ,n);
-       fDA_convr      (m,n) = fBet(m,n) * GF_right_r (fDA, m ,n);
-       gDB_convr      (m,n) = gBet(m,n) * GF_right_r (gDB, m ,n);
-       fDB_convr      (m,n) = fBet(m,n) * GF_right_r (fDB, m ,n);
+       gA_convr       (m,n) = gBet(m,n) * GF_left_r (gA, m ,n);
+       fA_convr       (m,n) = fBet(m,n) * GF_left_r (fA, m ,n);
+       gB_convr       (m,n) = gBet(m,n) * GF_left_r (gB, m ,n);
+       fB_convr       (m,n) = fBet(m,n) * GF_left_r (fB, m ,n);
+       gDA_convr      (m,n) = gBet(m,n) * GF_left_r (gDA, m ,n);
+       fDA_convr      (m,n) = fBet(m,n) * GF_left_r (fDA, m ,n);
+       gDB_convr      (m,n) = gBet(m,n) * GF_left_r (gDB, m ,n);
+       fDB_convr      (m,n) = fBet(m,n) * GF_left_r (fDB, m ,n);
 
-       gA1_convr      (m,n) = gBet(m,n) * GF_right_r (gA1, m ,n);
-       fA1_convr      (m,n) = fBet(m,n) * GF_right_r (fA1, m ,n);
-       gA2_convr      (m,n) = gBet(m,n) * GF_right_r (gA2, m ,n);
-       fA2_convr      (m,n) = fBet(m,n) * GF_right_r (fA2, m ,n);
+       gA1_convr      (m,n) = gBet(m,n) * GF_left_r (gA1, m ,n);
+       fA1_convr      (m,n) = fBet(m,n) * GF_left_r (fA1, m ,n);
+       gA2_convr      (m,n) = gBet(m,n) * GF_left_r (gA2, m ,n);
+       fA2_convr      (m,n) = fBet(m,n) * GF_left_r (fA2, m ,n);
 
-       gL_convr       (m,n) = gBet(m,n) * GF_right_r (gL, m ,n);
-       gL_qconvr      (m,n) = q(m,n)    * GF_right_r (gL, m ,n);
-       fL_convr       (m,n) = fBet(m,n) * GF_right_r (fL, m ,n);
+       gL_convr       (m,n) = gBet(m,n) * GF_left_r (gL, m ,n);
+       gL_qconvr      (m,n) = q(m,n)    * GF_left_r (gL, m ,n);
+       fL_convr       (m,n) = fBet(m,n) * GF_left_r (fL, m ,n);
 
-       gsig_convr     (m,n) = gBet(m,n) * GF_right_r (gsig, m ,n);
-       fsig_convr     (m,n) = fBet(m,n) * GF_right_r (fsig, m ,n);
-       gAsig_convr    (m,n) = gBet(m,n) * GF_right_r (gAsig, m ,n);
-       fAsig_convr    (m,n) = fBet(m,n) * GF_right_r (fAsig, m ,n);
+       gsig_convr     (m,n) = gBet(m,n) * GF_left_r (gsig, m ,n);
+       fsig_convr     (m,n) = fBet(m,n) * GF_left_r (fsig, m ,n);
+       gAsig_convr    (m,n) = gBet(m,n) * GF_left_r (gAsig, m ,n);
+       fAsig_convr    (m,n) = fBet(m,n) * GF_left_r (fAsig, m ,n);
 
-       pfD_convr      (m,n) = gBet(m,n) * GF_right_r (pfD, m ,n);
-       pfS_convr      (m,n) = gBet(m,n) * GF_right_r (pfS, m ,n);
-       pftau_convr    (m,n) = gBet(m,n) * GF_right_r (pftau, m ,n);
+       pfD_convr      (m,n) = gBet(m,n) * GF_left_r (pfD, m ,n);
+       pfS_convr      (m,n) = gBet(m,n) * GF_left_r (pfS, m ,n);
+       pftau_convr    (m,n) = gBet(m,n) * GF_left_r (pftau, m ,n);
 
        #if _EVOLVE_DSIG
 
