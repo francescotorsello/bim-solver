@@ -605,7 +605,9 @@ class BimetricEvolve
     Int cub2n;     //!< Left grid-zone cubic spline smoothing (default: `5*nGhost/2+6`)
     Real delta_t;  //!< The integration step (obtained from the integrator)
     Int smooth;    //!< Smooth the fields (level of smoothness)
+    Int nSmoothFrom;    //!< Smooth from this point
     Int nSmoothUpTo;    //!< Smooth up to this point
+    Int mSmoothUpTo;    //!< Smooth up to this point
     Int sgRadius;       //!< The Savitzky-Golay smoothing radius
 
     /////////////////////////////////////////////////////////////////////////////////////
@@ -1243,7 +1245,9 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
     params.get( "slicing.smooth",       smooth,      0                   );
     params.get( "slicing.dissipGauge",  eta,         0.0                 );
 
+    params.get( "smoothing.nSmoothFrom",  nSmoothFrom, 5*nGhost   );
     params.get( "smoothing.nSmoothUpTo",  nSmoothUpTo, output.get_nOut()   );
+    params.get( "smoothing.mSmoothUpTo",  mSmoothUpTo, 50000   ); /* get mSize out of this */
     params.get( "smoothing.sgRadius",     sgRadius,    10.0                );
     //nSmoothUpTo = output.get_nOut();
 
@@ -1270,9 +1274,11 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
     if (smooth >= 1)
     {
         slog << "Smoothing:" << std::endl << std::endl
-            << "    Smoothing up to radial grid point " << nSmoothUpTo
-            << ", Savitzky-Golay radius = " << sgRadius
-            << std::endl << std::endl;
+             << "    Smoothing from n = " << nSmoothFrom
+             << ", to n = " << nSmoothUpTo
+             << ", up to m = " << mSmoothUpTo << std::endl
+             << "    Savitzky-Golay radius = " << sgRadius
+             << std::endl << std::endl;
     }
 
     if( slicing == SLICE_SG ){
@@ -1685,28 +1691,32 @@ void BimetricEvolve::determineGaugeFunctions( Int m )
 void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 {
 
-    if( smooth >= 1 )
+    if( m < mSmoothUpTo && smooth >= 1 )
     {
-        //smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::q,       fld::tmp,  fld::q,      1 );
-        //smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::qr,      fld::tmp,  fld::qr,      1 );
-        //smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::p,       fld::tmp,  fld::p,      1 );
-        //smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::pr,      fld::tmp,  fld::pr,      1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::q,       fld::tmp,  fld::q,      1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::qr,      fld::tmp,  fld::qr,      1 );
+        //smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::p,       fld::tmp,  fld::p,      1 );
+        //smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::pr,      fld::tmp,  fld::pr,      1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gBet,    fld::tmp,  fld::gDconfr, -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gBetr,   fld::tmp,  fld::gDconfr, 1 );
 
-        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gA,      fld::tmp,  fld::gA,      1 );
-        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gB,      fld::tmp,  fld::gB,      1 );
-        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gDA,     fld::tmp,  fld::gDA,     1 );
-        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gDB,     fld::tmp,  fld::gDB,     1 );
-        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gA1,     fld::tmp,  fld::gA1,     1 );
-        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gA2,     fld::tmp,  fld::gA2,     1 );
-        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gtrK,    fld::tmp,  fld::gtrK,    1 );
-        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gconf,   fld::tmp,  fld::gconf,   1 );
-        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gDconf,  fld::tmp,  fld::gDconf,  1 );
-        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gL,      fld::tmp,  fld::gL,      -1 );
-        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gLr,     fld::tmp,  fld::gLr,      1 );
-        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gDAlpr,  fld::tmp,  fld::gDAlpr,   1 );
-        smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gDconfr, fld::tmp,  fld::gDconfr, 1 );
-        //smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gsig,    fld::tmp,  fld::gsig,     1 );
-        //smoothenGF0 ( m, nSmoothUpTo, sgRadius,  fld::gAsig,   fld::tmp,  fld::gAsig,    1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gA,      fld::tmp,  fld::gA,      1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gB,      fld::tmp,  fld::gB,      1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gDA,     fld::tmp,  fld::gDA,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gDB,     fld::tmp,  fld::gDB,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gA1,     fld::tmp,  fld::gA1,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gA2,     fld::tmp,  fld::gA2,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gtrK,    fld::tmp,  fld::gtrK,    1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gconf,   fld::tmp,  fld::gconf,   1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gDconf,  fld::tmp,  fld::gDconf,  -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gL,      fld::tmp,  fld::gL,      -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gLr,     fld::tmp,  fld::gLr,      1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gDAlpr,  fld::tmp,  fld::gDAlpr,   1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gDconfr, fld::tmp,  fld::gDconfr, 1 );
+        //smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::grhobar,     fld::tmp,  fld::pfD,     1 );
+        //smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::pfD,     fld::tmp,  fld::pfD,     1 );
+        //smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gsig,    fld::tmp,  fld::gsig,     1 );
+        //smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gAsig,   fld::tmp,  fld::gAsig,    1 );
 
     }
     /////////////////////////////////////////////////////////////////////////////////////
@@ -2121,45 +2131,45 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::pr_r,    fld::tmp,  fld::pr_r,     -1 );
         smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::pr_rr,    fld::tmp,  fld::pr_rr,     1 );*/
 
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDA_r,    fld::tmp,  fld::gDA_r,     1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDB_r,    fld::tmp,  fld::gDB_r,     1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gL_r,    fld::tmp,  fld::gL_r,     1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gLr_r,   fld::tmp,  fld::gLr_r,     -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDconfr_r, fld::tmp,  fld::gDconfr_r, -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDAlpr_r, fld::tmp,  fld::gDAlpr_r, -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gsig_r, fld::tmp,  fld::gsig_r, -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gAsig_r, fld::tmp,  fld::gAsig_r, -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDA_r,    fld::tmp,  fld::gDA_r,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDB_r,    fld::tmp,  fld::gDB_r,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gL_r,    fld::tmp,  fld::gL_r,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gLr_r,   fld::tmp,  fld::gLr_r,     -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDconfr_r, fld::tmp,  fld::gDconfr_r, -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDAlpr_r, fld::tmp,  fld::gDAlpr_r, -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gsig_r, fld::tmp,  fld::gsig_r, -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gAsig_r, fld::tmp,  fld::gAsig_r, -1 );
 
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gconf_r,    fld::tmp,  fld::gconf_r,     -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gconf_rr,    fld::tmp,  fld::gconf_rr,     1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fconf_r,    fld::tmp,  fld::fconf_r,     -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fconf_rr,    fld::tmp,  fld::fconf_rr,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gconf_r,    fld::tmp,  fld::gconf_r,     -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gconf_rr,    fld::tmp,  fld::gconf_rr,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fconf_r,    fld::tmp,  fld::fconf_r,     -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fconf_rr,    fld::tmp,  fld::fconf_rr,     1 );
 
     }
 
 
     if( false )
     {
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA_r,    fld::tmp,  fld::gA_r,     -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA_rr,    fld::tmp,  fld::gA_rr,     1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gB_r,    fld::tmp,  fld::gB_r,     -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gB_rr,    fld::tmp,  fld::gB_rr,     1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fA_r,    fld::tmp,  fld::fA_r,     -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fA_rr,    fld::tmp,  fld::fA_rr,     1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fB_r,    fld::tmp,  fld::fB_r,     -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fB_rr,    fld::tmp,  fld::fB_rr,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA_r,    fld::tmp,  fld::gA_r,     -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA_rr,    fld::tmp,  fld::gA_rr,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gB_r,    fld::tmp,  fld::gB_r,     -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gB_rr,    fld::tmp,  fld::gB_rr,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fA_r,    fld::tmp,  fld::fA_r,     -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fA_rr,    fld::tmp,  fld::fA_rr,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fB_r,    fld::tmp,  fld::fB_r,     -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fB_rr,    fld::tmp,  fld::fB_rr,     1 );
 
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA1_r,    fld::tmp,  fld::gA1_r,     -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA1_rr,    fld::tmp,  fld::gA1_rr,     1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA2_r,    fld::tmp,  fld::gA2_r,     -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fA1_r,    fld::tmp,  fld::fA1_r,     -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fA1_rr,    fld::tmp,  fld::fA1_rr,     1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fA2_r,    fld::tmp,  fld::fA2_r,     -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA1_r,    fld::tmp,  fld::gA1_r,     -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA1_rr,    fld::tmp,  fld::gA1_rr,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gA2_r,    fld::tmp,  fld::gA2_r,     -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fA1_r,    fld::tmp,  fld::fA1_r,     -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fA1_rr,    fld::tmp,  fld::fA1_rr,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fA2_r,    fld::tmp,  fld::fA2_r,     -1 );
 
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gtrK_r,    fld::tmp,  fld::gtrK_r,     -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gtrK_rr,    fld::tmp,  fld::gtrK_rr,     1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::ftrK_r,    fld::tmp,  fld::ftrK_r,     -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::ftrK_rr,    fld::tmp,  fld::ftrK_rr,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gtrK_r,    fld::tmp,  fld::gtrK_r,     -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gtrK_rr,    fld::tmp,  fld::gtrK_rr,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::ftrK_r,    fld::tmp,  fld::ftrK_r,     -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::ftrK_rr,    fld::tmp,  fld::ftrK_rr,     1 );
 
     }
 
@@ -2384,6 +2394,17 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         gjb_u  (m,n) = eq_gjb_u  (m,n);   fjb_u  (m,n) = eq_fjb_u  (m,n);
         gJb1_ud(m,n) = eq_gJb1_ud(m,n);   fJb1_ud(m,n) = eq_fJb1_ud(m,n);
         gJb2_ud(m,n) = eq_gJb2_ud(m,n);   fJb2_ud(m,n) = eq_fJb2_ud(m,n);
+
+    }
+
+    if( m < mSmoothUpTo && smooth >= 1 )
+    {
+
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::grho,     fld::tmp,  fld::grho,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::grhobar,     fld::tmp,  fld::grhobar,     1 );
+        //smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::pfD,     fld::tmp,  fld::pfD,     1 );
+        //smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gsig,    fld::tmp,  fld::gsig,     1 );
+        //smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gAsig,   fld::tmp,  fld::gAsig,    1 );
 
     }
 
