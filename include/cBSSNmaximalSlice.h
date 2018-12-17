@@ -309,9 +309,22 @@ void BimetricEvolve::maximalSlice_PostSteps( Int m, Int N )
 {
     // Fix the ghost cells on the left (using parity BC)
     //
-    for( Int i = 0; i < nGhost; ++i ) {
+    /*for( Int i = 0; i < nGhost; ++i ) {
         gAlp( m, nGhost - 1 - i  ) = gAlp( m, nGhost + i );
+    }*/
+    for( Int i = 0; i < nGhost +1; ++i )
+    {
+        Int n  = nGhost - i - 1;
+        Int nR = nGhost + i;
+
+        gAlp (m,n) = gAlp  (m,nR);
+        fAlp (m,n) = fAlp  (m,nR);
+        //gDAlp(m,n) = -gDAlp(m,nR);
+        //fDAlp(m,n) = -fDAlp(m,nR);
+
     }
+
+    //smoothenGF0 ( m, nGhost, nSmoothUpTo, 32,  fld::gAlp,  fld::tmp,  fld::gAlp,  1 );
 
     // Determine cells on the right by solving the differential equation.
     //
@@ -376,13 +389,27 @@ void BimetricEvolve::maximalSlice_PostSteps( Int m, Int N )
             / ( 2 - h * PP( m,n) );
     }
 
+    // Fix the left boundary for gAlp using parity BC
+    //
 
     // Calculate gDAlp
     //
-    OMP_parallel_for( Int n = nGhost; n < nGhost + nLen + nGhost - CFDS_ORDER/2; ++n )
+    OMP_parallel_for( Int n = 0; n < nGhost + 1; ++n )
     {
-        gAlp_r ( m, n ) = GF_r( gAlp,  m, n );
-        gDAlp(m,n) = gAlp_r(m,n) / (TINY_Real + gAlp(m,n));
+        gAlp_r ( m, n ) = GF_right_r( gAlp,  m, n );
+        gDAlp(m,n) = gAlp_r(m,n) /*/ (TINY_Real + gAlp(m,n))*/;
+
+    }
+    OMP_parallel_for( Int n = nGhost + 1; n < nGhost + nLen + 1; ++n )
+    {
+        gAlp_r ( m, n ) = GF_up_r( gAlp,  m, n );
+        gDAlp(m,n) = gAlp_r(m,n) /*/ (TINY_Real + gAlp(m,n))*/;
+
+    }
+    OMP_parallel_for( Int n = nGhost + nLen + 1; n < 2*nGhost + nLen + 1; ++n )
+    {
+        gAlp_r ( m, n ) = GF_left_r( gAlp,  m, n );
+        gDAlp(m,n) = gAlp_r(m,n) /*/ (TINY_Real + gAlp(m,n))*/;
 
     }
 
@@ -390,11 +417,18 @@ void BimetricEvolve::maximalSlice_PostSteps( Int m, Int N )
     // then apply a six-point cubic spline to smooth the region around r = 0.
     //
     cubicSplineSmooth( m, fld::gDAlp, lin2n, cub2n );
+    //smoothenGF0 ( m, nGhost, nSmoothUpTo, 32,  fld::gDAlp,  fld::tmp,  fld::gDAlp,  -1 );
 
-    // Fix the left boundary using parity BC
+    // Fix the left boundary for gDAlp using parity BC
     //
-    for( Int i = 0; i < nGhost; ++i ) {
-        gDAlp( m, nGhost - 1 - i  ) = - gDAlp( m, nGhost + i );
+    for( Int i = 0; i < nGhost +1; ++i )
+    {
+        Int n  = nGhost - i - 1;
+        Int nR = nGhost + i;
+
+        gDAlp(m,n) = -gDAlp(m,nR);
+        fDAlp(m,n) = -fDAlp(m,nR);
+
     }
 }
 

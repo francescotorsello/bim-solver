@@ -20,7 +20,7 @@
 
 #else
 
-    #include "eom-BSSN/eomBSSNEvolutionReg.h"
+    #include "eom-BSSN/eomBSSNEvolutionConv.h"
 
 #endif
 

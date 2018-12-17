@@ -62,6 +62,8 @@
 		<Unit filename="include/eom-BSSN.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNBimetricSourcesReg.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNConstraintsReg.h" />
+		<Unit filename="include/eom-BSSN/eomBSSNEvolutionConv.h" />
+		<Unit filename="include/eom-BSSN/eomBSSNEvolutionDAlp.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNEvolutionDR.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNEvolutionReg.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNLapseRatiosReg.h" />
