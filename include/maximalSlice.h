@@ -134,14 +134,17 @@ void BimetricEvolve::maximalSlice_4
     Int i = 0;
     A[i][1] =   0;
     A[i][2] =   0;
-    A[i][3] = -20 + 10 * h * PP( m, offset + i ) - 12 * h * h * QQ( m, offset + i );
-    A[i][4] =  17 - 15 * h * PP( m, offset + i );
-    A[i][5] =   4 +  6 * h * PP( m, offset + i );
-    A[i][6] =  -1 -      h * PP( m, offset + i );
+    A[i][3] = -170./3 - 12 * h * h * QQ( m, offset + i );
+    A[i][4] =  72;
+    A[i][5] = -18;
+    A[i][6] =  8./3;
 
     i = 1;
-    A[i][1] = 0;
-    A[i][3] = -31 - h * PP( m, offset + i ) - 12 * h * h * QQ( m, offset + i );
+    A[i][1] =   0;
+    A[i][2] =  58./3 + 34./3 * h * PP( m, offset + i );
+    A[i][3] = -36 - 6 * h * PP( m, offset + i ) - 12 * h * h * QQ( m, offset + i );
+    A[i][4] =  18 - 6 * h * PP( m, offset + i );
+    A[i][5] = -4./3 + 2./3 * h * PP( m, offset + i );
 
     i = N - 2;
     A[i][5] = 0;
