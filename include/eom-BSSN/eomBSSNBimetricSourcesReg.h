@@ -1,7 +1,7 @@
 /** @file  eomBSSNBimetricSourcesReg.h
  *  @author Francesco Torsello
  *  @brief The regularized bimetric sources in the cBSSN formalism.
- *  @version 2018-09-26T09:16:22
+ *  @version 2019-01-09T13:42:13
  *  @image html cBSSNBimetricSourcesReg.png
  */
 

@@ -153,6 +153,7 @@ namespace fld
         /// Convective derivatives
         // The convective derivatives of the evolved fields; they arise from the Pfaffians (i.e., from the Lie derivatives along the shifts)
         gAlp_convr,   fAlp_convr,
+        gDAlp_convr,
         //gBet_convr,   fBet_convr,
         q_qconvr,     Bq_qconvr,
 
@@ -179,6 +180,8 @@ namespace fld
 
         gBet_gDconf_r,
         fBet_fDconf_r,
+
+        gBet_gDAlp_r,
 
         gBet_gDA_r,
         fBet_fDA_r,
@@ -354,6 +357,7 @@ namespace fld
     static const std::vector<GF_Descriptor> bimOutput =
     {
         { gAlp,      "gAlp",       "\\alpha"                        },
+        { gAlp_r,    "gAlp_r",     "\\partial _r \\alpha"           },
         { gDAlp,     "gDAlp",      "D_\\alpha"                      },
         { gAlp_rr,   "gAlp_rr",    "\\partial _{rr} \\alpha"        },
         { gDAlp_r,   "gDAlp_r",    "\\partial _r D_\\alpha"         },
@@ -614,7 +618,8 @@ class BimetricEvolve
         SLICE_MS2     = 2,  // Maximal slicing, 2nd order FD
         SLICE_MS4     = 3,  // Maximal slicing, 4th order FD
         SLICE_MS2OPT  = 4,  // Maximal slicing, 2nd order FD, optimized algorithm
-        SLICE_SG      = 5   // The standard gauge
+        SLICE_SG      = 5,  // The standard gauge
+        SLICE_MS6     = 6   // Maximal slicing, 6th order FD
     };
 
     Int slicing;   //!< Select the slicing: maximal, Bona-Masso, ...
@@ -848,6 +853,7 @@ class BimetricEvolve
 
     // The convective derivatives of the evolved fields
     emitField(gAlp_convr)    emitField(fAlp_convr)
+    emitField(gDAlp_convr)
     //emitField(gBet_convr)    emitField(fBet_convr)
     emitField(q_qconvr)      emitField(Bq_qconvr)
 
@@ -870,6 +876,7 @@ class BimetricEvolve
     emitField(gAsig_convr)   emitField(fAsig_convr)
 
     emitField(gBet_gDconf_r) emitField(fBet_fDconf_r)
+    emitField(gBet_gDAlp_r)
     emitField(gBet_gDA_r)    emitField(fBet_fDA_r)
 
     emitField(gBet_gDB_r)    emitField(fBet_fDB_r)
@@ -980,6 +987,7 @@ class BimetricEvolve
     Real W            ( Int m, Int n );
     Real PP           ( Int m, Int n );
     Real QQ           ( Int m, Int n );
+    Real gDAlp_at_N   ( Int m, Int N, Real h );
     /////////////////////////////////////////////////////////////////////////////////////
     // The sources
     /////////////////////////////////////////////////////////////////////////////////////
@@ -1139,8 +1147,11 @@ class BimetricEvolve
                                                                                    /*@{*/
     void maximalSlice_2( Int m, Int N, Real gAlp_at_N );
     void maximalSlice_4( Int m, Int N, Real gAlp_at_N );
+    void maximalSlice_4_gDAlp( Int m, Int N, Real gAlp_at_N );
+    void maximalSlice_6_gDAlp( Int m, Int N, Real gAlp_at_N );
     void maximalSlice_2opt( Int m, Int N, Real gAlp_at_N );
     void maximalSlice_PostSteps( Int m, Int N );
+    void maximalSlice_compute_gDAlp( Int m, Int N );
                                                                                    /*@}*/
     /////////////////////////////////////////////////////////////////////////////////////
     /** @defgroup g8 Integration                                                       */
@@ -1268,7 +1279,8 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
         { "const",  SLICE_CONSTG },
         { "constg", SLICE_CONSTG },  { "constgf", SLICE_CONSTGF },
         { "MS2OPT", SLICE_MS2OPT },  { "MS2",     SLICE_MS2     },
-        { "MS4",    SLICE_MS4    },  { "SG",      SLICE_SG      }
+        { "MS4",    SLICE_MS4    },  { "SG",      SLICE_SG      },
+        { "MS6",    SLICE_MS6    }
     };
     std::string name = params.get( "slicing.method", slicing, 0, knownSlicings );
 
@@ -1322,7 +1334,7 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
         }
 
     if ( mpiSize() > 1 &&
-        ( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 ) )
+        ( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS6 ) )
     {
         slog << "*** Error: Maximal slicing is not compatible with MPI." << std::endl;
         gridDriver->quit( -1 );
@@ -1338,7 +1350,7 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
 
     // Add our grid functions to the evolution
     //
-    if( slicing != SLICE_SG ){
+    if( slicing != SLICE_SG || slicing != SLICE_MS2 || slicing != SLICE_MS2OPT || slicing != SLICE_MS4 || slicing != SLICE_MS6 ) {
         integ.keepConstant( { fld::q } );
     }  // GFs that are kept constant in time
     integ.keepEvolved( fld::bimEvolvedGF ); // GFs that are evolved by the integrator
@@ -1355,6 +1367,14 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
         const static std::vector<fld::EvolvedBy> evolvedGaugeGF = {
             { fld::gAlp,  fld::gAlp_t  },
             { fld::gDAlp, fld::gDAlp_t },
+            { fld::q,     fld::q_t     },
+            { fld::Bq,    fld::Bq_t    }
+        };
+        integ.keepEvolved( evolvedGaugeGF );
+    }
+    else if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS6 )
+    {
+        const static std::vector<fld::EvolvedBy> evolvedGaugeGF = {
             { fld::q,     fld::q_t     },
             { fld::Bq,    fld::Bq_t    }
         };
@@ -1543,7 +1563,7 @@ void BimetricEvolve::integStep_Prepare( Int m )
     }
 }
 
-void BimetricEvolve::determineGaugeFunctions( Int m )
+void BimetricEvolve::determineGaugeFunctions( Int m ) /* this function is not used in this file */
 {
     /////////////////////////////////////////////////////////////////////////////////////
     /// - Maximal slicing (optional) -- this will calculate gAlp and gDAlp
@@ -1552,9 +1572,10 @@ void BimetricEvolve::determineGaugeFunctions( Int m )
     // sliceBC = round(20/delta_r);
     switch( slicing )
     {
-        case SLICE_MS2OPT: maximalSlice_2opt ( m, sliceBC, 1 );  break;
-        case SLICE_MS2:    maximalSlice_2    ( m, sliceBC, 1 );  break;
-        case SLICE_MS4:    maximalSlice_4    ( m, sliceBC, 1 );  break;
+        case SLICE_MS2OPT: maximalSlice_2opt       ( m, sliceBC, 1 );  break;
+        case SLICE_MS2:    maximalSlice_2          ( m, sliceBC, 1 );  break;
+        case SLICE_MS4:    maximalSlice_4_gDAlp    ( m, sliceBC, 1 );  break;
+        case SLICE_MS6:    maximalSlice_6_gDAlp    ( m, sliceBC, 1 );  break;
     }
 
 #ifdef TWEAK_KDT
@@ -1807,55 +1828,143 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         smoothenGF( m, fld::ftrK_r,   fld::tmp, fld::ftrK_r,  -1 );
     }
 
+
+    ////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////
+
     /// - Calculate the gauge (e.g., do maximal slicing)
     ///
     switch( slicing )
     {
-        case SLICE_MS2OPT: maximalSlice_2opt ( m, nLen/2, 1 );  break;
-        case SLICE_MS2:    maximalSlice_2    ( m, nLen/2, 1 );  break;
-        case SLICE_MS4:    maximalSlice_4    ( m, nLen/2, 1 );  break;
+        case SLICE_MS2OPT: maximalSlice_2opt       ( m, nLen/2, 1 );  break;
+        case SLICE_MS2:    maximalSlice_2          ( m, nLen/2, 1 );  break;
+        case SLICE_MS4:    maximalSlice_4_gDAlp    ( m, nLen/2, 1 );  break;
+        case SLICE_MS6:    maximalSlice_6_gDAlp    ( m, nLen/2, 1 );  break;
     }
 
     /// @todo fixme:  Determine fAlp right after maximal slicing!?
 
-    if( ! isGR () )
+    if ( isGR () || slicing == SLICE_CONSTGF )
     {
-        OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
+
+        OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n )
         {
-            fAlp(m,n)  = gAlp(m,n);
-            fDAlp(m,n) = gDAlp(m,n);
+            gAlp_r ( m, n ) = GF_right_r( gAlp,  m, n );
+            gDAlp_r( m, n ) = GF_right_r( gDAlp, m, n );
+
+            fAlp   ( m, n ) = gAlp( m, n );
+            fAlp_r ( m, n ) = GF_right_r ( fAlp,  m, n );
+            fAlp_rr( m, n ) = GF_right_rr( fAlp, m, n );
+
+            fDAlp  ( m, n ) = fAlp_r(m,n) / (TINY_Real + fAlp(m,n));
+            fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) ) / (TINY_Real + fAlp(m,n));
+
         }
+
+        OMP_parallel_for( Int n = nGhost +1 ; n < nGhost + nLen + 1; ++n )
+        {
+            gAlp_r ( m, n ) = GF_r( gAlp,  m, n );
+            gDAlp_r( m, n ) = GF_r( gDAlp, m, n );
+
+            fAlp   ( m, n ) = gAlp( m, n );
+            fAlp_r ( m, n ) = GF_r ( fAlp,  m, n );
+            fAlp_rr( m, n ) = GF_rr( fAlp, m, n );
+
+            fDAlp  ( m, n ) = fAlp_r(m,n) / (TINY_Real + fAlp(m,n));
+            fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) )/ (TINY_Real + fAlp(m,n));
+
+        }
+
+        OMP_parallel_for( Int n = nGhost + nLen + 1; n < 2*nGhost + nLen + 1; ++n )
+        {
+            gAlp_r ( m, n ) = GF_left_r( gAlp,  m, n );
+            gDAlp_r( m, n ) = GF_left_r( gDAlp, m, n );
+
+            fAlp   ( m, n ) = gAlp( m, n );
+            fAlp_r ( m, n ) = GF_left_r ( fAlp,  m, n );
+            fAlp_rr( m, n ) = GF_left_rr( fAlp, m, n );
+
+            fDAlp  ( m, n ) = fAlp_r(m,n) / (TINY_Real + fAlp(m,n));
+            fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) ) / (TINY_Real + fAlp(m,n));
+
+        }
+
+        cubicSplineSmooth( m, fld::gDAlp_r, lin2n, cub2n );
+        cubicSplineSmooth( m, fld::fDAlp_r, lin2n, cub2n );
+    }
+    else // if not GR and not geodesic slicing (constant lapse)
+    {
+        // gAlp and gDAlp must the BC fixed at this point
+        //
+
+        OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n ) {
+            gAlp_r ( m, n ) = GF_right_r( gAlp,  m, n );
+            gDAlp_r( m, n ) = GF_right_r( gDAlp, m, n );
+        }
+
+        OMP_parallel_for( Int n = nGhost + 1; n < nGhost + nLen + 1; ++n ) {
+            gAlp_r ( m, n ) = GF_r( gAlp,  m, n );
+            gDAlp_r( m, n ) = GF_r( gDAlp, m, n );
+        }
+
+        OMP_parallel_for( Int n = nGhost + nLen + 1; n < 2*nGhost + nLen + 1; ++n ) {
+            gAlp_r ( m, n ) = GF_left_r( gAlp,  m, n );
+            gDAlp_r( m, n ) = GF_left_r( gDAlp, m, n );
+        }
+
+        /// @fixme smoothen gAlp_r, gDAlp_r
+
+        OMP_parallel_for( Int n = nGhost; n < 2*nGhost + nLen; ++n ) /// FT: I am including also the ghostcells
+        {
+            gW( m, n )   = eq_gW( m, n );
+            fW( m, n )   = eq_fW( m, n );
+            fAlp( m, n ) = eq_fAlp( m, n );
+        }
+
+        if( smooth ) {
+            smoothenGF( m, fld::fAlp, fld::tmp, fld::fAlp, 1 );
+        }
+        else {
+            applyBoundaryConditions( m, fld::fAlp, +1 );
+        } /// FT to MK: why do you set these up as alternatives?
+
+        OMP_parallel_for( Int n = nGhost; n < 2*nGhost + nLen; ++n ) {
+            fAlp_r( m, n ) = GF_r( fAlp, m, n );
+        }
+
+        if( smooth ) {
+            smoothenGF( m, fld::fAlp_r, fld::tmp, fld::fAlp_r, -1 );
+        }
+        else {
+            applyBoundaryConditions( m, fld::fAlp_r, -1 );
+        }
+
+        OMP_parallel_for( Int n = nGhost; n < 2*nGhost + nLen; ++n ) {
+            fAlp_rr( m, n ) = GF_r( fAlp_r, m, n );
+        }
+
+        if( smooth ) {
+            smoothenGF( m, fld::fAlp_rr, fld::tmp, fld::fAlp_rr, 1 );
+        }
+        else {
+            applyBoundaryConditions( m, fld::fAlp_rr, 1 );
+        }
+
+        OMP_parallel_for( Int n = nGhost; n < 2*nGhost + nLen; ++n )
+        {
+            fDAlp  ( m, n ) = fAlp_r(m,n) / (TINY_Real + fAlp(m,n));
+            fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) )
+                               / (TINY_Real + fAlp(m,n));
+
+        }
+
+        //cubicSplineSmooth( m, fld::gDAlp_r, lin2n, cub2n );
+        //cubicSplineSmooth( m, fld::fDAlp_r, lin2n, cub2n );
     }
 
-    OMP_parallel_for( Int n = 0+0*nGhost; n <  2*nGhost + nLen +1; ++n )
-    {
-        gDAlpr   (m,n) = (gDAlp(m,n) /* * gAlp(m,n)*/) / r(m,n);
-        fDAlpr   (m,n) = (fDAlp(m,n) /* * fAlp(m,n)*/) / r(m,n);
-    }
+    ////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////
 
-    OMP_parallel_for( Int n = 0 + 0*nGhost; n < /* 2* */nGhost + 1; ++n )
-    {
-        gAlp_r   (m,n) = GF_right_r (gAlp, m, n);
-        fAlp_r   (m,n) = GF_right_r (fAlp, m, n);
-        gDAlp_r  (m,n) = GF_right_r (gDAlp, m, n);
-        fDAlp_r  (m,n) = GF_right_r (fDAlp, m, n);
-    }
-
-    OMP_parallel_for( Int n = nGhost + 1; n < /* 2* */nGhost + nLen + 1; ++n )
-    {
-        gAlp_r   (m,n) = GF_r (gAlp, m, n);
-        fAlp_r   (m,n) = GF_r (fAlp, m, n);
-        gDAlp_r  (m,n) = GF_r (gDAlp, m, n);
-        fDAlp_r  (m,n) = GF_r (fDAlp, m, n);
-    }
-
-    OMP_parallel_for( Int n = nGhost + nLen + 1; n < 2*nGhost + nLen + 1; ++n )
-    {
-        gAlp_r   (m,n) = GF_left_r (gAlp, m, n);
-        fAlp_r   (m,n) = GF_left_r (fAlp, m, n);
-        gDAlp_r  (m,n) = GF_left_r (gDAlp, m, n);
-        fDAlp_r  (m,n) = GF_left_r (fDAlp, m, n);
-    }
 
     if( m < mSmoothUpTo && smooth >= 1 )
     {
@@ -2269,6 +2378,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     // The convective derivatives of the evolved fields
        gAlp_convr     (m,n) = gBet(m,n) * GF_right_r (gAlp, m ,n);
+       gDAlp_convr    (m,n) = gBet(m,n) * GF_right_r (gDAlp, m ,n);
        fAlp_convr     (m,n) = fBet(m,n) * GF_right_r (fAlp, m ,n);
        //gBet_convr     (m,n) = GF_convr (gBet, gBet, m ,n);
        //fBet_convr     (m,n) = GF_convr (fBet, fBet, m ,n);
@@ -2309,14 +2419,15 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
        pfS_convr      (m,n) = gBet(m,n) * GF_right_r (pfS, m ,n);
        pftau_convr    (m,n) = gBet(m,n) * GF_right_r (pftau, m ,n);
 
-       gBet_gDconf_r  (m,n) = gDconf(m,n) * GF_right_r (gBet, m ,n);
-       fBet_fDconf_r  (m,n) = fDconf(m,n) * GF_right_r (fBet, m ,n);
-       gBet_gDA_r     (m,n) = gDA(m,n)    * GF_right_r (gBet, m ,n);
-       fBet_fDA_r     (m,n) = fDA(m,n)    * GF_right_r (fBet, m ,n);
-       gBet_gDB_r     (m,n) = gDB(m,n)    * GF_right_r (gBet, m ,n);
-       fBet_fDB_r     (m,n) = fDB(m,n)    * GF_right_r (fBet, m ,n);
-       gBet_gL_r      (m,n) = gL(m,n)     * GF_right_r (gBet, m ,n);
-       fBet_fL_r      (m,n) = fL(m,n)     * GF_right_r (fBet, m ,n);
+       gBet_gDconf_r  (m,n) = gDconf(m,n) * eq_gBet_r (m, n);
+       fBet_fDconf_r  (m,n) = fDconf(m,n) * eq_fBet_r (m, n);
+       gBet_gDAlp_r   (m,n) = gDAlp(m,n)  * eq_gBet_r (m, n);
+       gBet_gDA_r     (m,n) = gDA(m,n)    * eq_gBet_r (m, n);
+       fBet_fDA_r     (m,n) = fDA(m,n)    * eq_fBet_r (m, n);
+       gBet_gDB_r     (m,n) = gDB(m,n)    * eq_gBet_r (m, n);
+       fBet_fDB_r     (m,n) = fDB(m,n)    * eq_fBet_r (m, n);
+       gBet_gL_r      (m,n) = gL(m,n)     * eq_gBet_r (m, n);
+       fBet_fL_r      (m,n) = fL(m,n)     * eq_fBet_r (m ,n);
        gsig_gL_r      (m,n) = gL(m,n)     * GF_right_r (gsig, m ,n);
        fsig_fL_r      (m,n) = fL(m,n)     * GF_right_r (fsig, m ,n);
 
@@ -2334,6 +2445,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     // The convective derivatives of the evolved fields
        gAlp_convr     (m,n) = GF_convr (gBet, gAlp, m ,n);
+       gDAlp_convr    (m,n) = GF_convr (gBet, gDAlp, m ,n);
        fAlp_convr     (m,n) = GF_convr (fBet, fAlp, m ,n);
        //gBet_convr     (m,n) = GF_convr (gBet, gBet, m ,n);
        //fBet_convr     (m,n) = GF_convr (fBet, fBet, m ,n);
@@ -2374,14 +2486,14 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
        pfS_convr      (m,n) = GF_convr (gBet, pfS, m ,n);
        pftau_convr    (m,n) = GF_convr (gBet, pftau, m ,n);
 
-       gBet_gDconf_r  (m,n) = GF_convr (gDconf, gBet, m ,n);
-       fBet_fDconf_r  (m,n) = GF_convr (fDconf, fBet, m ,n);
-       gBet_gDA_r     (m,n) = GF_convr (gDA, gBet, m ,n);
-       fBet_fDA_r     (m,n) = GF_convr (fDA, fBet, m ,n);
-       gBet_gDB_r     (m,n) = GF_convr (gDB, gBet, m ,n);
-       fBet_fDB_r     (m,n) = GF_convr (fDB, fBet, m ,n);
-       gBet_gL_r      (m,n) = GF_convr (gL, gBet, m ,n);
-       fBet_fL_r      (m,n) = GF_convr (fL, fBet, m ,n);
+       gBet_gDconf_r  (m,n) = gDconf(m,n) * eq_gBet_r (m, n);
+       fBet_fDconf_r  (m,n) = fDconf(m,n) * eq_fBet_r (m, n);
+       gBet_gDAlp_r   (m,n) = gDAlp(m,n)  * eq_gBet_r (m, n);
+       gBet_gDA_r     (m,n) = gDA(m,n)    * eq_gBet_r (m, n);
+       fBet_fDA_r     (m,n) = fDA(m,n)    * eq_fBet_r (m, n);
+       gBet_gDB_r     (m,n) = gDB(m,n)    * eq_gBet_r (m, n);
+       fBet_fDB_r     (m,n) = fDB(m,n)    * eq_fBet_r (m, n);
+       gBet_gL_r      (m,n) = gL(m,n)     * eq_gBet_r (m, n);
        gsig_gL_r      (m,n) = GF_convr (gL, gsig, m ,n);
        fsig_fL_r      (m,n) = GF_convr (fL, fsig, m ,n);
 
@@ -2399,6 +2511,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     // The convective derivatives of the evolved fields
        gAlp_convr     (m,n) = gBet(m,n) * GF_left_r (gAlp, m ,n);
+       gDAlp_convr    (m,n) = gBet(m,n) * GF_left_r (gDAlp, m ,n);
        fAlp_convr     (m,n) = fBet(m,n) * GF_left_r (fAlp, m ,n);
        //gBet_convr     (m,n) = GF_convr (gBet, gBet, m ,n);
        //fBet_convr     (m,n) = GF_convr (fBet, fBet, m ,n);
@@ -2439,14 +2552,14 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
        pfS_convr      (m,n) = gBet(m,n) * GF_left_r (pfS, m ,n);
        pftau_convr    (m,n) = gBet(m,n) * GF_left_r (pftau, m ,n);
 
-       gBet_gDconf_r  (m,n) = gDconf(m,n) * GF_left_r (gBet, m ,n);
-       fBet_fDconf_r  (m,n) = fDconf(m,n) * GF_left_r (fBet, m ,n);
-       gBet_gDA_r     (m,n) = gDA(m,n)    * GF_left_r (gBet, m ,n);
-       fBet_fDA_r     (m,n) = fDA(m,n)    * GF_left_r (fBet, m ,n);
-       gBet_gDB_r     (m,n) = gDB(m,n)    * GF_left_r (gBet, m ,n);
-       fBet_fDB_r     (m,n) = fDB(m,n)    * GF_left_r (fBet, m ,n);
-       gBet_gL_r      (m,n) = gL(m,n)     * GF_left_r (gBet, m ,n);
-       fBet_fL_r      (m,n) = fL(m,n)     * GF_left_r (fBet, m ,n);
+       gBet_gDconf_r  (m,n) = gDconf(m,n) * eq_gBet_r (m, n);
+       fBet_fDconf_r  (m,n) = fDconf(m,n) * eq_fBet_r (m, n);
+       gBet_gDAlp_r   (m,n) = gDAlp(m,n)  * eq_gBet_r (m, n);
+       gBet_gDA_r     (m,n) = gDA(m,n)    * eq_gBet_r (m, n);
+       fBet_fDA_r     (m,n) = fDA(m,n)    * eq_fBet_r (m, n);
+       gBet_gDB_r     (m,n) = gDB(m,n)    * eq_gBet_r (m, n);
+       fBet_fDB_r     (m,n) = fDB(m,n)    * eq_fBet_r (m, n);
+       gBet_gL_r      (m,n) = gL(m,n)     * eq_gBet_r (m, n);
        gsig_gL_r      (m,n) = gL(m,n)     * GF_left_r (gsig, m ,n);
        fsig_fL_r      (m,n) = fL(m,n)     * GF_left_r (fsig, m ,n);
 
@@ -2564,6 +2677,12 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
         }
 
+        if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS6 )
+        {
+            q_t     (m,n) = eq_SG_gBet_t  (m,n);
+            Bq_t    (m,n) = eq_SG_gBq_t   (m,n);
+        }
+
         if( slicing == SLICE_SG )
         {
             gAlp_t  (m,n) = eq_SG_gAlp_t  (m,n);
@@ -2611,11 +2730,53 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
        Real dbg26 = gsig_convr     (m,n);
        Real dbg27 = fsig_convr     (m,n);
        Real dbg28 = gAsig_convr    (m,n);
-       Real dbg29 = fAsig_convr    (m,n);
+       Real dbg29 = fAsig_convr    (m,n);*/
 
-       Real dbg30 = pfD_convr      (m,n);
-       Real dbg31 = pfS_convr      (m,n);
-       Real dbg32 = pftau_convr    (m,n);*/
+       Real dbg30 = gDAlp(m,n);
+       Real dbg31 = gAlp(m,n);
+       Real dbg32 = gDAlp_at_N(m,nLen/2,delta_r);
+
+      /* Real dbg31 = gA1_convr(m,n) + k_g * gJA1(m,n) + exp(-4 * gconf(m,n))
+     * (gDers(m,n) + gAlp(m,n) * ((2 * gDconf(m,n) * gDers(m,n)) / (gDAlp(m,n)+TINY_Real) - (8
+     * pow2(gDconf(m,n))) / (3. * pow2(gA(m,n)))));
+
+       Real dbg32 = exp(-4 * gconf(m,n)) * ((-2
+      * gDAlpr_r(m,n)) / (3. * pow2(gA(m,n))) - (4 * gDconfr_r(m,n) * gAlp(m,n))
+    / (3. * pow2(gA(m,n)))) * r(m,n) + gtrA_pff(m,n) / 3. + (gAlp(m,n) * (3
+    * gA1(m,n) - gtrA(m,n)) * (gtrA(m,n) + gtrK(m,n))) / 3.;
+
+       Real dbg1 = (4 * gAsig(m,n) * gsig(m,n)
+      * pow3(r(m,n))) / (3. * pow2(gA(m,n)) + TINY_Real);
+
+       Real dbg3 = (4 * (gtrA_r(m,n) + gtrK_r(m,n)))
+      / (3. * pow2(gA(m,n)) + TINY_Real);
+
+       Real dbg2 =
+     (4 * gDA(m,n) * pow2(r(m,n))) / (3. * pow2(gA(m,n)) + TINY_Real) + (4
+   * gDB(m,n) * pow2(r(m,n))) / (3. * pow2(gA(m,n)) + TINY_Real);
+
+       Real dgb4 = (8 * gconf(m,n)
+   * gDconf(m,n) * pow2(r(m,n))) / (pow2(gA(m,n)) + TINY_Real) - (4 * gDAlp(m,n)
+   * pow2(r(m,n))) / (3. * pow2(gA(m,n)) + TINY_Real);
+
+       Real dbg5 = gAsig(m,n);
+
+       Real dbg6 = gAsig_convr(m,n) + 2 * gAsig(m,n) * gBetr(m,n) + exp(-4 * gconf(m,n))
+     * gAlp(m,n) * (((gsig_rr(m,n) / 2. + pow2(gsig(m,n))) * pow2(gB(m,n)))
+    / Power(gA(m,n),4) - (gsig_gL_r(m,n) * pow2(gB(m,n))) / (2. * pow2(gA(m,n))));
+
+       Real dbg7 = (-3 * (5 * gDB(m,n) + 11 * gDconf(m,n)) * gDers(m,n))
+    / (gDAlp(m,n) + TINY_Real);
+
+       Real dbg9 = (40 * gDB(m,n) * gDconf(m,n) + 7 * pow2(gDB(m,n)) + 44
+    * pow2(gDconf(m,n))) / pow2(gA(m,n)) + (27 * pow2(gDers(m,n))
+  * pow2(gA(m,n))) / (4. * pow2(gDAlp(m,n)) + TINY_Real);
+
+       Real dbg8 = gA_convr(m,n) + (gdet_pff(m,n) * gA(m,n)) / (6. * gdet(m,n));
+
+       Real dbg11 = gBet_r(m,n)
+    * gA(m,n) + (gAlp(m,n) * gA(m,n) * (-3 * gA1(m,n) + gtrA(m,n)
+  + gtrAv(m,n))) / 3.;*/
 
     }
 
@@ -2652,7 +2813,7 @@ void BimetricEvolve::integStep_Finalize( Int m1, Int m )
 {
     OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
     {
-        if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 )
+        if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS6 )
         {
            gAlp    ( m1, n )  =  gAlp   ( m, n );
            gDAlp   ( m1, n )  =  gDAlp  ( m, n );
