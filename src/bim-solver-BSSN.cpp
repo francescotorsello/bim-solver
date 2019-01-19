@@ -1844,7 +1844,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     /// @todo fixme:  Determine fAlp right after maximal slicing!?
 
-    if ( isGR () || slicing == SLICE_CONSTGF )
+    if ( isGR () /*|| slicing == SLICE_CONSTGF*/ )
     {
 
         OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n )
@@ -1852,12 +1852,12 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             gAlp_r ( m, n ) = GF_right_r( gAlp,  m, n );
             gDAlp_r( m, n ) = GF_right_r( gDAlp, m, n );
 
-            fAlp   ( m, n ) = gAlp( m, n );
+            /*fAlp   ( m, n ) = gAlp( m, n );
             fAlp_r ( m, n ) = GF_right_r ( fAlp,  m, n );
             fAlp_rr( m, n ) = GF_right_rr( fAlp, m, n );
 
             fDAlp  ( m, n ) = fAlp_r(m,n) / (TINY_Real + fAlp(m,n));
-            fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) ) / (TINY_Real + fAlp(m,n));
+            fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) ) / (TINY_Real + fAlp(m,n));*/
 
         }
 
@@ -1866,12 +1866,12 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             gAlp_r ( m, n ) = GF_r( gAlp,  m, n );
             gDAlp_r( m, n ) = GF_r( gDAlp, m, n );
 
-            fAlp   ( m, n ) = gAlp( m, n );
+            /*fAlp   ( m, n ) = gAlp( m, n );
             fAlp_r ( m, n ) = GF_r ( fAlp,  m, n );
             fAlp_rr( m, n ) = GF_rr( fAlp, m, n );
 
             fDAlp  ( m, n ) = fAlp_r(m,n) / (TINY_Real + fAlp(m,n));
-            fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) )/ (TINY_Real + fAlp(m,n));
+            fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) )/ (TINY_Real + fAlp(m,n));*/
 
         }
 
@@ -1880,17 +1880,24 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             gAlp_r ( m, n ) = GF_left_r( gAlp,  m, n );
             gDAlp_r( m, n ) = GF_left_r( gDAlp, m, n );
 
-            fAlp   ( m, n ) = gAlp( m, n );
+            /*fAlp   ( m, n ) = gAlp( m, n );
             fAlp_r ( m, n ) = GF_left_r ( fAlp,  m, n );
             fAlp_rr( m, n ) = GF_left_rr( fAlp, m, n );
 
             fDAlp  ( m, n ) = fAlp_r(m,n) / (TINY_Real + fAlp(m,n));
-            fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) ) / (TINY_Real + fAlp(m,n));
+            fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) ) / (TINY_Real + fAlp(m,n));*/
 
         }
 
         cubicSplineSmooth( m, fld::gDAlp_r, lin2n, cub2n );
         cubicSplineSmooth( m, fld::fDAlp_r, lin2n, cub2n );
+
+        OMP_parallel_for( Int n = 0; n < 2*nGhost + nLen + 1; ++n )
+        {
+            gDAlpr ( m, n ) = gDAlp ( m, n ) / r( m, n );
+            fDAlpr ( m, n ) = fDAlp ( m, n ) / r( m, n );
+
+        }
     }
     else // if not GR and not geodesic slicing (constant lapse)
     {
@@ -1914,11 +1921,71 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
         /// @fixme smoothen gAlp_r, gDAlp_r
 
-        OMP_parallel_for( Int n = nGhost; n < 2*nGhost + nLen; ++n ) /// FT: I am including also the ghostcells
+        OMP_parallel_for( Int n = 0; n < 2*nGhost + nLen; ++n ) /// FT: I am including also the ghostcells
         {
             gW( m, n )   = eq_gW( m, n );
             fW( m, n )   = eq_fW( m, n );
             fAlp( m, n ) = eq_fAlp( m, n );
+
+            /*Real dbg1 = gW( m, n );
+            Real dbg2 = eq_gW( m, n );
+            Real dbg3 = fW( m, n );
+            Real dbg4 = eq_fW( m, n );
+            Real dbg5 = fAlp( m, n );
+            Real dbg6 = eq_fAlp( m, n );*/
+
+       /* Real dbg1  = eq_gW(m,n);
+        Real dbg2  = eq_fW(m,n);
+        Real dbg51 = eq_gW(m,n)/eq_fW(m,n);
+
+        Real dbg3  = gA1(m,n);
+        Real dbg4  = fA1(m,n);
+        Real dbg5  = gconf(m,n);
+        Real dbg6  = fconf(m,n);
+        Real dbg7  = gDB(m,n);
+        Real dbg8  = fDB(m,n);
+        Real dbg9  = gDconf(m,n);
+        Real dbg10 = fDconf(m,n);
+        Real dbg11 = eq_pf_gJ11(m,n);
+        Real dbg12 = eq_pf_fJ11(m,n);
+        Real dbg13 = eq_pf_gJ22(m,n);
+        Real dbg14 = eq_pf_fJ22(m,n);
+        Real dbg15 = eq_pf_gj(m,n);
+        Real dbg16 = eq_pf_fj(m,n);
+        Real dbg17 = eq_pf_grho(m,n);
+        Real dbg18 = eq_pf_frho(m,n);
+        Real dbg19 = gA(m,n);
+        Real dbg20 = fA(m,n);
+        Real dbg21 = gB(m,n);
+        Real dbg22 = fB(m,n);
+        Real dbg23 = Lt(m,n);
+        Real dbg24 = Lt2(m,n);
+        Real dbg25 = P_0_2(R(m,n));
+        Real dbg26 = P_0_3(R(m,n));
+        Real dbg27 = P_1_0(R(m,n));
+        Real dbg28 = P_1_1(R(m,n));
+        Real dbg29 = P_1_2(R(m,n));
+        Real dbg30 = P_1_3(R(m,n));
+        Real dbg31 = P_2_0(R(m,n));
+        Real dbg32 = P_2_1(R(m,n));
+        Real dbg33 = P_2_2(R(m,n));
+        Real dbg34 = p(m,n);
+        Real dbg35 = R(m,n);
+        Real dbg36 = gtrK(m,n);
+        Real dbg37 = ftrK(m,n);
+
+        Real dbg38 = gA2_r(m,n);
+        Real dbg39 = fA1_r(m,n);
+        Real dbg40 = p_r(m,n);
+        Real dbg41 = gtrK_r(m,n);
+        Real dbg42 = ftrK_r(m,n);
+
+        Real dbg49 = 3 * gA1(m,n) * (1 + gDB(m,n)
+      * r(m,n) + 2 * gconf(m,n) * gDconf(m,n) * r(m,n));
+
+        Real dbg50 = - r(m,n) * (3 * gA2_r(m,n)
+      + gtrK_r(m,n));*/
+
         }
 
         if( smooth ) {
@@ -1928,8 +1995,18 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             applyBoundaryConditions( m, fld::fAlp, +1 );
         } /// FT to MK: why do you set these up as alternatives?
 
-        OMP_parallel_for( Int n = nGhost; n < 2*nGhost + nLen; ++n ) {
+        ////////////////////////////////////////////////////////////////
+
+        OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n ) {
+            fAlp_r ( m, n ) = GF_right_r( fAlp,  m, n );
+        }
+
+        OMP_parallel_for( Int n = nGhost + 1; n < nGhost + nLen + 1; ++n ) {
             fAlp_r( m, n ) = GF_r( fAlp, m, n );
+        }
+
+        OMP_parallel_for( Int n = nGhost + nLen + 1; n < 2*nGhost + nLen + 1; ++n ) {
+            fAlp_r ( m, n ) = GF_left_r( fAlp,  m, n );
         }
 
         if( smooth ) {
@@ -1939,8 +2016,18 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             applyBoundaryConditions( m, fld::fAlp_r, -1 );
         }
 
-        OMP_parallel_for( Int n = nGhost; n < 2*nGhost + nLen; ++n ) {
+        ////////////////////////////////////////////////////////////////
+
+        OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n ) {
+            fAlp_rr ( m, n ) = GF_right_r( fAlp_r,  m, n );
+        }
+
+        OMP_parallel_for( Int n = nGhost + 1; n < nGhost + nLen + 1; ++n ) {
             fAlp_rr( m, n ) = GF_r( fAlp_r, m, n );
+        }
+
+        OMP_parallel_for( Int n = nGhost + nLen + 1; n < 2*nGhost + nLen + 1; ++n ) {
+            fAlp_rr ( m, n ) = GF_left_r( fAlp_r,  m, n );
         }
 
         if( smooth ) {
@@ -1950,16 +2037,31 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             applyBoundaryConditions( m, fld::fAlp_rr, 1 );
         }
 
-        OMP_parallel_for( Int n = nGhost; n < 2*nGhost + nLen; ++n )
+        ////////////////////////////////////////////////////////////////
+
+        OMP_parallel_for( Int n = 0; n < 2*nGhost + nLen; ++n )
         {
-            fDAlp  ( m, n ) = fAlp_r(m,n) / (TINY_Real + fAlp(m,n));
-            fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) )
-                               / (TINY_Real + fAlp(m,n));
+            fDAlp  ( m, n ) = fAlp_r(m,n) /*/ (TINY_Real + fAlp(m,n))*/;
+
+        }
+         OMP_parallel_for( Int n = 0; n < 2*nGhost + nLen; ++n )
+        {
+            fDAlp_r( m, n ) = GF_r( gDAlp, m, n );/*( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) )
+                               / (TINY_Real + fAlp(m,n));*/
 
         }
 
-        //cubicSplineSmooth( m, fld::gDAlp_r, lin2n, cub2n );
-        //cubicSplineSmooth( m, fld::fDAlp_r, lin2n, cub2n );
+        ////////////////////////////////////////////////////////////////
+
+        cubicSplineSmooth( m, fld::gDAlp_r, lin2n, cub2n );
+        cubicSplineSmooth( m, fld::fDAlp_r, lin2n, cub2n );
+
+        OMP_parallel_for( Int n = 0; n < 2*nGhost + nLen + 1; ++n )
+        {
+            gDAlpr ( m, n ) = gDAlp ( m, n ) / r( m, n );
+            fDAlpr ( m, n ) = fDAlp ( m, n ) / r( m, n );
+
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -2173,7 +2275,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         gRicci     (m,n) = eq_gRicci    (m,n);
         fRicci     (m,n) = eq_fRicci    (m,n);
 
-    // The recurrent terms involving some radial derivaties
+    // The recurrent terms involving some radial derivatives
         gDers      (m,n) = eq_gDers    (m,n);
         fDers      (m,n) = eq_fDers    (m,n);
     }
@@ -2494,6 +2596,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
        gBet_gDB_r     (m,n) = gDB(m,n)    * eq_gBet_r (m, n);
        fBet_fDB_r     (m,n) = fDB(m,n)    * eq_fBet_r (m, n);
        gBet_gL_r      (m,n) = gL(m,n)     * eq_gBet_r (m, n);
+       fBet_fL_r      (m,n) = fL(m,n)     * eq_fBet_r (m, n);
        gsig_gL_r      (m,n) = GF_convr (gL, gsig, m ,n);
        fsig_fL_r      (m,n) = GF_convr (fL, fsig, m ,n);
 
@@ -2560,6 +2663,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
        gBet_gDB_r     (m,n) = gDB(m,n)    * eq_gBet_r (m, n);
        fBet_fDB_r     (m,n) = fDB(m,n)    * eq_fBet_r (m, n);
        gBet_gL_r      (m,n) = gL(m,n)     * eq_gBet_r (m, n);
+       fBet_fL_r      (m,n) = fL(m,n)     * eq_fBet_r (m, n);
        gsig_gL_r      (m,n) = gL(m,n)     * GF_left_r (gsig, m ,n);
        fsig_fL_r      (m,n) = fL(m,n)     * GF_left_r (fsig, m ,n);
 
@@ -2698,6 +2802,12 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
         #endif // _EVOLVE_DSIG
 
+       /*Real dbg1 = fL_convr(m,n);
+       Real dbg3 = fBet_fL_r(m,n);
+       Real dbg2 = k_f * fJL(m,n);
+       Real dbg4 = fL(m,n);
+       Real dbg5 = eq_fBet_r (m ,n);*/
+
        /*Real dbg1 = gAlp_convr     (m,n);
        Real dbg2 = fAlp_convr     (m,n);
        Real dbg3 = q_qconvr        (m,n);
@@ -2732,9 +2842,31 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
        Real dbg28 = gAsig_convr    (m,n);
        Real dbg29 = fAsig_convr    (m,n);*/
 
-       Real dbg30 = gDAlp(m,n);
-       Real dbg31 = gAlp(m,n);
-       Real dbg32 = gDAlp_at_N(m,nLen/2,delta_r);
+       /*Real dbg30 = gAlp    (m,n);
+       Real dbg31 = gDAlp    (m,n);
+       Real dbg32 = gDAlpr    (m,n);
+       Real dbg33 = gAlp_r    (m,n);
+       Real dbg34 = gDAlp_r    (m,n);
+       Real dbg35 = gDAlpr_r    (m,n);
+
+       Real dbg36 = PP    (m,n);
+       Real dbg37 = QQ    (m,n);*/
+
+       /*Real dbg51 = gRicci(m,n);
+        Real dbg57 = gA1_convr(m,n);
+        Real dbg58 = k_g * gJA1(m,n);
+
+        Real dbg55 = exp(-4 * gconf(m,n));
+        Real dbg59 = gDers(m,n);
+        Real dbg60 = eq_gDers(m,n);
+        Real dbg61 = (8
+      * pow2(gDconf(m,n))) / (3. * pow2(gA(m,n)) + TINY_Real);
+
+        Real dbg52 = (2 * gDA(m,n) * gDAlp(m,n)) / (3. * pow2(gA(m,n)) + TINY_Real);
+        Real dbg62 = (2 * gDB(m,n)
+     * gDAlp(m,n)) / (3. * pow2(gA(m,n)) + TINY_Real);
+        Real dbg63 = (8 * gDconf(m,n) * gDAlp(m,n)) / (3.
+    * pow2(gA(m,n)) + TINY_Real);*/
 
       /* Real dbg31 = gA1_convr(m,n) + k_g * gJA1(m,n) + exp(-4 * gconf(m,n))
      * (gDers(m,n) + gAlp(m,n) * ((2 * gDconf(m,n) * gDers(m,n)) / (gDAlp(m,n)+TINY_Real) - (8
@@ -2784,8 +2916,8 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
     {
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gconf_t,    fld::tmp,  fld::gconf_t,     1 );
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::fconf_t,    fld::tmp,  fld::fconf_t,     1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gconf_t,    fld::tmp,  fld::gDconf_t,     -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::fconf_t,    fld::tmp,  fld::fDconf_t,     -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gDconf_t,    fld::tmp,  fld::gDconf_t,     -1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::fDconf_t,    fld::tmp,  fld::fDconf_t,     -1 );
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gtrK_t,    fld::tmp,  fld::gtrK_t,     1 );
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::ftrK_t,    fld::tmp,  fld::ftrK_t,     1 );
 
@@ -2861,7 +2993,7 @@ bool BimetricEvolve::integStep_Diagnostics( Int m, Int chkNaNs_nFrom, Int chkNaN
     //if( false )
     for( Int n = nFrom; n < nTo; ++n )
     {
-        if( std::isnan( gA( m, n ) ) ) {
+        if( /*std::*/ISNAN( gA( m, n ) ) ) {
             std::cerr << "*** Detected gA NaN at t = " << t(m,n)
                       << ", r = " << r(m,n) << std::endl;
             return false;
@@ -2882,31 +3014,31 @@ bool BimetricEvolve::integStep_Diagnostics( Int m, Int chkNaNs_nFrom, Int chkNaN
 
             /// The fields in the g-sector
 
-            else if( std::isnan( gB( m, n ) ) ) {
+            else if( ISNAN( gB( m, n ) ) ) {
                 std::cerr << "*** Detected gB NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( std::isnan( gDA( m, n ) ) ) {
+            } else if( ISNAN( gDA( m, n ) ) ) {
                 std::cerr << "*** Detected gDA NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( std::isnan( gDB( m, n ) ) ) {
+            } else if( ISNAN( gDB( m, n ) ) ) {
                 std::cerr << "*** Detected gDB NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( std::isnan( gA1( m, n ) ) ) {
+            } else if( ISNAN( gA1( m, n ) ) ) {
                 std::cerr << "*** Detected gA1 NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( std::isnan( gA2( m, n ) ) ) {
+            } else if( ISNAN( gA2( m, n ) ) ) {
                 std::cerr << "*** Detected gA2 NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( std::isnan( gconf( m, n ) ) ) {
+            } else if( ISNAN( gconf( m, n ) ) ) {
                 std::cerr << "*** Detected gconf NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( std::isnan( gtrK( m, n ) ) ) {
+            } else if( ISNAN( gtrK( m, n ) ) ) {
                 std::cerr << "*** Detected gtrK NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
@@ -2914,35 +3046,35 @@ bool BimetricEvolve::integStep_Diagnostics( Int m, Int chkNaNs_nFrom, Int chkNaN
 
             /// The fields in the f-sector
 
-            else if( std::isnan( fA( m, n ) ) ) {
+            else if( ISNAN( fA( m, n ) ) ) {
                 std::cerr << "*** Detected fA NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( std::isnan( fB( m, n ) ) ) {
+            } else if( ISNAN( fB( m, n ) ) ) {
                 std::cerr << "*** Detected fB NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( std::isnan( fDA( m, n ) ) ) {
+            } else if( ISNAN( fDA( m, n ) ) ) {
                 std::cerr << "*** Detected fDA NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( std::isnan( fDB( m, n ) ) ) {
+            } else if( ISNAN( fDB( m, n ) ) ) {
                 std::cerr << "*** Detected fDB NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( std::isnan( fA1( m, n ) ) ) {
+            } else if( ISNAN( fA1( m, n ) ) ) {
                 std::cerr << "*** Detected fA1 NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( std::isnan( fA2( m, n ) ) ) {
+            } else if( ISNAN( fA2( m, n ) ) ) {
                 std::cerr << "*** Detected fA2 NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( std::isnan( fconf( m, n ) ) ) {
+            } else if( ISNAN( fconf( m, n ) ) ) {
                 std::cerr << "*** Detected fconf NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( std::isnan( ftrK( m, n ) ) ) {
+            } else if( ISNAN( ftrK( m, n ) ) ) {
                 std::cerr << "*** Detected ftrK NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;

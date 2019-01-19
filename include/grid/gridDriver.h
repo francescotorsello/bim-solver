@@ -477,7 +477,7 @@ void GridUser::smoothenGF( Int m, Int copy2gf, Int outgf, Int ingf, Int parity )
     // Find the first not-NaN from the left
     //
     Int nFrom = nGhost;
-    while( nFrom < nTotal && std::isnan( GF( ingf, m, nFrom ) ) ) {
+    while( nFrom < nTotal && /*std::*/ISNAN( GF( ingf, m, nFrom ) ) ) {
         ++nFrom;
     }
 
@@ -490,7 +490,7 @@ void GridUser::smoothenGF( Int m, Int copy2gf, Int outgf, Int ingf, Int parity )
     // Find the last not-NaN from the right (do not average with the extrapolated region)
     //
     Int nTo = nGhost + nLen;
-    while( nTo >= nGhost && std::isnan( GF( ingf, m, nTo - 1 ) ) ) {
+    while( nTo >= nGhost && /*std::*/ISNAN( GF( ingf, m, nTo - 1 ) ) ) {
         --nTo;
     }
 
@@ -558,7 +558,7 @@ void GridUser::smoothenGF0( Int m, Int nCopyFrom, Int nCopyTo, Int sgRadius, Int
     // Find the first not-NaN from the left
     //
     Int nFrom = nGhost;
-    while( nFrom < nTotal && std::isnan( GF( ingf, m, nFrom ) ) ) {
+    while( nFrom < nTotal && /*std::*/ISNAN( GF( ingf, m, nFrom ) ) ) {
         ++nFrom;
     }
 
@@ -571,7 +571,7 @@ void GridUser::smoothenGF0( Int m, Int nCopyFrom, Int nCopyTo, Int sgRadius, Int
     // Smoothen only within a region close to r=0
     //
     Int nTo = nGhost + nLen;
-    while( nTo >= nGhost && std::isnan( GF( ingf, m, nTo - 1 ) ) ) {
+    while( nTo >= nGhost && /*std::*/ISNAN( GF( ingf, m, nTo - 1 ) ) ) {
         --nTo;
     }
 

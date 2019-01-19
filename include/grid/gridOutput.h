@@ -109,7 +109,7 @@ public:
             params.get( tag + ".t",       info.t,       NAN );
             params.get( tag + ".mSkip",   info.mSkip,   1   );
             params.get( tag + ".delta_t", info.delta_t, NAN );
-            if ( ! std::isnan( info.t ) ) {
+            if ( ! /*std::*/ISNAN( info.t ) ) {
                 skipSetter.push_back( info );
             }
         }
@@ -230,7 +230,7 @@ public:
         {
             mSkip = skipSetter.front().mSkip;
             Real new_dt = skipSetter.front().delta_t;
-            if( ! std::isnan( new_dt ) )
+            if( ! /*std::*/ISNAN( new_dt ) )
             {
                 delta_t = new_dt;
                 slog << std::endl << std::endl << "*** at t = " << cur_t

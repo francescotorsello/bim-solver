@@ -51,10 +51,12 @@
 			<Add option="-D_DETECT_NAN=1" />
 			<Add option="-D_EVOLVE_DSIG=0" />
 			<Add option="-D_UPWIND=1" />
+			<Add option="-DUSE_QUADMATH" />
 			<Add directory="include" />
 		</Compiler>
 		<Linker>
 			<Add option="-m64" />
+			<Add library="quadmath" />
 		</Linker>
 		<Unit filename="include/bimetricModel.h" />
 		<Unit filename="include/cBSSNmaximalSlice.h" />
@@ -70,6 +72,7 @@
 		<Unit filename="include/eom-BSSN/eomBSSNMatterReg.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNMiscEquationsReg.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNObserver.h" />
+		<Unit filename="include/eom-BSSN/eomBSSNRicciReg.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNSourcesReg.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNStdGaugeReg.h" />
 		<Unit filename="include/eom-BSSN/eomGauge.h" />

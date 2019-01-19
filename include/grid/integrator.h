@@ -136,7 +136,7 @@ public:
         /// Procedure:
         /// - Calculate the acceptable error `tau`
         ///
-        Real tau = std::max( absTolerance, relTolerance * std::max( 1.0, gfNorm ) );
+        Real tau = /*std::*/MAX( absTolerance, relTolerance * /*std::*/MAX( 1.0, gfNorm ) );
 
         /// If the error is acceptable then update `Y[m+1]` by taking  the higher order
         /// estimation as "local extrapolation".

@@ -27,6 +27,8 @@ typedef long Int;
     #define Sqrt(v)     sqrtq(v)
     #define sqrt(v)     sqrtq(v)
     #define round(v)    roundq(v)
+    #define ISNAN(v)    isnanq(v)
+    #define MAX(v,w)    fmaxq(v,w)
 
     /** @warning Without std::, abs() is a GCC built-in function, which returns an int.
      */
@@ -56,6 +58,8 @@ typedef long Int;
     #define Sqrt(v)     sqrt(v)
     #define Erf(v)      erf(v)
     #define Tanh(v)     tanh(v)
+    #define ISNAN(v)    std::isnan(v)
+    #define MAX(v,w)    std::max(v,w)
 
     /** @warning Without std::, abs() is a GCC built-in function, which returns an int.
      */

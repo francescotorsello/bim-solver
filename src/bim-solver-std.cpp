@@ -97,7 +97,7 @@ namespace fld
     {
         gA, gB, gK, gKD, gDA, gDB, gSig,
         fA, fB, fK, fKD, fDA, fDB, fSig,
-        q, gAlp, fAlp, gDAlp,
+        q, gAlp, fAlp, gDAlp, //fDAlp,
         p,
         pfD, pfS, pftau
     };

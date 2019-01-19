@@ -81,18 +81,21 @@ Real BimetricEvolve::QQ( Int m, Int n )
 
 Real BimetricEvolve::gDAlp_at_N( Int m, Int N, Real h )
 {
+    Real x = 0;
 
     switch( slicing )
     {
         case SLICE_MS4:
 
-            return ( gAlp( m, N - 4 )/4. - 4./3. * gAlp( m, N - 3 ) + 3. * gAlp( m, N-2 ) - 4 * gAlp( m, N - 1 ) + 25./12. * gAlp( m, N ) ) / h;
+            x = ( gAlp( m, N - 4 )/4. - 4./3. * gAlp( m, N - 3 ) + 3. * gAlp( m, N-2 ) - 4 * gAlp( m, N - 1 ) + 25./12. * gAlp( m, N ) ) / h;
 
         case SLICE_MS6:
 
-            return (gAlp(m,-6 + N)/6. - (6*gAlp(m,-5 + N))/5. + (15*gAlp(m,-4 + N))/4. - (20*gAlp(m,-3 + N))/3. + (15*gAlp(m,-2 + N))/2. - 6*gAlp(m,-1 + N) + (49*gAlp(m,N))/20.)/h;
+            x = (gAlp(m,-6 + N)/6. - (6*gAlp(m,-5 + N))/5. + (15*gAlp(m,-4 + N))/4. - (20*gAlp(m,-3 + N))/3. + (15*gAlp(m,-2 + N))/2. - 6*gAlp(m,-1 + N) + (49*gAlp(m,N))/20.)/h;
 
     }
+
+    return x;
 
 }
 
@@ -311,6 +314,7 @@ void BimetricEvolve::maximalSlice_2opt
     //
     for( Int i = N - 2; i >= 1; --i ) {
         gAlp( m, offset + i ) = w[i] = z[i] - u[i] * w[i+1];
+
     }
 
     gAlp( m, offset + N ) = w[N] = gAlp_at_N;
@@ -398,78 +402,78 @@ void BimetricEvolve::maximalSlice_4_gDAlp
     gAlp( m, offset + N ) = gAlp_at_N;
 
     for( Int i = 0; i < N; ++i ) {
-        gAlp( m, offset + i ) = x[i];
+        gAlp( m, offset + i ) = MAX( x[i], TINY_Real );
     }
 
     maximalSlice_PostSteps( m, N );
     maximalSlice_compute_gDAlp( m, N );
 
-    Real dbg1 = gDAlp_at_N( m, offset + N, h );
+    //Real dbg1 = gDAlp_at_N( m, offset + N, h );
 
     /////////////////////////////////////////////////////////////////////////////////////
 
     //!< The following is the FD linear system approximating the differential equation for gDAlp. It requires gAlp to be already computed. This is an attempt to improve the quality of gDAlp near r=0.
 
-    //MatReal A2( N, 7 );
+    /*MatReal A2( N, 7 );
 
-    /*OMP_parallel_for( Int i = 0; i < N; ++i )
+    OMP_parallel_for( Int i = 0; i < N; ++i )
     {
-        A[i][0] =   0;
-        A[i][1] =   -1;
-        A[i][2] =   8;
-        A[i][3] =   12 * h * PP( m, offset + i );
-        A[i][4] =   -8;
-        A[i][5] =   1;
-        A[i][6] =   0;
+        A2[i][0] =   0;
+        A2[i][1] =   -1;
+        A2[i][2] =   8;
+        A2[i][3] =   12 * h * PP( m, offset + i );
+        A2[i][4] =   -8;
+        A2[i][5] =   1;
+        A2[i][6] =   0;
         b[i]    =   -12 * h * gAlp( m, offset + i ) * QQ( m, offset + i );
     }
 
     // Rewrite the equations at the boundaries
 
     i = 0;
-    A[i][0] =  0;
-    A[i][1] =  0;
-    A[i][2] =  0;
-    A[i][3] =  10 + 12 * h * PP( m, offset + 1 );
-    A[i][4] =  0;
-    A[i][5] =  0;
-    A[i][6] =  0;
+    A2[i][0] =  0;
+    A2[i][1] =  0;
+    A2[i][2] =  0;
+    A2[i][3] =  10 + 12 * h * PP( m, offset + 1 );
+    A2[i][4] =  0;
+    A2[i][5] =  0;
+    A2[i][6] =  0;
     b[i]    =  0;
 
     i = 1;
-    A[i][0] =  0;
-    A[i][1] =  0;
-    A[i][2] =  8;
-    A[i][3] =  -6 + 12 * h * PP( m, offset + i );
-    A[i][4] =  -6;
-    A[i][5] =  2./3.;
-    A[i][6] =  0;
+    A2[i][0] =  0;
+    A2[i][1] =  0;
+    A2[i][2] =  8;
+    A2[i][3] =  -6 + 12 * h * PP( m, offset + i );
+    A2[i][4] =  -6;
+    A2[i][5] =  2./3.;
+    A2[i][6] =  0;
     b[i]    =  -12 * h * gAlp( m, offset + i ) * QQ( m, offset + i ) - 4 * h * gAlp( m, offset + i - 1 ) * QQ( m, offset + i - 1 );
 
     i = N - 2;
-    A[i][0] =  0;
-    A[i][1] =  -1;
-    A[i][2] =  8;
-    A[i][3] =  12 * h * PP( m, offset + i );
-    A[i][4] =  -8;
-    A[i][5] =  0;
-    A[i][6] =  0;
+    A2[i][0] =  0;
+    A2[i][1] =  -1;
+    A2[i][2] =  8;
+    A2[i][3] =  12 * h * PP( m, offset + i );
+    A2[i][4] =  -8;
+    A2[i][5] =  0;
+    A2[i][6] =  0;
     b[i]    =  -12 * h * gAlp( m, offset + i ) * QQ( m, offset + i ) - gDAlp_at_N( m, offset + N, h );
 
     i = N - 1;
-    A[i][0] =  1;
-    A[i][1] =  -6;
-    A[i][2] =  18;
-    A[i][3] =  -10 + 12 * h * PP( m, offset + i);
-    A[i][4] =  0;
-    A[i][5] =  0;
-    A[i][6] =  0;
+    A2[i][0] =  1;
+    A2[i][1] =  -6;
+    A2[i][2] =  18;
+    A2[i][3] =  -10 + 12 * h * PP( m, offset + i);
+    A2[i][4] =  0;
+    A2[i][5] =  0;
+    A2[i][6] =  0;
     b[i]    =  -12 * h * gAlp( m, offset + i ) * QQ( m, offset + i ) + 3 * gDAlp_at_N( m, offset + N, h );
 
     /////////////////////////////////////////////////////////////////////////////////////
 
     VecReal_O y( N );
-    BandLUDecomposition( A, 3, 3 ).solve( b, y );
+    BandLUDecomposition( A2, 3, 3 ).solve( b, y );
 
     // Retrieve gDAlp from y
 

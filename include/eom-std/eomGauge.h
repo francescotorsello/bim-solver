@@ -15,5 +15,5 @@ Real BimetricEvolve::eq_gAlp( Int m, Int n )
 
 Real BimetricEvolve::eq_fAlp( Int m, Int n )
 {
-    return 1;
+    return -((gAlp(m,n) * gW(m,n)) / fW(m,n));
 }
