@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[    272684,       7218]
-NotebookOptionsPosition[    267861,       7100]
-NotebookOutlinePosition[    271467,       7182]
-CellTagsIndexPosition[    271424,       7179]
+NotebookDataLength[    273703,       7243]
+NotebookOptionsPosition[    268808,       7123]
+NotebookOutlinePosition[    272413,       7205]
+CellTagsIndexPosition[    272370,       7202]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -21,6 +21,16 @@ Notebook[{
 
 Cell[CellGroupData[{
 Cell["Module for Savitzky-Golay smoothing", "Section"],
+
+Cell["Note: Set \[OpenCurlyDoubleQuote]debugMode\[CloseCurlyDoubleQuote] to \
+False to generate cpp file.", "Text"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"debugMode", "=", "False"}], ";"}]], "Input",
+ CellChangeTimes->{{3.757095680892968*^9, 3.7570957088014174`*^9}, {
+  3.757095778003139*^9, 3.75709577842434*^9}, {3.7570958370960426`*^9, 
+  3.7570958375328436`*^9}}],
 
 Cell[TextData[{
  ButtonBox["Savitzky-Golay FIR lowpass filters",
@@ -6322,7 +6332,7 @@ Cell[BoxData[{
      RowBox[{"SavitzkyGolayMatrix", "[", 
       RowBox[{
        RowBox[{"{", "n", "}"}], ",", "m", ",", 
-       RowBox[{"WorkingPrecision", "\[Rule]", "32"}]}], "]"}], ",", 
+       RowBox[{"WorkingPrecision", "\[Rule]", "50"}]}], "]"}], ",", 
      "\[IndentingNewLine]", 
      RowBox[{"{", 
       RowBox[{"n", ",", "0", ",", "64"}], "}"}], ",", 
@@ -6541,16 +6551,28 @@ Cell[BoxData[
        RowBox[{
         RowBox[{"{", "radius", "}"}], ",", 
         RowBox[{"2", "polydeg"}], ",", 
-        RowBox[{"WorkingPrecision", "\[Rule]", "32"}]}], "]"}]}], ";", 
+        RowBox[{"WorkingPrecision", "\[Rule]", "50"}]}], "]"}]}], ";", 
      "\[IndentingNewLine]", 
      RowBox[{"InsertLinebreaks", "[", 
       RowBox[{
        RowBox[{"\"\<static Real SG$\>\"", "<>", 
         RowBox[{"ToString", "@", "radius"}], "<>", "\"\<$\>\"", "<>", 
         RowBox[{"ToString", "@", "polydeg"}], "<>", "\[IndentingNewLine]", 
-        "\"\<[] = \>\"", "<>", 
-        RowBox[{"ToString", "[", 
-         RowBox[{"CForm", "/@", "coeff"}], "]"}], "<>", "\"\<;\>\""}], ",", 
+        "\"\<[] = {\\n    \>\"", "<>", 
+        RowBox[{"StringRiffle", "[", " ", 
+         RowBox[{
+          RowBox[{
+           RowBox[{
+            RowBox[{"\"\<RealC(\>\"", "<>", 
+             RowBox[{"If", "[", 
+              RowBox[{
+               RowBox[{"IntegerQ", "[", "#", "]"}], ",", 
+               RowBox[{
+                RowBox[{"ToString", "@", "#"}], "<>", "\"\<.\>\""}], ",", 
+               RowBox[{"ToString", "[", 
+                RowBox[{"CForm", "@", "#"}], "]"}]}], "]"}], "<>", 
+             "\"\<)\>\""}], "&"}], "/@", "coeff"}], ",", " ", 
+          "\"\<,\\n    \>\""}], " ", "]"}], "<>", "\"\<\\n};\>\""}], ",", 
        "80"}], "]"}]}]}], "\[IndentingNewLine]", "]"}]}]], "Input"],
 
 Cell[BoxData[
@@ -6597,7 +6619,8 @@ Cell[BoxData[
 
 Cell[BoxData[
  RowBox[{"If", "[", 
-  RowBox[{"False", ",", 
+  RowBox[{
+   RowBox[{"Not", "@", "debugMode"}], ",", "\[IndentingNewLine]", 
    RowBox[{"Export", "[", 
     RowBox[{
      RowBox[{
@@ -6605,7 +6628,7 @@ Cell[BoxData[
       "\"\<../include/numMethods/SavitzkyGolayCoeff.h\>\""}], ",", 
      RowBox[{"SG$cpp$code", "[", 
       RowBox[{"32", ",", "2"}], "]"}], ",", "\"\<Text\>\""}], "]"}]}], 
-  "]"}]], "Input"]
+  "\[IndentingNewLine]", "]"}]], "Input"]
 }, Open  ]],
 
 Cell[CellGroupData[{
@@ -7101,8 +7124,8 @@ Cell[BoxData[
 PrintingStyleEnvironment->"Printout",
 InitializationCellEvaluation->False,
 InitializationCellWarning->False,
-WindowSize->{1472, 1102},
-WindowMargins->{{459, Automatic}, {97, Automatic}},
+WindowSize->{1308, 1102},
+WindowMargins->{{126, Automatic}, {Automatic, 3}},
 WindowStatusArea->Automatic,
 DockedCells->None,
 PrintingCopies->1,
@@ -7183,42 +7206,44 @@ CellTagsIndex->{}
 Notebook[{
 Cell[CellGroupData[{
 Cell[580, 22, 54, 0, 78, "Section"],
-Cell[637, 24, 610, 11, 63, "Text"],
-Cell[1250, 37, 394, 10, 64, "Text"],
-Cell[1647, 49, 6001, 161, 745, "Code",
+Cell[637, 24, 115, 1, 38, "Text"],
+Cell[755, 27, 248, 5, 36, "Input"],
+Cell[1006, 34, 610, 11, 88, "Text"],
+Cell[1619, 47, 394, 10, 65, "Text"],
+Cell[2016, 59, 6001, 161, 745, "Code",
  InitializationCell->False],
-Cell[7651, 212, 57, 0, 38, "Text"],
-Cell[7711, 214, 133, 2, 60, "Input"],
-Cell[7847, 218, 365, 9, 60, "Input"],
-Cell[8215, 229, 3679, 84, 152, "Input"],
-Cell[11897, 315, 723, 19, 132, "Input"],
+Cell[8020, 222, 57, 0, 38, "Text"],
+Cell[8080, 224, 133, 2, 60, "Input"],
+Cell[8216, 228, 365, 9, 60, "Input"],
+Cell[8584, 239, 3679, 84, 175, "Input"],
+Cell[12266, 325, 723, 19, 106, "Input"],
 Cell[CellGroupData[{
-Cell[12645, 338, 36, 0, 52, "Subsubsection"],
-Cell[12684, 340, 645, 19, 257, "Input"],
-Cell[13332, 361, 223795, 5945, 37093, "Input"]
+Cell[13014, 348, 36, 0, 42, "Subsubsection"],
+Cell[13053, 350, 645, 19, 321, "Input"],
+Cell[13701, 371, 223795, 5945, 46366, "Input"]
 }, Closed]],
 Cell[CellGroupData[{
-Cell[237164, 6311, 68, 0, 41, "Subsubsection"],
-Cell[237235, 6313, 58, 1, 45, "Input"],
-Cell[237296, 6316, 575, 15, 129, "Input"],
-Cell[237874, 6333, 7474, 189, 773, "Input"]
+Cell[237533, 6321, 68, 0, 33, "Subsubsection"],
+Cell[237604, 6323, 58, 1, 36, "Input"],
+Cell[237665, 6326, 575, 15, 129, "Input"],
+Cell[238243, 6343, 7474, 189, 773, "Input"]
 }, Open  ]]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[245397, 6528, 36, 0, 78, "Section"],
-Cell[245436, 6530, 975, 23, 152, "Input"],
-Cell[246414, 6555, 1725, 40, 152, "Input"],
-Cell[248142, 6597, 360, 10, 36, "Input"]
+Cell[245766, 6538, 36, 0, 78, "Section"],
+Cell[245805, 6540, 1477, 35, 175, "Input"],
+Cell[247285, 6577, 1725, 40, 152, "Input"],
+Cell[249013, 6619, 436, 11, 83, "Input"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[248539, 6612, 37, 0, 78, "Section"],
-Cell[248579, 6614, 94, 2, 38, "Text"],
-Cell[248676, 6618, 893, 26, 106, "Input"],
-Cell[249572, 6646, 772, 19, 60, "Input"],
-Cell[250347, 6667, 68, 0, 38, "Text"],
-Cell[250418, 6669, 6876, 158, 1095, "Input"],
-Cell[257297, 6829, 9762, 244, 1262, "Input"],
-Cell[267062, 7075, 783, 22, 75, "Input"]
+Cell[249486, 6635, 37, 0, 78, "Section"],
+Cell[249526, 6637, 94, 2, 38, "Text"],
+Cell[249623, 6641, 893, 26, 106, "Input"],
+Cell[250519, 6669, 772, 19, 83, "Input"],
+Cell[251294, 6690, 68, 0, 38, "Text"],
+Cell[251365, 6692, 6876, 158, 1095, "Input"],
+Cell[258244, 6852, 9762, 244, 1010, "Input"],
+Cell[268009, 7098, 783, 22, 60, "Input"]
 }, Open  ]]
 }
 ]

@@ -22,15 +22,22 @@ typedef long Int;
 
     typedef __float128  Real;
 
+    #define RealC(v)    v##q
     #define strToReal   strtoflt128
     #define Power(v,e)  powq(v,e)
     #define Sqrt(v)     sqrtq(v)
     #define sqrt(v)     sqrtq(v)
     #define round(v)    roundq(v)
 
-    /** @warning Without std::, abs() is a GCC built-in function, which returns an int.
+    /** @warning Without abs() is a GCC built-in function, which returns an int.
      */
     inline static Real abs( Real v ) { return fabsq(v); }
+
+    namespace std
+    {
+        inline static Real isnan( Real v ) { return isnanq(v); }
+        inline static Real max( Real a, Real b ) { return fmaxq(a,b); }
+    }
 
     inline static std::ostream& operator<< ( std::ostream& os, const Real& value ) {
         char str[256];
@@ -51,6 +58,7 @@ typedef long Int;
 #else
     typedef double      Real;
 
+    #define RealC(v)    v
     #define strToReal   strtod
     #define Power(v,e)  pow(v,e)
     #define Sqrt(v)     sqrt(v)
@@ -63,6 +71,10 @@ typedef long Int;
 
     inline static void fputReal( FILE* outf, Real value ) {
         fprintf( outf, "%lf", value );
+    }
+
+    inline static Real operator ""_q ( const char* str ) {
+        return strtod( str, NULL );
     }
 #endif
 
