@@ -163,7 +163,8 @@ public:
              << "    nLen = " << nLen << ",  nGhost = " << nGhost
              << ",  delta_r = " << delta_r
              << ",  mLen = " << mLen << ",  mExtra = " << mExtra << std::endl
-             << "    Compile-time: CFDS_ORDER = " << CFDS_ORDER << std::endl;
+             << "    Compile-time: CFDS_ORDER = " << CFDS_ORDER
+             << ",  sizeof(Real) = " << sizeof(Real) << std::endl;
 
         #if _OPENMP
             if ( mpiSize() > 1 ) {
@@ -377,13 +378,22 @@ public:
     bool read( FILE* inf, bool isBinary, const std::vector<Int>& input )
     {
         auto len = input.size();
-        Real* data = (Real*)alloca( len * sizeof(Real) );
 
         if( isBinary )
         {
+            #ifdef USE_LONGDOUBLE
+                __float128* data = (__float128*)alloca( len * sizeof(__float128) );
+            #else
+                Real* data = (Real*)alloca( len * sizeof(Real) );
+            #endif
+
             if( len != fread( data, sizeof(data[0]), len, inf ) ) {
                 std::cerr << "Error: Premature end of grid." << std::endl;
                 return false;
+            }
+
+            for( size_t gf = 0; gf < len; ++gf ) {
+                GF( input[gf], m, n ) = data[gf];
             }
         }
         else
@@ -397,15 +407,16 @@ public:
                 }
             } while( line[0] == '*' ); // Ignore comments (starting with '*')
 
+            Real* data = (Real*)alloca( len * sizeof(Real) );
             size_t count = sscanf_Real( line, data, len );
             if( count != len ) {
                 std::cerr << "Error: Wrong number of variables." << std::endl;
                 return false;
             }
-        }
 
-        for( size_t gf = 0; gf < len; ++gf ) {
-            GF( input[gf], m, n ) = data[gf];
+            for( size_t gf = 0; gf < len; ++gf ) {
+                GF( input[gf], m, n ) = data[gf];
+            }
         }
 
         return true;
@@ -418,19 +429,23 @@ public:
     void write( FILE* outf, bool isBinary, const std::vector<GF_Descriptor> output )
     {
         auto len = output.size(); /// @todo fld::output should be dynamic in ID class
-        Real* data = (Real*)alloca( len * sizeof(Real) );
 
-        for( size_t gf = 0; gf < len; ++gf ) {
-            data[gf] = GF( output[gf].gf, m, n );
-        }
+        if( isBinary )
+        {
+            // Data is always written out as doubles!
+            double* data = (double*)alloca( len * sizeof(double) );
+            // Real* data = (Real*)alloca( len * sizeof(Real) );
 
-        if( isBinary ) {
+            for( size_t gf = 0; gf < len; ++gf ) {
+                data[gf] = GF( output[gf].gf, m, n );
+            }
+
             fwrite( data, sizeof(data[0]), len, outf );
         }
         else {
             for( size_t i = 0; i < len; ++i ) {
                 if ( i > 0 ) fputs( "\t", outf );
-                fputReal( outf,  data[i] );
+                fputReal( outf,  GF( output[i].gf, m, n ) );
             }
             fputs( "\n", outf );
         }

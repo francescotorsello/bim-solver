@@ -55,6 +55,34 @@ typedef long Int;
         return strtoflt128( str, NULL );
     }
 
+#elif defined(USE_LONGDOUBLE) // 80-bit floating point
+
+    typedef long double Real;
+
+    #define RealC(v)    v##L
+    #define strToReal   strtold
+    #define Power(v,e)  powl(v,e)
+    #define Sqrt(v)     sqrtl(v)
+    #define Erf(v)      erfl(v)
+    #define Tanh(v)     tanhl(v)
+
+    /** @warning Without std::, abs() is a GCC built-in function, which returns an int.
+     */
+    inline static Real abs( Real v ) { return fabsl(v); }
+
+    namespace std
+    {
+        inline static Real max( Real a, Real b ) { return a > b ? a : b; }
+    }
+
+    inline static void fputReal( FILE* outf, Real value ) {
+        fprintf( outf, "%Lf", value );
+    }
+
+    inline static Real operator ""_q ( const char* str ) {
+        return strtold( str, NULL );
+    }
+
 #else
     typedef double      Real;
 
@@ -79,7 +107,7 @@ typedef long Int;
 #endif
 
 
-const Real TINY_Real = 1e-100; // std::numeric_limits<Real>::min();
+const Real TINY_Real = RealC(1e-100); // std::numeric_limits<Real>::min();
 
 
 /** Reads an array of real numbers from a string.
