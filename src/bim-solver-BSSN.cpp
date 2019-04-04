@@ -2076,6 +2076,8 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         smoothenGF( m, fld::fDAlp_r,     fld::tmp, fld::fDAlp_r,    +1 );*/
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gAlp_r,    fld::tmp,  fld::gAlp_r,     -1 );
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fAlp_r,    fld::tmp,  fld::fAlp_r,     -1 );
+        //smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDAlp,    fld::tmp,  fld::gDAlp,     -1 );
+        //smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fDAlp,    fld::tmp,  fld::fDAlp,     -1 );
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDAlp_r,    fld::tmp,  fld::gDAlp_r,     +1 );
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fDAlp_r,    fld::tmp,  fld::fDAlp_r,     +1 );
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDAlpr, fld::tmp,  fld::gDAlpr, 1 );

@@ -406,7 +406,7 @@ void BimetricEvolve::maximalSlice_4_gDAlp
     }
 
     maximalSlice_PostSteps( m, N );
-    maximalSlice_compute_gDAlp( m, N );
+    //maximalSlice_compute_gDAlp( m, N );
 
     //Real dbg1 = gDAlp_at_N( m, offset + N, h );
 
@@ -414,7 +414,7 @@ void BimetricEvolve::maximalSlice_4_gDAlp
 
     //!< The following is the FD linear system approximating the differential equation for gDAlp. It requires gAlp to be already computed. This is an attempt to improve the quality of gDAlp near r=0.
 
-    /*MatReal A2( N, 7 );
+    MatReal A2( N, 7 );
 
     OMP_parallel_for( Int i = 0; i < N; ++i )
     {
@@ -493,7 +493,7 @@ void BimetricEvolve::maximalSlice_4_gDAlp
         gDAlp(m,n) = -gDAlp(m,nR);
         fDAlp(m,n) = -fDAlp(m,nR);
 
-    }*/
+    }
 
 }
 
