@@ -1788,7 +1788,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     if( m < mSmoothUpTo && smooth >= 1 )
     {
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::q,       fld::tmp,  fld::q,      1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::q,       fld::tmp,  fld::q,      -1 );
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::qr,      fld::tmp,  fld::qr,      1 );
         //smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::p,       fld::tmp,  fld::p,      1 );
         //smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::pr,      fld::tmp,  fld::pr,      1 );
@@ -1897,25 +1897,22 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
     }
 
     if( slicing == SLICE_KD )
+    {
+        OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n )
         {
-            OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n )
-            {
-                gDAlp( m, n ) = GF_right_r( gAlp, m, n );
-
-            }
-
-            OMP_parallel_for( Int n = nGhost +1 ; n < nGhost + nLen + 1; ++n )
-            {
-                gDAlp( m, n ) = GF_r( gAlp, m, n );
-
-            }
-
-            OMP_parallel_for( Int n = nGhost + nLen + 1; n < 2*nGhost + nLen + 1; ++n )
-            {
-                gDAlp( m, n ) = GF_left_r( gAlp, m, n );
-
-            }
+            gDAlp( m, n ) = GF_right_r( gAlp, m, n );
         }
+
+        OMP_parallel_for( Int n = nGhost +1 ; n < nGhost + nLen + 1; ++n )
+        {
+            gDAlp( m, n ) = GF_r( gAlp, m, n );
+        }
+
+        OMP_parallel_for( Int n = nGhost + nLen + 1; n < 2*nGhost + nLen + 1; ++n )
+        {
+            gDAlp( m, n ) = GF_left_r( gAlp, m, n );
+        }
+    }
 
     /// @todo fixme:  Determine fAlp right after maximal slicing!?
 
@@ -2899,7 +2896,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
         #endif // _EVOLVE_DSIG
 
-       Real dbg1 = eq_gconf_t  (m,n);
+       /*Real dbg1 = eq_gconf_t  (m,n);
        Real dbg2 = eq_gDconf_t (m,n);
 
        Real dbg3 = eq_gtrK_t   (m,n);
@@ -2919,6 +2916,12 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
        Real dbg15 = eq_pf_gD_t  (m,n);
        Real dbg16 = eq_pf_gS_t  (m,n);
        Real dbg17 = eq_pf_gtau_t(m,n);
+
+       Real dbg18 = eq_KD_gAlp_t(m,n);
+       Real dbg19 = gDAlp        (m,n);*/
+
+       Real dbg1 = gAlp  (m,n);
+       Real dbg2 = gDAlp (m,n);
 
        /*Real dbg1 = fL_convr(m,n);
        Real dbg3 = fBet_fL_r(m,n);
@@ -3041,6 +3044,13 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     }
 
+    if( slicing == SLICE_KD && m < mSmoothUpTo && smooth >= 1 )
+    {
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gAlp,    fld::tmp,  fld::gAlp,     1 );
+        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gDAlp,    fld::tmp,  fld::gDAlp,     -1 );
+
+    }
+
     /////////////////////////////////////////////////////////////////////////////////////
     /// - Smoothen the time derivatives inside the grid zone near the outer boundary
     /// @todo Smoothen the time derivatives inside the left grid zone
@@ -3068,29 +3078,6 @@ void BimetricEvolve::integStep_Finalize( Int m1, Int m )
            gAlp    ( m1, n )  =  gAlp   ( m, n );
            gDAlp   ( m1, n )  =  gDAlp  ( m, n );
         }
-
-        #if OBSERVER == 6
-
-            gA2     (m,n) = - gA1( m, n ) / 2;
-            fA2     (m,n) = - fA1( m, n ) / 2;
-
-            for( Int i = 0; i < nGhost +1; ++i )
-            {
-                Int n  = nGhost - i - 1;
-                Int nR = nGhost + i;
-
-                /// Here we impose the parity conditions at the left boundary.
-
-                gA2   (m,n) = gA2    (m,nR);      fA2   (m,n)  = fA2    (m,nR);
-            }
-            for( Int n = nGhost + nLen; n < nTotal; ++n )
-            {
-
-                extrapolate_R( fld::gA2,   m, n );     extrapolate_R( fld::fA2,   m, n );
-
-            }
-
-        #endif // OBSERVER
 
     }
 }

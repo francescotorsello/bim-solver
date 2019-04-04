@@ -51,7 +51,6 @@
 			<Add option="-D_DETECT_NAN=1" />
 			<Add option="-D_EVOLVE_DSIG=0" />
 			<Add option="-D_UPWIND=1" />
-			<Add option="-DUSE_QUADMATH" />
 			<Add directory="include" />
 		</Compiler>
 		<Linker>
@@ -63,16 +62,20 @@
 		<Unit filename="include/documentation.h" />
 		<Unit filename="include/eom-BSSN.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNBimetricSourcesReg.h" />
+		<Unit filename="include/eom-BSSN/eomBSSNConstraintsEul.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNConstraintsReg.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNEvolutionConv.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNEvolutionDAlp.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNEvolutionDR.h" />
+		<Unit filename="include/eom-BSSN/eomBSSNEvolutionEul.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNEvolutionReg.h" />
+		<Unit filename="include/eom-BSSN/eomBSSNKDGaugeReg.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNLapseRatiosReg.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNMatterReg.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNMiscEquationsReg.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNObserver.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNRicciReg.h" />
+		<Unit filename="include/eom-BSSN/eomBSSNSourcesEul.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNSourcesReg.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNStdGaugeReg.h" />
 		<Unit filename="include/eom-BSSN/eomGauge.h" />
