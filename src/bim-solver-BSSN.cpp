@@ -304,7 +304,15 @@ namespace fld
         gB, fB,
         gDB, fDB,
         gA1, fA1,
-        gA2, fA2,
+
+        #if OBSERVER==1
+
+        #else
+
+            gA2, fA2,
+
+        #endif // OBSERVER
+
         gL, fL,
         gsig, fsig,
         gDsig, fDsig,
@@ -323,7 +331,7 @@ namespace fld
         { gtrK,  gtrK_t  },
         { gA,  gA_t  },         { gB,  gB_t  },
         { gDA,  gDA_t  },       { gDB,  gDB_t  },
-        { gA1, gA1_t },         { gA2, gA2_t },
+        { gA1, gA1_t },
         { gL, gL_t },
         { gsig, gsig_t },
 
@@ -333,7 +341,7 @@ namespace fld
         { ftrK,  ftrK_t  },
         { fA,  fA_t  },         { fB,  fB_t  },
         { fDA,  fDA_t  },       { fDB,  fDB_t  },
-        { fA1, fA1_t },         { fA2, fA2_t },
+        { fA1, fA1_t },
         { fL, fL_t },
         { fsig, fsig_t },
 
@@ -342,6 +350,15 @@ namespace fld
         { p,   p_t   },
 
         { pfD, pfD_t }, { pfS, pfS_t }, { pftau, pftau_t }
+
+        #if OBSERVER==1
+
+        #else
+
+            { gA2, gA2_t },
+            { fA2, fA2_t },
+
+        #endif // OBSERVER
 
         #if _EVOLVE_DSIG
 
@@ -619,12 +636,15 @@ class BimetricEvolve
         SLICE_MS4     = 3,  // Maximal slicing, 4th order FD
         SLICE_MS2OPT  = 4,  // Maximal slicing, 2nd order FD, optimized algorithm
         SLICE_SG      = 5,  // The standard gauge
-        SLICE_MS6     = 6   // Maximal slicing, 6th order FD
+        SLICE_MS6     = 6,  // Maximal slicing, 6th order FD
+        SLICE_KD      = 7,  // The K driver parabolic gauge on the lapse (relaxing to maximal slicing) [B&S,p.111]
     };
 
     Int slicing;   //!< Select the slicing: maximal, Bona-Masso, ...
     Int lin2n;     //!< Left grid-zone linear smoothing (default: `nGhost`)
-    Real eta;                 //!< Dissipation coefficient in the Gamma driver gauge condition.
+    Real eta;      //!< Dissipation coefficient in the Gamma driver gauge condition.
+    Real Kdiff;    //!< Effective diffusion constant for the K-driver parabolic gauge on the lapse.
+    Real Kelas;    //!< 'Elastic' constant for the K-driver parabolic gauge on the lapse.
     Int cub2n;     //!< Left grid-zone cubic spline smoothing (default: `5*nGhost/2+6`)
     Real delta_t;  //!< The integration step (obtained from the integrator)
     Int smooth;    //!< Smooth the fields (level of smoothness)
@@ -966,6 +986,9 @@ class BimetricEvolve
     Real eq_SG_gDAlp_t  ( Int m, Int n );
     Real eq_SG_gBet_t   ( Int m, Int n );
     Real eq_SG_gBq_t    ( Int m, Int n );
+
+    Real eq_KD_gAlp_t   ( Int m, Int n );
+    Real eq_KD_gDAlp_t  ( Int m, Int n );
     /////////////////////////////////////////////////////////////////////////////////////
     // The constraints (here used as the error estimators) and the equation for `p`
     /////////////////////////////////////////////////////////////////////////////////////
@@ -1280,7 +1303,7 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
         { "constg", SLICE_CONSTG },  { "constgf", SLICE_CONSTGF },
         { "MS2OPT", SLICE_MS2OPT },  { "MS2",     SLICE_MS2     },
         { "MS4",    SLICE_MS4    },  { "SG",      SLICE_SG      },
-        { "MS6",    SLICE_MS6    }
+        { "MS6",    SLICE_MS6    },  { "KD",      SLICE_KD      },
     };
     std::string name = params.get( "slicing.method", slicing, 0, knownSlicings );
 
@@ -1288,6 +1311,8 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
     params.get( "slicing.cub2n",        cub2n,       5 * nGhost / 2 + 6  );
     params.get( "slicing.smooth",       smooth,      0                   );
     params.get( "slicing.dissipGauge",  eta,         0.0                 );
+    params.get( "slicing.diffGauge",    Kdiff,         0.6                 );
+    params.get( "slicing.elastGauge",   Kelas,         0.1                 );
 
     params.get( "smoothing.nSmoothFrom",  nSmoothFrom, 5*nGhost   );
     params.get( "smoothing.nSmoothUpTo",  nSmoothUpTo, output.get_nOut()   );
@@ -1333,6 +1358,15 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
 
         }
 
+    if( slicing == SLICE_KD ){
+
+             slog << "The K-driver parabolic gauge on the lapse:" << std::endl << std::endl
+                  << "    Effective diffusion constant e = " << Kdiff
+                  << "    'Elastic' constant = " << Kelas
+                  << std::endl << std::endl;
+
+        }
+
     if ( mpiSize() > 1 &&
         ( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS6 ) )
     {
@@ -1350,7 +1384,7 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
 
     // Add our grid functions to the evolution
     //
-    if( slicing != SLICE_SG || slicing != SLICE_MS2 || slicing != SLICE_MS2OPT || slicing != SLICE_MS4 || slicing != SLICE_MS6 ) {
+    if( slicing != SLICE_KD || slicing != SLICE_SG || slicing != SLICE_MS2 || slicing != SLICE_MS2OPT || slicing != SLICE_MS4 || slicing != SLICE_MS6 ) {
         integ.keepConstant( { fld::q } );
     }  // GFs that are kept constant in time
     integ.keepEvolved( fld::bimEvolvedGF ); // GFs that are evolved by the integrator
@@ -1369,6 +1403,14 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
             { fld::gDAlp, fld::gDAlp_t },
             { fld::q,     fld::q_t     },
             { fld::Bq,    fld::Bq_t    }
+        };
+        integ.keepEvolved( evolvedGaugeGF );
+    }
+    else if ( slicing == SLICE_KD )
+    {
+        const static std::vector<fld::EvolvedBy> evolvedGaugeGF = {
+            { fld::gAlp,  fld::gAlp_t  },
+            //{ fld::gDAlp, fld::gDAlp_t },
         };
         integ.keepEvolved( evolvedGaugeGF );
     }
@@ -1775,6 +1817,18 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
     /////////////////////////////////////////////////////////////////////////////////////
     /// - First, calculate the values of the spatial derivatives
 
+    #if OBSERVER == 1
+
+        OMP_parallel_for( Int n = 0 + 0*nGhost; n < 2*nGhost + nLen + 1; ++n )
+        {
+
+            gA2     (m,n) = - gA1( m, n ) / 2;
+            fA2     (m,n) = - fA1( m, n ) / 2;
+
+        }
+
+    #endif // OBESERVER
+
     OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost +1; ++n )
     {
        // The radial derivatives of the fields inside the ratio of the lapses (which is inside the maximal slicing's equation) over the left ghosts
@@ -1841,6 +1895,27 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         case SLICE_MS4:    maximalSlice_4_gDAlp    ( m, nLen/2, 1 );  break;
         case SLICE_MS6:    maximalSlice_6_gDAlp    ( m, nLen/2, 1 );  break;
     }
+
+    if( slicing == SLICE_KD )
+        {
+            OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n )
+            {
+                gDAlp( m, n ) = GF_right_r( gAlp, m, n );
+
+            }
+
+            OMP_parallel_for( Int n = nGhost +1 ; n < nGhost + nLen + 1; ++n )
+            {
+                gDAlp( m, n ) = GF_r( gAlp, m, n );
+
+            }
+
+            OMP_parallel_for( Int n = nGhost + nLen + 1; n < 2*nGhost + nLen + 1; ++n )
+            {
+                gDAlp( m, n ) = GF_left_r( gAlp, m, n );
+
+            }
+        }
 
     /// @todo fixme:  Determine fAlp right after maximal slicing!?
 
@@ -2689,9 +2764,10 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         gJ11 (m,n)  = eq_pf_gJ11(m,n);    fJ11 (m,n)  = eq_pf_fJ11(m,n);
         gJ22 (m,n)  = eq_pf_gJ22(m,n);    fJ22 (m,n)  = eq_pf_fJ22(m,n);
 
-        gJK  (m,n)  = eq_gJK    (m,n);    fJK  (m,n) = eq_fJK  (m,n);
-        gJA1 (m,n)  = eq_gJA1   (m,n);    fJA1 (m,n) = eq_fJA1 (m,n);
-        gJA2 (m,n)  = eq_gJA2   (m,n);    fJA2 (m,n) = eq_fJA2 (m,n);
+        gJK  (m,n)  = eq_gJK    (m,n);        fJK  (m,n) = eq_fJK  (m,n);
+        gJA1 (m,n)  = eq_gJA1   (m,n);        fJA1 (m,n) = eq_fJA1 (m,n);
+        gJA2 (m,n)  = - eq_gJA1   (m,n)/2;    fJA2 (m,n) = - eq_fJA1 (m,n)/2;
+
         gJL  (m,n)  = eq_gJL    (m,n);    fJL  (m,n) = eq_fJL  (m,n);
 
         // The bimetric sources
@@ -2732,7 +2808,14 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         gDB_t    (m,n) = eq_gDB_t    (m,n);
 
         gA1_t    (m,n) = eq_gA1_t    (m,n);
-        gA2_t    (m,n) = eq_gA2_t    (m,n);
+
+        #if OBSERVER == 1
+
+        #else
+
+            gA2_t    (m,n) = eq_gA2_t    (m,n);
+
+        #endif // OBSERVER
 
         gL_t     (m,n) = eq_gL_t     (m,n);
 
@@ -2774,7 +2857,14 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             fDB_t    (m,n) = eq_fDB_t    (m,n);
 
             fA1_t    (m,n) = eq_fA1_t    (m,n);
-            fA2_t    (m,n) = eq_fA2_t    (m,n);
+
+            #if OBSERVER == 1
+
+            #else
+
+                fA2_t    (m,n) = eq_fA2_t    (m,n);
+
+            #endif // OBSERVER
 
             fL_t     (m,n) = eq_fL_t     (m,n);
 
@@ -2795,6 +2885,11 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             gDAlp_t (m,n) = eq_SG_gDAlp_t (m,n);
             q_t     (m,n) = eq_SG_gBet_t  (m,n);
             Bq_t    (m,n) = eq_SG_gBq_t   (m,n);
+
+        } else if( slicing == SLICE_KD )
+        {
+            gAlp_t  (m,n) = eq_KD_gAlp_t  (m,n);
+            //gDAlp_t (m,n) = eq_SG_gDAlp_t (m,n);
         }
 
         #if _EVOLVE_DSIG
@@ -2803,6 +2898,27 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             fDsig_t  (m,n) = eq_fDsig_t  (m,n);
 
         #endif // _EVOLVE_DSIG
+
+       Real dbg1 = eq_gconf_t  (m,n);
+       Real dbg2 = eq_gDconf_t (m,n);
+
+       Real dbg3 = eq_gtrK_t   (m,n);
+
+       Real dbg5 = eq_gA_t     (m,n);
+       Real dbg6 = eq_gDA_t     (m,n);
+       Real dbg7 = eq_gB_t     (m,n);
+       Real dbg8 = eq_gDB_t     (m,n);
+
+       Real dbg9 = eq_gA1_t    (m,n);
+
+       Real dbg12 = eq_gL_t     (m,n);
+
+       Real dbg13 = eq_gsig_t   (m,n);
+       Real dbg14 = eq_gAsig_t  (m,n);
+
+       Real dbg15 = eq_pf_gD_t  (m,n);
+       Real dbg16 = eq_pf_gS_t  (m,n);
+       Real dbg17 = eq_pf_gtau_t(m,n);
 
        /*Real dbg1 = fL_convr(m,n);
        Real dbg3 = fBet_fL_r(m,n);
@@ -2952,6 +3068,30 @@ void BimetricEvolve::integStep_Finalize( Int m1, Int m )
            gAlp    ( m1, n )  =  gAlp   ( m, n );
            gDAlp   ( m1, n )  =  gDAlp  ( m, n );
         }
+
+        #if OBSERVER == 6
+
+            gA2     (m,n) = - gA1( m, n ) / 2;
+            fA2     (m,n) = - fA1( m, n ) / 2;
+
+            for( Int i = 0; i < nGhost +1; ++i )
+            {
+                Int n  = nGhost - i - 1;
+                Int nR = nGhost + i;
+
+                /// Here we impose the parity conditions at the left boundary.
+
+                gA2   (m,n) = gA2    (m,nR);      fA2   (m,n)  = fA2    (m,nR);
+            }
+            for( Int n = nGhost + nLen; n < nTotal; ++n )
+            {
+
+                extrapolate_R( fld::gA2,   m, n );     extrapolate_R( fld::fA2,   m, n );
+
+            }
+
+        #endif // OBSERVER
+
     }
 }
 
@@ -3032,11 +3172,11 @@ bool BimetricEvolve::integStep_Diagnostics( Int m, Int chkNaNs_nFrom, Int chkNaN
                 std::cerr << "*** Detected gA1 NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( ISNAN( gA2( m, n ) ) ) {
+            } /*else if( ISNAN( gA2( m, n ) ) ) {
                 std::cerr << "*** Detected gA2 NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( ISNAN( gconf( m, n ) ) ) {
+            }*/ else if( ISNAN( gconf( m, n ) ) ) {
                 std::cerr << "*** Detected gconf NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
@@ -3068,11 +3208,11 @@ bool BimetricEvolve::integStep_Diagnostics( Int m, Int chkNaNs_nFrom, Int chkNaN
                 std::cerr << "*** Detected fA1 NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( ISNAN( fA2( m, n ) ) ) {
+            }/* else if( ISNAN( fA2( m, n ) ) ) {
                 std::cerr << "*** Detected fA2 NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
-            } else if( ISNAN( fconf( m, n ) ) ) {
+            }*/ else if( ISNAN( fconf( m, n ) ) ) {
                 std::cerr << "*** Detected fconf NaN at t = " << t(m,n)
                         << ", r = " << r(m,n) << std::endl;
                 return false;
