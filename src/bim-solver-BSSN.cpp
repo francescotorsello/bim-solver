@@ -1441,8 +1441,9 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
 
 void BimetricEvolve::applyLeftBoundaryCondition( Int m )
 {
-    for( Int i = 0; i < nGhost +1; ++i )
+    for( Int i = 0; i < nGhost + 1; ++i )
     {
+
         Int n  = nGhost - i - 1;
         Int nR = nGhost + i;
 
@@ -1800,7 +1801,15 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gDA,     fld::tmp,  fld::gDA,     -1 );
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gDB,     fld::tmp,  fld::gDB,     -1 );
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gA1,     fld::tmp,  fld::gA1,     1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gA2,     fld::tmp,  fld::gA2,     1 );
+
+        #if OBSERVER == 1
+
+        #else
+
+            smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gA2,     fld::tmp,  fld::gA2,     1 );
+
+        #endif // OBSERVER
+
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gtrK,    fld::tmp,  fld::gtrK,    1 );
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gconf,   fld::tmp,  fld::gconf,   1 );
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gDconf,  fld::tmp,  fld::gDconf,  -1 );
@@ -1817,7 +1826,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
     /////////////////////////////////////////////////////////////////////////////////////
     /// - First, calculate the values of the spatial derivatives
 
-    #if OBSERVER == 1
+    #if OBSERVER == 1 // if the Eulerian equations with traceless A are used, impose gA2 = -gA1/2
 
         OMP_parallel_for( Int n = 0 + 0*nGhost; n < 2*nGhost + nLen + 1; ++n )
         {
@@ -1827,7 +1836,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
         }
 
-    #endif // OBESERVER
+    #endif // OBSERVER
 
     OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost +1; ++n )
     {
@@ -1896,33 +1905,106 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         case SLICE_MS6:    maximalSlice_6_gDAlp    ( m, nLen/2, 1 );  break;
     }
 
-    if( slicing == SLICE_KD )
-    {
-        OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n )
-        {
-            gDAlp( m, n ) = GF_right_r( gAlp, m, n );
-        }
-
-        OMP_parallel_for( Int n = nGhost +1 ; n < nGhost + nLen + 1; ++n )
-        {
-            gDAlp( m, n ) = GF_r( gAlp, m, n );
-        }
-
-        OMP_parallel_for( Int n = nGhost + nLen + 1; n < 2*nGhost + nLen + 1; ++n )
-        {
-            gDAlp( m, n ) = GF_left_r( gAlp, m, n );
-        }
-    }
-
     /// @todo fixme:  Determine fAlp right after maximal slicing!?
 
     if ( isGR () /*|| slicing == SLICE_CONSTGF*/ )
     {
 
-        OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n )
+        if( slicing == SLICE_KD )
         {
-            gAlp_r ( m, n ) = GF_right_r( gAlp,  m, n );
-            gDAlp_r( m, n ) = GF_right_r( gDAlp, m, n );
+
+            smoothenGF0 ( m, 0, nLen + 2*nGhost + 1, 32,  fld::gAlp,    fld::tmp,  fld::gAlp,     1 );
+
+            for( Int n = 0; n < nLen + 2*nGhost + 1; ++n )
+            {
+
+                if( gAlp (m,n) < 0 ){
+
+                    gAlp (m,n) = 0;
+
+                }
+
+            }
+
+            for( Int i = 0; i < nGhost + 1; ++i )
+            {
+
+                Int n  = nGhost - i - 1;
+                Int nR = nGhost + i;
+
+                /// Here we impose the parity conditions at the left boundary.
+
+                gAlp (m,n) = gAlp  (m,nR);
+
+            }
+
+            //cubicSplineSmooth( m, fld::gAlp, lin2n, cub2n );
+            //cubicSplineSmooth( m, fld::fAlp, lin2n, cub2n );
+
+            OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n )
+            {
+                gDAlp( m, n ) = GF_right_r( gAlp, m, n );
+            }
+
+            OMP_parallel_for( Int n = nGhost +1 ; n < nGhost + nLen + 1; ++n )
+            {
+                gDAlp( m, n ) = GF_r( gAlp, m, n );
+            }
+
+            OMP_parallel_for( Int n = nGhost + nLen + 1; n < 2*nGhost + nLen + 1; ++n )
+            {
+                gDAlp( m, n ) = GF_left_r( gAlp, m, n );
+            }
+
+            for( Int i = 0; i < nGhost + 1; ++i )
+            {
+
+                Int n  = nGhost - i - 1;
+                Int nR = nGhost + i;
+
+                /// Here we impose the parity conditions at the left boundary.
+
+                gDAlp(m,n) = -gDAlp(m,nR);
+
+            }
+
+            //cubicSplineSmooth( m, fld::gDAlp, lin2n, cub2n );
+            //cubicSplineSmooth( m, fld::fDAlp, lin2n, cub2n );
+
+            for( Int i = 0; i < nGhost + 1; ++i )
+            {
+
+                Int n  = nGhost - i - 1;
+                Int nR = nGhost + i;
+
+                /// Here we impose the parity conditions at the left boundary.
+
+                gDAlp(m,n) = -gDAlp(m,nR);
+
+            }
+
+            smoothenGF0 ( m, 0, nLen + 2*nGhost + 1, 32,  fld::gDAlp,    fld::tmp,  fld::gDAlp,     -1 );
+
+            for( Int i = 0; i < nGhost + 1; ++i )
+            {
+
+                Int n  = nGhost - i - 1;
+                Int nR = nGhost + i;
+
+                /// Here we impose the parity conditions at the left boundary.
+
+                gDAlp(m,n) = -gDAlp(m,nR);
+
+            }
+
+        }
+
+        // At this point, gAlp and gDAlp must be known, and possibly splined
+
+            OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n )
+            {
+                gAlp_r ( m, n ) = GF_right_r( gAlp,  m, n );
+                gDAlp_r( m, n ) = GF_right_r( gDAlp, m, n );
 
             /*fAlp   ( m, n ) = gAlp( m, n );
             fAlp_r ( m, n ) = GF_right_r ( fAlp,  m, n );
@@ -1931,12 +2013,12 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             fDAlp  ( m, n ) = fAlp_r(m,n) / (TINY_Real + fAlp(m,n));
             fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) ) / (TINY_Real + fAlp(m,n));*/
 
-        }
+            }
 
-        OMP_parallel_for( Int n = nGhost +1 ; n < nGhost + nLen + 1; ++n )
-        {
-            gAlp_r ( m, n ) = GF_r( gAlp,  m, n );
-            gDAlp_r( m, n ) = GF_r( gDAlp, m, n );
+            OMP_parallel_for( Int n = nGhost +1 ; n < nGhost + nLen + 1; ++n )
+            {
+                gAlp_r ( m, n ) = GF_r( gAlp,  m, n );
+                gDAlp_r( m, n ) = GF_r( gDAlp, m, n );
 
             /*fAlp   ( m, n ) = gAlp( m, n );
             fAlp_r ( m, n ) = GF_r ( fAlp,  m, n );
@@ -1945,12 +2027,12 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             fDAlp  ( m, n ) = fAlp_r(m,n) / (TINY_Real + fAlp(m,n));
             fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) )/ (TINY_Real + fAlp(m,n));*/
 
-        }
+            }
 
-        OMP_parallel_for( Int n = nGhost + nLen + 1; n < 2*nGhost + nLen + 1; ++n )
-        {
-            gAlp_r ( m, n ) = GF_left_r( gAlp,  m, n );
-            gDAlp_r( m, n ) = GF_left_r( gDAlp, m, n );
+            OMP_parallel_for( Int n = nGhost + nLen + 1; n < 2*nGhost + nLen + 1; ++n )
+            {
+                gAlp_r ( m, n ) = GF_left_r( gAlp,  m, n );
+                gDAlp_r( m, n ) = GF_left_r( gDAlp, m, n );
 
             /*fAlp   ( m, n ) = gAlp( m, n );
             fAlp_r ( m, n ) = GF_left_r ( fAlp,  m, n );
@@ -1959,10 +2041,23 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             fDAlp  ( m, n ) = fAlp_r(m,n) / (TINY_Real + fAlp(m,n));
             fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / (TINY_Real + fAlp(m,n)) ) / (TINY_Real + fAlp(m,n));*/
 
-        }
+            }
 
-        cubicSplineSmooth( m, fld::gDAlp_r, lin2n, cub2n );
-        cubicSplineSmooth( m, fld::fDAlp_r, lin2n, cub2n );
+        smoothenGF0 ( m, 0, nLen + 2*nGhost + 1, 32,  fld::gDAlp_r,    fld::tmp,  fld::gDAlp_r,     1 );
+
+            for( Int i = 0; i < nGhost + 1; ++i )
+            {
+
+                Int n  = nGhost - i - 1;
+                Int nR = nGhost + i;
+
+                /// Here we impose the parity conditions at the left boundary.
+
+                gDAlp_r(m,n) = gDAlp_r(m,nR);
+
+            }
+        //cubicSplineSmooth( m, fld::gDAlp_r, lin2n, cub2n );
+        //cubicSplineSmooth( m, fld::fDAlp_r, lin2n, cub2n );
 
         OMP_parallel_for( Int n = 0; n < 2*nGhost + nLen + 1; ++n )
         {
@@ -1972,6 +2067,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         }
     }
     else // if not GR and not geodesic slicing (constant lapse)
+         // SLICE_KD is not implemented here yet
     {
         // gAlp and gDAlp must the BC fixed at this point
         //
@@ -2140,7 +2236,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
     ////////////////////////////////////////////////////////////////////////////////
 
 
-    if( m < mSmoothUpTo && smooth >= 1 )
+    if( m < mSmoothUpTo && smooth >= 2 )
     {
         /*smoothenGF( m, fld::gAlp_r,      fld::tmp, fld::gAlp_r,     -1 );
         smoothenGF( m, fld::fAlp_r,      fld::tmp, fld::fAlp_r,     -1 );
@@ -3044,13 +3140,6 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     }
 
-    if( slicing == SLICE_KD && m < mSmoothUpTo && smooth >= 1 )
-    {
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gAlp,    fld::tmp,  fld::gAlp,     1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gDAlp,    fld::tmp,  fld::gDAlp,     -1 );
-
-    }
-
     /////////////////////////////////////////////////////////////////////////////////////
     /// - Smoothen the time derivatives inside the grid zone near the outer boundary
     /// @todo Smoothen the time derivatives inside the left grid zone
@@ -3071,8 +3160,12 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 ///
 void BimetricEvolve::integStep_Finalize( Int m1, Int m )
 {
+
     OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
     {
+
+        gAlp( m, 0 ) = gAlp ( m , 1 );
+
         if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS6 )
         {
            gAlp    ( m1, n )  =  gAlp   ( m, n );
