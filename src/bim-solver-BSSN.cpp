@@ -1914,6 +1914,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         {
 
             smoothenGF0 ( m, 0, nLen + 2*nGhost + 1, 32,  fld::gAlp,    fld::tmp,  fld::gAlp,     1 );
+            //smoothenGF ( m,  fld::gAlp,    fld::tmp,  fld::gAlp,     1 );
 
             for( Int n = 0; n < nLen + 2*nGhost + 1; ++n )
             {
@@ -1984,6 +1985,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             }
 
             smoothenGF0 ( m, 0, nLen + 2*nGhost + 1, 32,  fld::gDAlp,    fld::tmp,  fld::gDAlp,     -1 );
+            //smoothenGF ( m,  fld::gDAlp,    fld::tmp,  fld::gDAlp,     -1 );
 
             for( Int i = 0; i < nGhost + 1; ++i )
             {
@@ -2043,7 +2045,8 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
             }
 
-        smoothenGF0 ( m, 0, nLen + 2*nGhost + 1, 32,  fld::gDAlp_r,    fld::tmp,  fld::gDAlp_r,     1 );
+            //smoothenGF ( m,  fld::gDAlp_r,    fld::tmp,  fld::gDAlp_r,     1 );
+            smoothenGF0 ( m, 0, nLen + 2*nGhost + 1, 32,  fld::gDAlp_r,    fld::tmp,  fld::gDAlp_r,     1 );
 
             for( Int i = 0; i < nGhost + 1; ++i )
             {
@@ -2056,6 +2059,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
                 gDAlp_r(m,n) = gDAlp_r(m,nR);
 
             }
+
         //cubicSplineSmooth( m, fld::gDAlp_r, lin2n, cub2n );
         //cubicSplineSmooth( m, fld::fDAlp_r, lin2n, cub2n );
 
