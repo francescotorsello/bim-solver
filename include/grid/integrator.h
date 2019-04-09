@@ -917,6 +917,17 @@ void MoL::integrate_MoL( const MoLDescriptor& MoL, bool adaptiveStepSize )
 
             cur_t = GF( fld::t, m, nGhost ); // Get `t` from the current slice
             ++m; // Next time slice
+
+            /*OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
+            {
+                for( auto e: evolvedGF )
+                {
+                    if( GF( e.f, m, n ) < 1e-6 )
+                    {
+                        GF( e.f, m, n ) = 0;
+                    }
+                }
+            }*/
         }
     }
 }

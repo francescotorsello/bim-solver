@@ -63,7 +63,12 @@
 
 Real BimetricEvolve::PP( Int m, Int n )
 {
-    return gDA(m,n) - 2 * (gDB(m,n) + gDconf(m,n)) - 2 / r(m,n);
+    return gDA(m,n) - 2 * gDconf(m,n) - (2 * gBr_r(m,n)) / gBr(m,n);
+}
+
+Real BimetricEvolve::RR( Int m, Int n )
+{
+    return  GF_convr (q, gtrK, m ,n) + GF_convr (q, gtrA, m ,n) + Kelas * ( gtrK(m,n) + gtrA(m,n) );
 }
 
 Real BimetricEvolve::QQ( Int m, Int n )
@@ -216,6 +221,92 @@ void BimetricEvolve::maximalSlice_4
     A[i][5] =  0;
     A[i][6] =  0;
     b[i] = gAlp_at_N * ( 11 - 3 * h * PP( m, offset + i ) );
+
+    /////////////////////////////////////////////////////////////////////////////////////
+
+    VecReal_O x( N );
+    BandLUDecomposition( A, 3, 3 ).solve( b, x );
+
+    // Retrieve the results from x
+
+    gAlp( m, offset + N ) = gAlp_at_N;
+
+    for( Int i = 0; i < N; ++i ) {
+        gAlp( m, offset + i ) = x[i];
+    }
+
+    maximalSlice_PostSteps( m, N );
+    maximalSlice_compute_gDAlp( m, N );
+}
+
+/** Finds the maximal slice using a fourth-order accurate finite difference scheme, K-drived.
+ *  @see maximalSlice_2
+ */
+void BimetricEvolve::maximalSlice_drived_4
+(
+    Int m,          //!< The time slice
+    Int N,          //!< The radial coordinate of the right boundary
+    Real gAlp_at_N  //!< The right boundary condition
+    )
+{
+    const Int offset = nGhost;
+    const Real h = delta_r;
+    MatReal A( N, 7 );
+    VecReal b( N );
+
+    /////////////////////////////////////////////////////////////////////////////////////
+
+    OMP_parallel_for( Int i = 0; i < N; ++i )
+    {
+        A[i][0] =   0;
+        A[i][1] =   1          + h * PP( m, offset + i );
+        A[i][2] = -16      - 8 * h * PP( m, offset + i );
+        A[i][3] =  30 + 12 * h * h * QQ( m, offset + i );
+        A[i][4] = -16      + 8 * h * PP( m, offset + i );
+        A[i][5] =   1        -   h * PP( m, offset + i );
+        A[i][6] =   0;
+        b[i]    =   -12 * h * h * RR( m, offset + i );
+    }
+
+    // Override the default row values
+
+    Int i = 0;
+    A[i][0] =  0;
+    A[i][1] =  0;
+    A[i][2] =  0;
+    A[i][3] =  170./3. + 12 * h * h * QQ( m, offset + i );
+    A[i][4] = -72;
+    A[i][5] =  18;
+    A[i][6] = -8./3.;
+
+    i = 1;
+    A[i][0] =  0;
+    A[i][1] =  0;
+    A[i][2] =  -58./3. - 34./3. * h * PP( m, offset +i);
+    A[i][3] =  36 + 6 * h * PP( m, offset + i ) + 12 * h * h * QQ( m, offset + i );
+    A[i][4] =  -18 + 6 * h * PP( m, offset + i );
+    A[i][5] =  4./3. - 2./3. * h * PP( m, offset + i );
+    A[i][6] =  0;
+
+    i = N - 2;
+    A[i][0] =  0;
+    A[i][1] =  1 + h * PP( m, offset + i );
+    A[i][2] =  -16 - 8 * h * PP( m, offset + i );
+    A[i][3] =  30 + 12 * h * h * QQ( m, offset + i );
+    A[i][4] =  -16 + 8 * h * PP(m, offset + i);
+    A[i][5] =  0;
+    A[i][6] =  0;
+    b[i] = gAlp_at_N * ( -1 + h * PP( m, offset + i ) ) -12 * h * h * RR( m, offset + i );
+
+    i = N - 1;
+    A[i][0] =  1 - h * PP( m, offset + i );
+    A[i][1] =  -4 + 6 * h * PP( m, offset + i );
+    A[i][2] =  -6 - 18 * h * PP( m, offset + i );
+    A[i][3] =  20 + 10 * h * PP( m, offset + i ) + 12 * h * h * QQ( m, offset + i );
+    A[i][4] =  0;
+    A[i][5] =  0;
+    A[i][6] =  0;
+    b[i] = gAlp_at_N * ( 11 - 3 * h * PP( m, offset + i ) ) -12 * h * h * RR( m, offset + i );
 
     /////////////////////////////////////////////////////////////////////////////////////
 

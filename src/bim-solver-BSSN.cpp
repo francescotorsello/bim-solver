@@ -75,7 +75,7 @@ namespace fld
 
         /// The regularizing fields and their radial derivatives
         gBetr, gDconfr, fDconfr, gDAlpr, fBetr, fDAlpr, gLr, fLr,
-        gBetr_r, gBetr_rr, gDconfr_r, fDconfr_r, gDAlpr_r, fBetr_r,        fBetr_rr, fDAlpr_r, gLr_r, fLr_r,
+        gBetr_r, gBetr_rr, gDconfr_r, fDconfr_r, gDAlpr_r, fBetr_r,        fBetr_rr, fDAlpr_r, gLr_r, fLr_r, gBr, gBr_r,
 
         /// State variables for the perfect fluid (PF)
         pfD, pfS, pftau, pfv,
@@ -420,6 +420,7 @@ namespace fld
         { fDAlpr,    "fDAlpr",     "\\tilde \\alpha \\tilde D_\\alpha r^{-1}"           },
         { gLr,       "gLr",        "\\Lambda r^{-1}"                },
         { fLr,       "fLr",        "\\tilde \\Lambda r^{-1}"        },
+        { gBr,       "gbr",        "b\\cdot r"                      },
     //
         { gconf_t,   "gconf_t",    "\\partial_t \\phi"              },
         { fconf_t,   "fconf_t",    "\\partial_t \\psi"              },
@@ -541,6 +542,7 @@ namespace fld
         { fDAlpr_r,  "fDAlpr_r",   "\\partial_r \\left(\\tilde \\alpha \\tilde D_\\alpha r^{-1}\\right)"           },
         { gLr_r,     "gLr_r",      "\\partial_r \\left(\\Lambda r^{-1}\\right)"     },
         { fLr_r,     "fLr_r",      "\\partial_r \\left(\\tilde \\Lambda r^{-1}\\right)"},
+        { gBr_r,     "gbr_r",      "\\partial_r \\left(b\\cdot r\\right)"     },
     //
         { p,         "p",          "p"                              },
         { p_t,       "p_t",        "\\partial_t p"                  },
@@ -638,6 +640,7 @@ class BimetricEvolve
         SLICE_SG      = 5,  // The standard gauge
         SLICE_MS6     = 6,  // Maximal slicing, 6th order FD
         SLICE_KD      = 7,  // The K driver parabolic gauge on the lapse (relaxing to maximal slicing) [B&S,p.111]
+        SLICE_MS4D    = 8,  // The drived maximal slicing [B&S,p.111]
     };
 
     Int slicing;   //!< Select the slicing: maximal, Bona-Masso, ...
@@ -712,6 +715,7 @@ class BimetricEvolve
     emitField(gDconfr) emitField(fDconfr)
     emitField(gDAlpr)  emitField(fDAlpr)
     emitField(gLr)     emitField(fLr)
+    emitField(gBr)
 
     // The sources (bimetric+external) in the evolution equations
     emitField(gJK)     emitField(fJK)
@@ -816,6 +820,7 @@ class BimetricEvolve
     emitDerivative_r( gDconfr )   emitDerivative_r( fDconfr )
     emitDerivative_r( gDAlpr )    emitDerivative_r( fDAlpr )
     emitDerivative_r( gLr )       emitDerivative_r( fLr )
+    emitDerivative_r( gBr )
 
     // The radial derivatives of the Valencia variables and the external sources
     emitDerivative_r( pfD )
@@ -1009,6 +1014,7 @@ class BimetricEvolve
 
     Real W            ( Int m, Int n );
     Real PP           ( Int m, Int n );
+    Real RR           ( Int m, Int n );
     Real QQ           ( Int m, Int n );
     Real gDAlp_at_N   ( Int m, Int N, Real h );
     /////////////////////////////////////////////////////////////////////////////////////
@@ -1170,6 +1176,7 @@ class BimetricEvolve
                                                                                    /*@{*/
     void maximalSlice_2( Int m, Int N, Real gAlp_at_N );
     void maximalSlice_4( Int m, Int N, Real gAlp_at_N );
+    void maximalSlice_drived_4( Int m, Int N, Real gAlp_at_N );
     void maximalSlice_4_gDAlp( Int m, Int N, Real gAlp_at_N );
     void maximalSlice_6_gDAlp( Int m, Int N, Real gAlp_at_N );
     void maximalSlice_2opt( Int m, Int N, Real gAlp_at_N );
@@ -1219,6 +1226,8 @@ class BimetricEvolve
         gDconfr(m,n) = (/*gconf(m,n) * */ gDconf(m,n)) / r(m,n);
 
         gLr    (m,n )= gL(m,n) / r(m,n);
+
+        gBr    (m,n )= gB(m,n) * r(m,n);
 
         fDconfr(m,n) = (/*fconf(m,n) * */ fDconf(m,n)) / r(m,n);
 
@@ -1304,6 +1313,7 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
         { "MS2OPT", SLICE_MS2OPT },  { "MS2",     SLICE_MS2     },
         { "MS4",    SLICE_MS4    },  { "SG",      SLICE_SG      },
         { "MS6",    SLICE_MS6    },  { "KD",      SLICE_KD      },
+        { "MS4D",   SLICE_MS4D    },
     };
     std::string name = params.get( "slicing.method", slicing, 0, knownSlicings );
 
@@ -1367,8 +1377,16 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
 
         }
 
+    if( slicing == SLICE_MS4D ){
+
+             slog << "The K-drived maximal slicing (BVP):" << std::endl << std::endl
+                  << "    'Elastic' constant = " << Kelas
+                  << std::endl << std::endl;
+
+        }
+
     if ( mpiSize() > 1 &&
-        ( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS6 ) )
+        ( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS6 || slicing == SLICE_MS4D ) )
     {
         slog << "*** Error: Maximal slicing is not compatible with MPI." << std::endl;
         gridDriver->quit( -1 );
@@ -1384,7 +1402,7 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
 
     // Add our grid functions to the evolution
     //
-    if( slicing != SLICE_KD || slicing != SLICE_SG || slicing != SLICE_MS2 || slicing != SLICE_MS2OPT || slicing != SLICE_MS4 || slicing != SLICE_MS6 ) {
+    if( slicing != SLICE_KD || slicing != SLICE_SG || slicing != SLICE_MS2 || slicing != SLICE_MS2OPT || slicing != SLICE_MS4 || slicing != SLICE_MS4D || slicing != SLICE_MS6 ) {
         integ.keepConstant( { fld::q } );
     }  // GFs that are kept constant in time
     integ.keepEvolved( fld::bimEvolvedGF ); // GFs that are evolved by the integrator
@@ -1414,7 +1432,7 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
         };
         integ.keepEvolved( evolvedGaugeGF );
     }
-    else if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS6 )
+    else if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS4D || slicing == SLICE_MS6 )
     {
         const static std::vector<fld::EvolvedBy> evolvedGaugeGF = {
             { fld::q,     fld::q_t     },
@@ -1497,9 +1515,11 @@ void BimetricEvolve::applyLeftBoundaryCondition( Int m )
         gDconfr  (m,n) = gDconfr (m,nR);
         gDAlpr   (m,n) = gDAlpr  (m,nR);
         gLr      (m,n) = gLr     (m,nR);
+        gBr      (m,n) = -gBr     (m,nR);
         fDconfr  (m,n) = fDconfr (m,nR);
         fDAlpr   (m,n) = fDAlpr  (m,nR);
         fLr      (m,n) = fLr     (m,nR);
+
     }
 }
 
@@ -1555,6 +1575,7 @@ void BimetricEvolve::applyRightBoundaryCondition( Int m )
         extrapolate_R( fld::gDconfr, m, n );
         extrapolate_R( fld::gDAlpr,  m, n );
         extrapolate_R( fld::gLr,     m, n );
+        extrapolate_R( fld::gBr,     m, n );
         extrapolate_R( fld::fDconfr, m, n );
         extrapolate_R( fld::fDAlpr,  m, n );
         extrapolate_R( fld::fLr,     m, n );
@@ -1619,6 +1640,7 @@ void BimetricEvolve::determineGaugeFunctions( Int m ) /* this function is not us
         case SLICE_MS2:    maximalSlice_2          ( m, sliceBC, 1 );  break;
         case SLICE_MS4:    maximalSlice_4_gDAlp    ( m, sliceBC, 1 );  break;
         case SLICE_MS6:    maximalSlice_6_gDAlp    ( m, sliceBC, 1 );  break;
+        case SLICE_MS4D:   maximalSlice_drived_4   ( m, sliceBC, 1 );  break;
     }
 
 #ifdef TWEAK_KDT
@@ -1849,6 +1871,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         fA1_r    (m,n) = GF_right_r (fA1, m, n);
         gtrK_r   (m,n) = GF_right_r (gtrK, m, n);
         ftrK_r   (m,n) = GF_right_r (ftrK, m, n);
+        gBr_r    (m,n) = GF_right_r (gBr, m, n);
 
     }
 
@@ -1863,6 +1886,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         fA1_r    (m,n) = GF_r (fA1, m, n);
         gtrK_r   (m,n) = GF_r (gtrK, m, n);
         ftrK_r   (m,n) = GF_r (ftrK, m, n);
+        gBr_r    (m,n) = GF_r (gBr, m, n);
 
     }
 
@@ -1877,6 +1901,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         fA1_r    (m,n) = GF_left_r (fA1, m, n);
         gtrK_r   (m,n) = GF_left_r (gtrK, m, n);
         ftrK_r   (m,n) = GF_left_r (ftrK, m, n);
+        gBr_r    (m,n) = GF_left_r (gBr, m, n);
 
     }
 
@@ -1903,7 +1928,13 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         case SLICE_MS2:    maximalSlice_2          ( m, nLen/2, 1 );  break;
         case SLICE_MS4:    maximalSlice_4_gDAlp    ( m, nLen/2, 1 );  break;
         case SLICE_MS6:    maximalSlice_6_gDAlp    ( m, nLen/2, 1 );  break;
+        case SLICE_MS4D:   maximalSlice_drived_4   ( m, nLen/2, 1 );  break;
     }
+
+    //if( m < mSmoothUpTo ){
+     //   smoothenGF0 ( m, 0, nLen + 2*nGhost + 1, 32,  fld::gAlp,     fld::tmp,  fld::gAlp,    1 );
+    //}
+    //smoothenGF0 ( m, 0, nLen + 2*nGhost + 1, 32,  fld::gDAlp,    fld::tmp,  fld::gDAlp,  -1 );
 
     /// @todo fixme:  Determine fAlp right after maximal slicing!?
 
@@ -2970,7 +3001,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
         }
 
-        if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS6 )
+        if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS4D || slicing == SLICE_MS6 )
         {
             q_t     (m,n) = eq_SG_gBet_t  (m,n);
             Bq_t    (m,n) = eq_SG_gBq_t   (m,n);
@@ -3133,6 +3164,17 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     }
 
+    //smoothenGF0 ( m, 0, nLen + 2 *nGhost + 1, 32,  fld::gtrK_t,    fld::tmp,  fld::gtrK_t,    1 );
+    //smoothenGF0 ( m, 0, nLen + 2 *nGhost + 1, 32,  fld::gtrK,      fld::tmp,  fld::gtrK,      1 );
+
+    /*OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
+    {
+        if( gtrK( m, n ) < 1e-6 )
+        {
+            gtrK( m, n ) = 0;
+        }
+    }*/ /// when the fluctuations become big enough, this does not work anyway
+
     if(  m < mSmoothUpTo && smooth >= 1 )
     {
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gconf_t,    fld::tmp,  fld::gconf_t,     1 );
@@ -3170,7 +3212,7 @@ void BimetricEvolve::integStep_Finalize( Int m1, Int m )
 
         gAlp( m, 0 ) = gAlp ( m , 1 );
 
-        if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS6 )
+        if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS4D || slicing == SLICE_MS6 )
         {
            gAlp    ( m1, n )  =  gAlp   ( m, n );
            gDAlp   ( m1, n )  =  gDAlp  ( m, n );
