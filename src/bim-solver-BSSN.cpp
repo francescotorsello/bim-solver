@@ -378,6 +378,7 @@ namespace fld
         { gDAlp,     "gDAlp",      "D_\\alpha"                      },
         { gAlp_rr,   "gAlp_rr",    "\\partial _{rr} \\alpha"        },
         { gDAlp_r,   "gDAlp_r",    "\\partial _r D_\\alpha"         },
+        { gAlp_t,    "gAlp_t",     "\\partial _t \\alpha"           },
         { fAlp,      "fAlp",       "\\tilde \\alpha"                },
         { fDAlp,     "fDAlp",      "\\tilde D_\\alpha"              },
         { fAlp_rr,   "fAlp_rr",    "\\partial _{rr} \\tilde \\alpha"},
@@ -386,6 +387,8 @@ namespace fld
         { fconf,     "fconf",      "\\psi"                          },
         { gDconf,    "gDconf",     "D _\\phi"                       },
         { fDconf,    "fDconf",     "D _\\psi"                       },
+        { gconf_r,  "gconf_r",   "\\partial _{r} \\phi"          },
+        { fconf_r,  "fconf_r",   "\\partial _{r} \\psi"          },
         { gtrK,      "gtrK",       "K"                              },
         { ftrK,      "ftrK",       "\\tilde K"                      },
 
@@ -410,6 +413,10 @@ namespace fld
         { fA2,       "fA2",        "\\tilde A_2"                    },
         { fL,        "fL",         "\\tilde \\Lambda"               },
         { fsig,      "fsig",       "\\tilde \\sigma"                },
+        { gDconf_r,  "gDconf_r",   "\\partial_r D _\\phi"           },
+        { fDconf_r,  "fDconf_r",   "\\partial_r  D_\\psi"           },
+        { gconf_rr,  "gconf_rr",   "\\partial _{rr} \\phi"          },
+        { fconf_rr,  "fconf_rr",   "\\partial _{rr} \\psi"          },
 
         { fAsig,     "fAsig",      "\\tilde A_\\sigma"              },
         { gBetr,     "gBetr",      "N r^{-1}"                       },
@@ -1427,7 +1434,7 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
     else if ( slicing == SLICE_KD )
     {
         const static std::vector<fld::EvolvedBy> evolvedGaugeGF = {
-            { fld::gAlp,  fld::gAlp_t  },
+            { fld::gAlp,  fld::gAlp_t  }
             //{ fld::gDAlp, fld::gDAlp_t },
         };
         integ.keepEvolved( evolvedGaugeGF );
@@ -1529,7 +1536,58 @@ void BimetricEvolve::applyRightBoundaryCondition( Int m )
     {
         r(m,n) = r(m,n-1) + delta_r;
     }
-    for( Int n = nGhost + nLen; n < nTotal; ++n )
+
+    if( false )//&& BV == BVC )
+    {
+
+    for( Int n = nGhost + nLen; n < nTotal + 1; ++n )
+    {
+        t(m,n) = t(m,n-1);
+
+        gconf (m,n) = - log( r(m,n) ) + log( r(m,n) + 1 );
+        gDconf(m,n) = - 1 / ( r(m,n) * (r(m,n) + 1) );
+
+        gA    (m,n) = 1;
+        gB    (m,n) = 1;
+        gDA   (m,n) = 0;
+        gDB   (m,n) = 0;
+        gtrK  (m,n) = 0;
+
+        gA1   (m,n) = 0;
+        gA2   (m,n) = 0;
+
+        gL    (m,n) = 0;
+
+        gsig  (m,n) = 0;
+        gAsig (m,n) = 0;
+
+        #if _EVOLVE_DSIG
+
+            extrapolate_R( fld::gDsig, m, n );
+            extrapolate_R( fld::fDsig, m, n );
+
+        #endif // _EVOLVE_DSIG
+
+        pfD   (m,n) = 0;
+        pfS   (m,n) = 0;
+        pftau (m,n) = 0;
+
+        gDconfr (m,n) = - 1 / ( r(m,n) * r(m,n) * (r(m,n) + 1) );
+        gDAlpr  (m,n) = gDAlp(m,n) / r(m,n);
+        gLr     (m,n) = 0;
+
+        //calculateDerivedVariables( m, n ); // Calculate R, Lt, and pfv.
+
+        extrapolate_R( fld::pfv, m, n ); // Nevertheless, we extrapolate pfv!
+
+    }
+
+    //smoothenGF0( m, nLen + nGhost - 3, nLen + nGhost + 3, nGhost/2,  fld::gconf,       fld::tmp,  fld::gconf,      1 );
+    //smoothenGF0( m, nLen + nGhost - 3, nLen + nGhost + 3, nGhost/2,  fld::gDconf,      fld::tmp,  fld::gDconf,    -1 );
+
+    } else {
+
+    for( Int n = nGhost + nLen; n < nTotal + 1; ++n )
     {
         t(m,n) = t(m,n-1);
 
@@ -1565,15 +1623,16 @@ void BimetricEvolve::applyRightBoundaryCondition( Int m )
         extrapolate_R( fld::qr,    m, n );
         //extrapolate_R( fld::gBet,  m, n );
         //extrapolate_R( fld::fBet,  m, n );
-        extrapolate_R( fld::gAlp,  m, n );
-        extrapolate_R( fld::gDAlp, m, n );
+        //extrapolate_LIN4( fld::gAlp,  m, n );
+        //extrapolate_R( fld::gAlp_t,  m, n );
+        //extrapolate_R( fld::gDAlp, m, n );
         extrapolate_R( fld::fAlp,  m, n );
         extrapolate_R( fld::fDAlp, m, n );
 
         //extrapolate_R( fld::gBetr,   m, n );
         //extrapolate_R( fld::fBetr,   m, n );
         extrapolate_R( fld::gDconfr, m, n );
-        extrapolate_R( fld::gDAlpr,  m, n );
+        //extrapolate_R( fld::gDAlpr,  m, n );
         extrapolate_R( fld::gLr,     m, n );
         extrapolate_R( fld::gBr,     m, n );
         extrapolate_R( fld::fDconfr, m, n );
@@ -1583,6 +1642,8 @@ void BimetricEvolve::applyRightBoundaryCondition( Int m )
         //calculateDerivedVariables( m, n ); // Calculate R, Lt, and pfv.
 
         extrapolate_R( fld::pfv, m, n ); // Nevertheless, we extrapolate pfv!
+
+    }
     }
 }
 
@@ -1809,7 +1870,7 @@ void BimetricEvolve::determineGaugeFunctions( Int m ) /* this function is not us
 void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 {
 
-    if( m < mSmoothUpTo && smooth >= 1 )
+    if( m < mSmoothUpTo && smooth >= 2 )
     {
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::q,       fld::tmp,  fld::q,      -1 );
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::qr,      fld::tmp,  fld::qr,      1 );
@@ -1943,20 +2004,34 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
         if( slicing == SLICE_KD )
         {
+            const Real h = delta_r;
 
-            smoothenGF0 ( m, 0, nLen + 2*nGhost + 1, 32,  fld::gAlp,    fld::tmp,  fld::gAlp,     1 );
+            if( t( m, nGhost ) == 0 )
+            {
+                maximalSlice_4_gDAlp    ( m, nGhost + nLen, 1 );
+            }
+
+            for( Int n = nGhost + nLen - 1; n < nTotal + 1; ++n )
+            {
+                //extrapolate_LIN4( fld::gAlp,  m, n );
+                gAlp( m, n+1 ) =
+            ( ( 4  + 2 * h * h * QQ( m,n) ) * gAlp(m,n) - ( 2 + h * PP( m,n) ) * gAlp(m,n-1) )
+            / ( 2 - h * PP( m,n) );
+            }
+
+            smoothenGF0 ( m, nGhost, nGhost + nLen, 15,  fld::gAlp,    fld::tmp,  fld::gAlp,     1 );
             //smoothenGF ( m,  fld::gAlp,    fld::tmp,  fld::gAlp,     1 );
 
-            for( Int n = 0; n < nLen + 2*nGhost + 1; ++n )
-            {
+            //for( Int n = 0; n < nTotal; ++n )
+            //{
 
-                if( gAlp (m,n) < 0 ){
+             //   if( gAlp (m,n) < 0 ){
 
-                    gAlp (m,n) = 0;
+               //     gAlp (m,n) = 0;
 
-                }
+                //}
 
-            }
+            //}
 
             for( Int i = 0; i < nGhost + 1; ++i )
             {
@@ -1970,10 +2045,18 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
             }
 
+            for( Int n = nGhost + nLen - 1; n < nTotal + 1; ++n )
+            {
+                //extrapolate_LIN4( fld::gAlp,  m, n );
+                gAlp( m, n+1 ) =
+            ( ( 4  + 2 * h * h * QQ( m,n) ) * gAlp(m,n) - ( 2 + h * PP( m,n) ) * gAlp(m,n-1) )
+            / ( 2 - h * PP( m,n) );
+            }
+
             //cubicSplineSmooth( m, fld::gAlp, lin2n, cub2n );
             //cubicSplineSmooth( m, fld::fAlp, lin2n, cub2n );
 
-            OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n )
+            OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost +1; ++n )
             {
                 gDAlp( m, n ) = GF_right_r( gAlp, m, n );
             }
@@ -1983,9 +2066,9 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
                 gDAlp( m, n ) = GF_r( gAlp, m, n );
             }
 
-            OMP_parallel_for( Int n = nGhost + nLen + 1; n < 2*nGhost + nLen + 1; ++n )
+            OMP_parallel_for( Int n = nGhost + nLen + 1; n < nTotal + 1; ++n )
             {
-                gDAlp( m, n ) = GF_left_r( gAlp, m, n );
+                gDAlp( m, n ) = GF_left_r( gAlp, m, n );//extrapolate_LIN4( fld::gDAlp,  m, n );
             }
 
             for( Int i = 0; i < nGhost + 1; ++i )
@@ -2000,22 +2083,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
             }
 
-            //cubicSplineSmooth( m, fld::gDAlp, lin2n, cub2n );
-            //cubicSplineSmooth( m, fld::fDAlp, lin2n, cub2n );
-
-            for( Int i = 0; i < nGhost + 1; ++i )
-            {
-
-                Int n  = nGhost - i - 1;
-                Int nR = nGhost + i;
-
-                /// Here we impose the parity conditions at the left boundary.
-
-                gDAlp(m,n) = -gDAlp(m,nR);
-
-            }
-
-            smoothenGF0 ( m, 0, nLen + 2*nGhost + 1, 32,  fld::gDAlp,    fld::tmp,  fld::gDAlp,     -1 );
+            smoothenGF0 ( m, nGhost, nGhost + nLen, 10,  fld::gDAlp,    fld::tmp,  fld::gDAlp,     -1 );
             //smoothenGF ( m,  fld::gDAlp,    fld::tmp,  fld::gDAlp,     -1 );
 
             for( Int i = 0; i < nGhost + 1; ++i )
@@ -2029,6 +2097,16 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
                 gDAlp(m,n) = -gDAlp(m,nR);
 
             }
+
+            OMP_parallel_for( Int n = nGhost + nLen + 1; n < nTotal + 1; ++n )
+            {
+                gDAlp( m, n ) = GF_left_r( gAlp, m, n );//extrapolate_LIN4( fld::gDAlp,  m, n );
+            }
+
+            //for( Int n = nGhost + nLen; n < nTotal + 1; ++n )
+            //{
+            //    extrapolate_R( fld::gDAlp,  m, n );
+            //}
 
         }
 
@@ -2062,10 +2140,10 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
             }
 
-            OMP_parallel_for( Int n = nGhost + nLen + 1; n < 2*nGhost + nLen + 1; ++n )
+            OMP_parallel_for( Int n = nGhost + nLen + 1; n <  nTotal + 1; ++n )
             {
                 gAlp_r ( m, n ) = GF_left_r( gAlp,  m, n );
-                gDAlp_r( m, n ) = GF_left_r( gDAlp, m, n );
+                gDAlp_r( m, n ) = GF_left_rr (gAlp, m, n);//extrapolate_LIN4( fld::gDAlp_r,  m, n );//gDAlp_r( m, n ) = GF_left_r( gDAlp, m, n );
 
             /*fAlp   ( m, n ) = gAlp( m, n );
             fAlp_r ( m, n ) = GF_left_r ( fAlp,  m, n );
@@ -2077,7 +2155,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             }
 
             //smoothenGF ( m,  fld::gDAlp_r,    fld::tmp,  fld::gDAlp_r,     1 );
-            smoothenGF0 ( m, 0, nLen + 2*nGhost + 1, 32,  fld::gDAlp_r,    fld::tmp,  fld::gDAlp_r,     1 );
+            smoothenGF0 ( m, nGhost, nGhost + nLen, 10,  fld::gDAlp_r,    fld::tmp,  fld::gDAlp_r,     1 );
 
             for( Int i = 0; i < nGhost + 1; ++i )
             {
@@ -2088,6 +2166,12 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
                 /// Here we impose the parity conditions at the left boundary.
 
                 gDAlp_r(m,n) = gDAlp_r(m,nR);
+
+            }
+
+            OMP_parallel_for( Int n = nGhost + nLen + 1; n < nTotal + 1; ++n )
+            {
+                gDAlp_r( m, n ) = GF_left_r (gDAlp, m, n);//extrapolate_LIN4( fld::gDAlp_r,  m, n );//gDAlp_r( m, n ) = GF_left_r( gDAlp, m, n );
 
             }
 
@@ -2287,11 +2371,6 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fDAlpr, fld::tmp,  fld::fDAlpr, 1 );
     }
 
-    if( false ){
-        smoothenGF( m, fld::gA,       fld::tmp, fld::gA,      +1 );
-        smoothenGF( m, fld::gL,       fld::tmp, fld::gL,      +1 );
-    }
-
     OMP_parallel_for( Int n = 0 + 0*nGhost; n < nGhost + 1; ++n )
     {
 
@@ -2398,7 +2477,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     // The radial derivatives of the evolved fields
         gconf_r  (m,n) = GF_r (gconf, m, n),     fconf_r  (m,n) = GF_r (fconf, m, n),
-        gDconf_r (m,n) = GF_up_r (gDconf, m, n),    fDconf_r (m,n) = GF_r (fDconf, m, n),
+        gDconf_r (m,n) = GF_r (gDconf, m, n),    fDconf_r (m,n) = GF_r (fDconf, m, n),
         //gtrK_r   (m,n) = GF_r (gtrK, m, n),      ftrK_r   (m,n) = GF_r (ftrK, m, n),
         gA_r     (m,n) = GF_r (gA, m, n),        fA_r     (m,n) = GF_r (fA, m, n),
         gB_r     (m,n) = GF_r (gB, m, n),        fB_r     (m,n) = GF_r (fB, m, n),
@@ -2413,7 +2492,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
         // The radial derivatives of the regularizing functions
 
-        gDconfr_r(m,n) = GF_up_r (gDconfr, m, n),
+        gDconfr_r(m,n) = GF_r (gDconfr, m, n),
         gDAlpr_r (m,n) = GF_r (gDAlpr, m, n),
         gLr_r    (m,n) = GF_r (gLr, m, n),
         fDconfr_r(m,n) = GF_r (fDconfr, m, n),
@@ -2584,63 +2663,6 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
     // The recurrent terms involving some radial derivaties
         gDers      (m,n) = eq_gDers    (m,n);
         fDers      (m,n) = eq_fDers    (m,n);
-    }
-
-    if( false )
-    {
-        /*smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::q_r,    fld::tmp,  fld::q_r,     1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::q_rr,    fld::tmp,  fld::q_rr,     -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::qr_r,    fld::tmp,  fld::qr_r,     -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::qr_rr,    fld::tmp,  fld::qr_rr,     1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::p_r,    fld::tmp,  fld::p_r,     1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::p_rr,    fld::tmp,  fld::p_rr,     -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::pr_r,    fld::tmp,  fld::pr_r,     -1 );
-        smoothenGF0 ( m, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::pr_rr,    fld::tmp,  fld::pr_rr,     1 );*/
-
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDA_r,    fld::tmp,  fld::gDA_r,     1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDB_r,    fld::tmp,  fld::gDB_r,     1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gL_r,    fld::tmp,  fld::gL_r,     1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gLr_r,   fld::tmp,  fld::gLr_r,     -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDconfr_r, fld::tmp,  fld::gDconfr_r, -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gDAlpr_r, fld::tmp,  fld::gDAlpr_r, -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gsig_r, fld::tmp,  fld::gsig_r, -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gAsig_r, fld::tmp,  fld::gAsig_r, -1 );
-
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gconf_r,    fld::tmp,  fld::gconf_r,     -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::gconf_rr,    fld::tmp,  fld::gconf_rr,     1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fconf_r,    fld::tmp,  fld::fconf_r,     -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, 32,  fld::fconf_rr,    fld::tmp,  fld::fconf_rr,     1 );
-
-    }
-
-
-    if(  m < mSmoothUpTo && smooth >= 1 )
-    {
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::gsig_r,    fld::tmp,  fld::gsig_r,     -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::gAsig_r,    fld::tmp,  fld::gAsig_r,     -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::gDA_r,    fld::tmp,  fld::gDA_r,     1 );
-        //smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::gA_rr,    fld::tmp,  fld::gA_rr,     1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::gDB_r,    fld::tmp,  fld::gDB_r,     1 );
-        //smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::gB_rr,    fld::tmp,  fld::gB_rr,     1 );
-        /*smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::fA_r,    fld::tmp,  fld::fA_r,     -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::fA_rr,    fld::tmp,  fld::fA_rr,     1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::fB_r,    fld::tmp,  fld::fB_r,     -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::fB_rr,    fld::tmp,  fld::fB_rr,     1 );*/
-
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::gA1_r,    fld::tmp,  fld::gA1_r,     -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::gA1_rr,    fld::tmp,  fld::gA1_rr,     1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::gA2_r,    fld::tmp,  fld::gA2_r,     -1 );
-        /*smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::fA1_r,    fld::tmp,  fld::fA1_r,     -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::fA1_rr,    fld::tmp,  fld::fA1_rr,     1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::fA2_r,    fld::tmp,  fld::fA2_r,     -1 );*/
-
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::gtrK_r,    fld::tmp,  fld::gtrK_r,     -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::gtrK_rr,    fld::tmp,  fld::gtrK_rr,     1 );
-        /*smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::ftrK_r,    fld::tmp,  fld::ftrK_r,     -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::ftrK_rr,    fld::tmp,  fld::ftrK_rr,     1 );*/
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::gDconfr_r,    fld::tmp,  fld::gDconfr_r,     -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo + CFDS_ORDER / 2, sgRadius,  fld::gDAlpr_r,    fld::tmp,  fld::gDAlpr_r,     -1 );
-
     }
 
     /////////////////////////////////////////////////////////////////////////////////////
@@ -3051,8 +3073,8 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
        Real dbg18 = eq_KD_gAlp_t(m,n);
        Real dbg19 = gDAlp        (m,n);*/
 
-       Real dbg1 = gAlp  (m,n);
-       Real dbg2 = gDAlp (m,n);
+       //Real dbg1 = gAlp  (m,n);
+       //Real dbg2 = gDAlp (m,n);
 
        /*Real dbg1 = fL_convr(m,n);
        Real dbg3 = fBet_fL_r(m,n);
@@ -3164,27 +3186,28 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     }
 
-    //smoothenGF0 ( m, 0, nLen + 2 *nGhost + 1, 32,  fld::gtrK_t,    fld::tmp,  fld::gtrK_t,    1 );
-    //smoothenGF0 ( m, 0, nLen + 2 *nGhost + 1, 32,  fld::gtrK,      fld::tmp,  fld::gtrK,      1 );
-
-    /*OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
+    for( Int n = nGhost + nLen; n < nTotal + 1; ++n )
     {
-        if( gtrK( m, n ) < 1e-6 )
-        {
-            gtrK( m, n ) = 0;
-        }
-    }*/ /// when the fluctuations become big enough, this does not work anyway
-
-    if(  m < mSmoothUpTo && smooth >= 1 )
-    {
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gconf_t,    fld::tmp,  fld::gconf_t,     1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::fconf_t,    fld::tmp,  fld::fconf_t,     1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gDconf_t,    fld::tmp,  fld::gDconf_t,     -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::fDconf_t,    fld::tmp,  fld::fDconf_t,     -1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::gtrK_t,    fld::tmp,  fld::gtrK_t,     1 );
-        smoothenGF0 ( m, nSmoothFrom, nSmoothUpTo, sgRadius,  fld::ftrK_t,    fld::tmp,  fld::ftrK_t,     1 );
-
+        extrapolate_R( fld::gAlp_t,  m, n );
     }
+
+    smoothenGF0 ( m, nGhost, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::gAlp_t, fld::tmp,  fld::gAlp_t,  1 );
+    //smoothenGF0 ( m, 0, nLen + 2 *nGhost + 1, 32,  fld::gtrK_t,    fld::tmp,  fld::gtrK_t,    1 );
+    smoothenGF0 ( m, 0, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 25,  fld::gtrK, fld::tmp,  fld::gtrK,  1 );
+    smoothenGF0 ( m, 0, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::grhobar, fld::tmp,  fld::grhobar,  1 );
+    smoothenGF0 ( m, 0, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::grho, fld::tmp,  fld::grho,  1 );
+    //smoothenGF0 ( m, 0, nLen/*nLen + 2 *nGhost + 1*/, 10,  fld::pftau, fld::tmp,  fld::pftau,  1 );
+    smoothenGF0 ( m, 0, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 20,  fld::pfW, fld::tmp,  fld::pfW,  1 );
+    //smoothenGF0 ( m, 0, nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::pfS, fld::tmp,  fld::pfS,  -1 );
+    //smoothenGF0 ( m, 0, nLen/*nLen + 2 *nGhost + 1*/, 20,  fld::gA1, fld::tmp,  fld::gA1,  1 );
+    smoothenGF0 ( m, nGhost, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::gconf, fld::tmp,  fld::gconf,  1 );
+    smoothenGF0 ( m, nGhost, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::gDconf, fld::tmp,  fld::gDconf,  -1 );
+    smoothenGF0 ( m, nGhost, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::gA, fld::tmp,  fld::gA,  1 );
+    smoothenGF0 ( m, nGhost, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::gB, fld::tmp,  fld::gB,  1 );
+    smoothenGF0 ( m, nGhost, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::gDA, fld::tmp,  fld::gDA,  -1 );
+    smoothenGF0 ( m, nGhost, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::gDB, fld::tmp,  fld::gDB,  -1 );
+    //smoothenGF0 ( m, nGhost, nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::gBr, fld::tmp,  fld::gBr,  -1 );
+    //smoothenGF ( m,  fld::gtrK,      fld::tmp,  fld::gtrK,      1 );
 
     /////////////////////////////////////////////////////////////////////////////////////
     /// - Smoothen the time derivatives inside the grid zone near the outer boundary

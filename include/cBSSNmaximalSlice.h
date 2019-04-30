@@ -63,7 +63,7 @@
 
 Real BimetricEvolve::PP( Int m, Int n )
 {
-    return gDA(m,n) - 2 * gDconf(m,n) - (2 * gBr_r(m,n)) / gBr(m,n);
+    return gDA(m,n) - 2 * gDconf(m,n) - (2 * gBr_r(m,n)) / ( TINY_Real + gBr(m,n) );
 }
 
 Real BimetricEvolve::RR( Int m, Int n )
@@ -874,7 +874,7 @@ void BimetricEvolve::maximalSlice_PostSteps( Int m, Int N )
 
     }
 
-    //smoothenGF0 ( m, nGhost, nSmoothUpTo, 32,  fld::gAlp,  fld::tmp,  fld::gAlp,  1 );
+    smoothenGF0 ( m, nGhost, nLen, 10,  fld::gAlp,    fld::tmp,  fld::gAlp,     1 );
 
     // Determine cells on the right by solving the differential equation.
     //
@@ -937,6 +937,7 @@ void BimetricEvolve::maximalSlice_PostSteps( Int m, Int N )
         gAlp( m, n+1 ) =
             ( ( 4  + 2 * h * h * QQ( m,n) ) * gAlp(m,n) - ( 2 + h * PP( m,n) ) * gAlp(m,n-1) )
             / ( 2 - h * PP( m,n) );
+        //extrapolate_R( fld::gAlp,  m, n );
     }
 }
 
