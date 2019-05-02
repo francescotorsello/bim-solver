@@ -1,7 +1,7 @@
 /**
  *  @file      bispec.cpp
  *  @brief     The covariant BSSN evolution for spherically symmetric bimetric spacetimes, with the pseudospectral method.
- *  @authors   Francesco Torsello
+ *  @authors   Mikica Kocic, Francesco Torsello
  *  @copyright GNU General Public License (GPLv3).
  */
 
@@ -13,7 +13,9 @@
 #include <cstdio>
 #include <chrono>
 #include <vector>
+#include <array>
 #include <bitset>
+#include <algorithm>
 
 #ifndef OBSERVER
     #define OBSERVER 1
@@ -27,96 +29,167 @@
     #define _DETECT_NAN 1
 #endif // _DETECT_NAN
 
+#define N 5
+
 using namespace std;
 
-void dumpbytes(const vector<char>& v)
-{
-    for (int i=0; i<v.size(); ++i)
-    {
-        printf("%u ", (unsigned char)v[i]);
-        if ((i+1) % 16 == 0)
-            printf("\n");
-    }
-    printf("\n");
-}
+typedef double Real;
 
-long fromBin(long n)
+class ChebyshevCoefficients
 {
-    long factor = 1;
-    long total = 0;
+    size_t derivative_order;
+    size_t chebyshev_index;
+    size_t collocation_point;
+    size_t data_size;
+    size_t ee_matrix_size;
+    Real* coeff;
+    Real* ee_matrix;
 
-    while (n != 0)
-    {
-        total += (n%10) * factor;
-        n /= 10;
-        factor *= 2;
+public:
+
+    // isOK() returns true if the coefficients were successfully read
+    // from a file (so the object is correctly instantiated).
+    //
+    bool isOK () const {
+        return data_size != 0 && coeff != nullptr;
     }
 
-    return total;
-}
+    // Methods to access the dimensions
+    //
+    size_t orders () const{ return derivative_order; }
+    size_t chebys () const{ return chebyshev_index; }
+    size_t points () const{ return collocation_point; }
 
-/////////////////////////////////////////////////////////////////////////////////////////
-/// The main entry point of `bispec`.
-///
-int main( int argc, char* argv[] )
-{
-    string line;
-    ifstream chebyshev;
-    chebyshev.open( "include/chebyshev-values/test.dat", ios::in | ios::binary );
-
-    if( chebyshev.is_open() )
+    // Method to access the coefficients
+    //
+    Real operator() ( size_t i, size_t j, size_t k )
     {
-        // get the starting position
-      streampos startpos = chebyshev.tellg();
+        return coeff[ i * chebyshev_index * collocation_point
+                    + j * collocation_point + k ];
+    }
 
-      // go to the end
-      chebyshev.seekg(0, std::ios::end);
+    Real evolutionMatrix ( size_t j, size_t k )
+    {
+        return ee_matrix[ j * collocation_point + k ];
+    }
 
-      // get the ending position
-      streampos endpos = chebyshev.tellg();
+    // Method to print the coefficients to a file
+    //
+    void exportChebyCoeffs()
+    {
+        FILE* outFile;
+        outFile = fopen( "chebyshev_coeffs_cpp.dat", "wb" );
+        fwrite( coeff, sizeof(Real), data_size, outFile );
+        fclose(outFile);
+    }
 
-      // go back to the start
-      chebyshev.seekg(0, std::ios::beg);
+    // Constructor: Reads the coefficients from a file.
+    //
+    ChebyshevCoefficients( const std::string fileName )
+        : derivative_order(0)
+        , chebyshev_index(0)
+        , collocation_point(0)
+        , data_size(0)
+        , coeff(nullptr)
+    {
+        FILE* inf = fopen( fileName.c_str(), "rb" );
 
-        // create a vector to hold the data that
-      // is resized to the total size of the file
-        std::vector<char> cheby_values;
-        cheby_values.resize(static_cast<size_t>(endpos - startpos));
-
-          // create a vector to hold the data that
-      // is resized to the total size of the file
-        std::bitset<endpos - startpos> cheby_values_bin;
-        //cheby_values_bin.resize(static_cast<size_t>(endpos - startpos));
-
-        // read it in
-      chebyshev.read(&cheby_values[0], cheby_values.size());
-
-        // print it out (for clarity)
-      //for(const char& c : cheby_values)
-      //{
-      //   cout << (int) c << endl;
-      //}
-
-      //dumpbytes( cheby_values );
-
-        std::vector<char> cheby_values_dec;
-        cheby_values_dec.resize(cheby_values.size());
-
-        int i;
-
-        for( i = 0; i <= cheby_values.size(); i++ )
-        {
-            cheby_values_dec[i] = fromBin( cheby_values[i] );
+        if( ! inf ) {
+            std::cerr << "err: Cannot open file" << std::endl;
+            return;
         }
 
-      cout.write(cheby_values_dec.data(), cheby_values_dec.size());
+        // Read magic number
+        //
+        Real x = 0;
+        if( 1 != fread( &x, sizeof(Real), 1, inf ) || x != 201905021128 )
+        {
+            std::cerr << "err: Magic number wrong" << std::endl;
+            fclose( inf );
+            return;
+        }
 
-    } else {
+        derivative_order = 4;
 
-        cout << "Unable to open chebyshev file.";
+        // Read chebyshev_index
+        //
+        if( 1 == fread( &x, sizeof(Real), 1, inf ) ) {
+            chebyshev_index = size_t(x + 1);
+            collocation_point = size_t(x + 1);
+        }
+        else {
+            std::cerr << "err: Cannot read expansion_order" << std::endl;
+            fclose( inf );
+            return;
+        }
 
+        // Read the coefficients
+        //
+        data_size = derivative_order * chebyshev_index * collocation_point;
+        coeff = new Real[ derivative_order * chebyshev_index * collocation_point ];
+
+        if ( data_size != fread( coeff, sizeof(Real), data_size, inf ) )
+        {
+            std::cerr << "err: Cannot read all the coefficients" << std::endl;
+            delete [] coeff;
+            coeff = nullptr;
+            fclose( inf );
+            return;
+        }
+
+        // Read the evolution matrix
+        //
+        ee_matrix_size = chebyshev_index * collocation_point;
+        ee_matrix = new Real[ chebyshev_index * collocation_point ];
+
+        if ( ee_matrix_size != fread( ee_matrix, sizeof(Real), ee_matrix_size, inf ) )
+        {
+            std::cerr << "err: Cannot read all the elements in the evolution matrix" << std::endl;
+            delete [] ee_matrix;
+            ee_matrix = nullptr;
+            fclose( inf );
+            return;
+        }
+
+        fclose( inf );
+    }
+
+};
+
+int main()
+{
+    ChebyshevCoefficients cc( "include/chebyshev-values/testBin.dat" );
+    if( ! cc.isOK () ) {
+        return -1;
+    }
+
+    std::cout << cc.orders() << " x " << cc.chebys()
+        << " x " << cc.points() << std::endl;
+
+    for( size_t i = 0; i < cc.orders(); ++i )
+    {
+        for( size_t j = 0; j < cc.chebys(); ++j )
+        {
+            for( size_t k = 0; k < cc.points(); ++k )
+            {
+                std::cout << "(" << i << "," << j << "," << k << ") = "
+                          << cc(i,j,k) << std::endl;
+            }
+        }
+    }
+
+    cc.exportChebyCoeffs();
+
+    std::cout << "The following is the evolution matrix," << std::endl;
+
+    for( size_t j = 0; j < cc.chebys(); ++j )
+    {
+        for( size_t k = 0; k < cc.points(); ++k )
+        {
+            std::cout << "(" << j << "," << k << ") = "
+                        << cc.evolutionMatrix(j,k) << std::endl;
+        }
     }
 
     return 0;
-
 }

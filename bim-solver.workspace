@@ -3,5 +3,6 @@
 	<Workspace title="Workspace">
 		<Project filename="bim-solver-STD.cbp" />
 		<Project filename="bim-solver-BSSN.cbp" />
+		<Project filename="bispec.cbp" />
 	</Workspace>
 </CodeBlocks_workspace_file>
