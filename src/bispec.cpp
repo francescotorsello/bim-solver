@@ -12,10 +12,6 @@
 #include <cmath>
 #include <cstdio>
 #include <chrono>
-#include <vector>
-#include <array>
-#include <bitset>
-#include <algorithm>
 
 #ifndef OBSERVER
     #define OBSERVER 1
@@ -28,8 +24,6 @@
 #ifndef _DETECT_NAN
     #define _DETECT_NAN 1
 #endif // _DETECT_NAN
-
-#define N 5
 
 using namespace std;
 
@@ -130,7 +124,7 @@ public:
 
         if ( data_size != fread( coeff, sizeof(Real), data_size, inf ) )
         {
-            std::cerr << "err: Cannot read all the coefficients" << std::endl;
+            std::cerr << "err: Cannot read all the Chebyshev coefficients" << std::endl;
             delete [] coeff;
             coeff = nullptr;
             fclose( inf );
@@ -152,6 +146,67 @@ public:
         }
 
         fclose( inf );
+    }
+
+};
+
+class bispecInput
+{
+    size_t number_fields;
+    size_t expansion_order;
+    size_t data_size;
+    Real* spec_coeff;
+
+public:
+
+    // Methods to access the dimensions
+    //
+    size_t n_fields () const{ return number_fields; }
+    size_t exp_order () const{ return expansion_order; }
+
+    // Method to access the initial data
+    //
+    Real operator() ( size_t i, size_t j )
+    {
+        return spec_coeff[ i * ( expansion_order + 1 ) + j ];
+    }
+
+    // Constructor: Reads the spectral initial data from a file.
+    //
+    bispecInput( const std::string fileName )
+    {
+        FILE* specid = fopen( fileName.c_str(), "rb" );
+
+        if( ! specid ) {
+            std::cerr << "err: ID: Cannot open file" << std::endl;
+            return;
+        }
+
+        // Read magic number
+        //
+        Real x = 0;
+        if( 1 != fread( &x, sizeof(Real), 1, specid ) || x != 4478245647 )
+        {
+            std::cerr << "err: ID: Magic number wrong" << std::endl;
+            fclose( specid );
+            return;
+        }
+
+        // Read the spectral initial data
+        //
+        data_size = number_fields * ( expansion_order + 1 );
+        spec_coeff = new Real[ data_size ];
+
+        if ( data_size != fread( spec_coeff, sizeof(Real), data_size, specid ) )
+        {
+            std::cerr << "err: ID: Cannot read all the initial data" << std::endl;
+            delete [] spec_coeff;
+            spec_coeff = nullptr;
+            fclose( specid );
+            return;
+        }
+
+        fclose(specid);
     }
 
 };
