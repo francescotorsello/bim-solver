@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstdio>
 #include <chrono>
+#include <vector>
 
 #ifndef OBSERVER
     #define OBSERVER 1
@@ -28,6 +29,58 @@
 using namespace std;
 
 typedef double Real;
+
+/// The following namespace contains the indexing of the fields, to be used in the other classes
+namespace fields
+{
+    /// This enumeration contains all the fields that need to be expanded in Chebyshev series
+    enum fldCheby
+    {
+        gconf, fconf,
+        trgK, trfK,
+        gA, fA,
+        gB, fB,
+        gA1, fA1,
+        gL, fL,
+
+        gconf_r, fconf_r,
+        trgK_r, trfK_r,
+        gA_r, fA_r,
+        gB_r, fB_r,
+        gA1_r, fA1_r,
+        gL_r, fL_r,
+
+        gconf_rr, fconf_rr,
+        trgK_rr, trfK_rr,
+        gA_rr, fA_rr,
+        gB_rr, fB_rr,
+        gA1_rr, fA1_rr,
+        gL_rr, fL_rr,
+
+    };
+
+    /// The following vector contains the ORDERED fields whose spectral coefficients
+    /// have to be set equal to the values read by the class bispecInput.
+    /// This order MUST match the order of exportation in the Mathematica file.
+
+    static const std::vector<int> bispecInput_fields =
+    {
+        gconf,
+        fconf,
+        trgK,
+        trfK,
+        gA,
+        gB,
+        fA,
+        fB,
+        gA1,
+        fA1,
+        gL,
+        fL
+
+    };
+
+}
 
 class ChebyshevCoefficients
 {
@@ -159,6 +212,13 @@ class bispecInput
 
 public:
 
+    // isOK() returns true if the coefficients were successfully read
+    // from a file (so the object is correctly instantiated).
+    //
+    bool isOK () const {
+        return data_size != 0 && spec_coeff != nullptr;
+    }
+
     // Methods to access the dimensions
     //
     size_t n_fields () const{ return number_fields; }
@@ -192,6 +252,28 @@ public:
             return;
         }
 
+        // Read the number of evolved fields
+        //
+        if( 1 == fread( &x, sizeof(Real), 1, specid ) ) {
+            number_fields = size_t(x);
+        }
+        else {
+            std::cerr << "err: ID: Cannot read number_fields" << std::endl;
+            fclose( specid );
+            return;
+        }
+
+        // Read the order of Chebyshev expansion
+        //
+        if( 1 == fread( &x, sizeof(Real), 1, specid ) ) {
+            expansion_order = size_t(x);
+        }
+        else {
+            std::cerr << "err: ID: Cannot read expansion_order" << std::endl;
+            fclose( specid );
+            return;
+        }
+
         // Read the spectral initial data
         //
         data_size = number_fields * ( expansion_order + 1 );
@@ -210,6 +292,43 @@ public:
     }
 
 };
+
+class bispecEvolve
+{
+    int m; /// The time step
+    int n; /// The collocation point index
+
+    Real gconf( int m, int n );
+    Real gtrK( int m, int n );
+    Real gA( int m, int n );
+    Real gB( int m, int n );
+    Real gA1( int m, int n );
+    Real gL( int m, int n );
+
+    Real fconf( int m, int n );
+    Real ftrK( int m, int n );
+    Real fA( int m, int n );
+    Real fB( int m, int n );
+    Real fA1( int m, int n );
+    Real fL( int m, int n );
+
+    /** Declaration of the constructor
+     */
+    bispecEvolve( bispecInput& bispecID, ChebyshevCoefficients& chebyC );
+
+};
+
+/** Implementation of the constructor
+     */
+/*bispecEvolve::bispecEvolve( bispecInput& bispecID, ChebyshevCoefficients& chebyC )
+{
+    gA ( m , n ) = 0;
+    for( i = 0; i <= ID.exp_order(), ++i )
+    {
+        /// The idea is to put gA from the enum fields into specC as the index referring to the field, similar to GF in bim-solver.
+       gA ( m, n ) += specC( gA, m, i ) * chebyC( 0, i, n );
+    }
+}*/
 
 int main()
 {
@@ -243,6 +362,25 @@ int main()
         {
             std::cout << "(" << j << "," << k << ") = "
                         << cc.evolutionMatrix(j,k) << std::endl;
+        }
+    }
+
+    bispecInput ID("C:/Users/Francesco/Dropbox/Dottorato/Research/3+1_Numerical_bimetric_relativity/BSSN_formalism/C++/bimetric-ss-20181026/run/specInput.dat");
+    if( ! ID.isOK () ) {
+        return -1;
+    }
+
+    std::cout << "The following is the spectral initial data," << std::endl;
+
+
+    std::cout << ID.n_fields() << " x " << ID.exp_order() << std::endl;
+
+    for( size_t i = 0; i < ID.n_fields(); ++i )
+    {
+        for( size_t j = 0; j < ID.exp_order() + 1; ++j )
+        {
+            std::cout << "(" << i << "," << j << ") = "
+                        << ID(i,j) << std::endl;
         }
     }
 
