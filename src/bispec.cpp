@@ -293,40 +293,113 @@ public:
 
 };
 
+class ChebyshevExpansion
+{
+
+private:
+
+    /// The array containing the spectral coefficients for all the Chebychev series of the fields
+    Real *spcoeffs;
+    ///The array containing the initial data
+    Real *spID;
+    /// The size of the cached time steps
+    size_t mDim;
+    size_t mLen;
+    size_t mExtra;
+    size_t exp_ord;
+    size_t n_fields;
+
+public:
+
+    /// Method to access the spectral coefficients. Since we will make use of the integrator from bim-solver, we copy the structure of GF in gridDriver.
+    Real specC( int field, int m, int colloc )
+    {
+        return spcoeffs[ ( n_fields *( exp_ord + 1 ) ) * m + exp_ord * field + colloc ];
+    }
+
+    /// Set the spectral coefficients to their initial values (TODO: check with the debug mode)
+    void instantiateSpecID()
+    {
+        for( size_t field = 0; field <= n_fields; ++field )
+        {
+            for( size_t n = 0; n <= exp_ord; ++n )
+            {
+                spcoeffs[ exp_ord * field + n ] = spID[ exp_ord * field + n ];
+            }
+        }
+    }
+
+    ChebyshevExpansion( bispecInput& bispecID )
+    {
+
+        mDim = 4+0*(mLen + mExtra);
+        exp_ord = bispecID.exp_order();
+        n_fields = bispecID.n_fields();
+        spcoeffs = new Real[ mDim * ( ( bispecID.exp_order() + 1 ) * bispecID.n_fields() ) ];
+
+        /// Set the spectral coefficients to their initial values (TODO: check with the debug mode)
+        for( size_t field = 0; field <= n_fields; ++field )
+        {
+            for( size_t n = 0; n <= exp_ord; ++n )
+            {
+                spID[ n_fields * field + n ] = bispecID( field, n );
+            }
+        }
+
+    }
+};
+
 class bispecEvolve
 {
-    int m; /// The time step
-    int n; /// The collocation point index
+    size_t m; /// The time step
+    size_t n; /// The collocation point index
 
-    Real gconf( int m, int n );
-    Real gtrK( int m, int n );
-    Real gA( int m, int n );
-    Real gB( int m, int n );
-    Real gA1( int m, int n );
-    Real gL( int m, int n );
+    Real gconf  ( int m, int n );
+    Real gtrK   ( int m, int n );
+    Real gA     ( size_t m, size_t n );
+    Real gB     ( int m, int n );
+    Real gA1    ( int m, int n );
+    Real gL     ( int m, int n );
 
-    Real fconf( int m, int n );
-    Real ftrK( int m, int n );
-    Real fA( int m, int n );
-    Real fB( int m, int n );
-    Real fA1( int m, int n );
-    Real fL( int m, int n );
+    Real fconf  ( int m, int n );
+    Real ftrK   ( int m, int n );
+    Real fA     ( int m, int n );
+    Real fB     ( int m, int n );
+    Real fA1    ( int m, int n );
+    Real fL     ( int m, int n );
 
-    /** Declaration of the constructor
+    /** The constructor
      */
-    bispecEvolve( bispecInput& bispecID, ChebyshevCoefficients& chebyC );
-
+    bispecEvolve( bispecInput& bispecID, ChebyshevCoefficients& chebyC, ChebyshevExpansion& chebyExp )
+    {
+            for( n = 0; n <= bispecID.exp_order(); ++n )
+        {
+            Real sum = 0;
+            for( size_t i = 0; i <= bispecID.exp_order(); ++i )
+            {
+                /// The idea is to put gA from the enum fields into specC as the index referring to the field, similar to GF in bim-solver.
+                sum += chebyExp.specC( fields::gA, m, i ) * chebyC( 0, i, n );
+            }
+            //gA( m, n ) = sum;
+        }
+    }
 };
 
 /** Implementation of the constructor
      */
-/*bispecEvolve::bispecEvolve( bispecInput& bispecID, ChebyshevCoefficients& chebyC )
+/*bispecEvolve::bispecEvolve( bispecInput& bispecID, ChebyshevCoefficients& chebyC, ChebyshevExpansion& chebyExp )
 {
-    gA ( m , n ) = 0;
-    for( i = 0; i <= ID.exp_order(), ++i )
+
+    gA( m, n )
     {
-        /// The idea is to put gA from the enum fields into specC as the index referring to the field, similar to GF in bim-solver.
-       gA ( m, n ) += specC( gA, m, i ) * chebyC( 0, i, n );
+        Real sum = 0;
+        for( size_t i = 0; i <= bispecID.exp_order(); ++i )
+        {
+            /// The idea is to put gA from the enum fields into specC as the index referring to the field, similar to GF in bim-solver.
+            sum += chebyExp.specC( fields::gA, m, i ) * chebyC( 0, i, n );
+
+        }
+        return sum;
     }
 }*/
 
@@ -382,6 +455,22 @@ int main()
             std::cout << "(" << i << "," << j << ") = "
                         << ID(i,j) << std::endl;
         }
+    }
+
+    ChebyshevExpansion chebySeries( ID );
+
+    chebySeries.instantiateSpecID();
+
+    /*for( size_t j = 0; j < ID.exp_order() + 1; ++j )
+    {
+           Real dbg1 = chebySeries.specC( 0, 0, j );
+    }*/
+
+    //std::cout << "The following is the spectral initial data assigned to the coefficients," << std::endl;
+
+    for( size_t j = 0; j < ID.exp_order() + 1; ++j )
+    {
+           std::cout << chebySeries.specC( 0, 0, j ) << std::endl;
     }
 
     return 0;
