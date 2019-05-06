@@ -26,61 +26,48 @@
     #define _DETECT_NAN 1
 #endif // _DETECT_NAN
 
+/** The following vector contains the ORDERED fields whose spectral coefficients
+    have to be set equal to the values read by the class bispecInput.
+    This order MUST match the order of exportation in the Mathematica file.
+  */
+
+#define FIELDS gconf, fconf, trgK, trfK, gA, fA, gB, fB, gA1, fA1, gL, fL
+
+#define DERS gconf_r, fconf_r, trgK_r, trfK_r, gA_r, fA_r, gB_r, fB_r, gA1_r, fA1_r, gL_r, fL_r
+
+#define DERRS gconf_rr, fconf_rr, trgK_rr, trfK_rr, gA_rr, fA_rr, gB_rr, fB_rr, gA1_rr, fA1_rr, gL_rr, fL_rr
+
 using namespace std;
 
 typedef double Real;
 
-/// The following namespace contains the indexing of the fields, to be used in the other classes
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/** Namespace 'fields' contains the indexing of the fields and their derivatives,
+    to be used in the other classes
+  */
 namespace fields
 {
-    /// This enumeration contains all the fields that need to be expanded in Chebyshev series
-    enum fldCheby
-    {
-        gconf, fconf,
-        trgK, trfK,
-        gA, fA,
-        gB, fB,
-        gA1, fA1,
-        gL, fL,
+    /// 'fldCheby' contains all the fields that need to be expanded in Chebyshev series
+    enum fldCheby { FIELDS };
+    static const fldCheby flds[] = { FIELDS }; // this is needed to be able to iterate over the enumeration ( taken from https://stackoverflow.com/questions/261963/how-can-i-iterate-over-an-enum )
 
-        gconf_r, fconf_r,
-        trgK_r, trfK_r,
-        gA_r, fA_r,
-        gB_r, fB_r,
-        gA1_r, fA1_r,
-        gL_r, fL_r,
+    /// 'derCheby' contains all the first radial derivatives that need to be expanded in Chebyshev series
+    enum derCheby { DERS };
+    static const derCheby ders[] = { DERS };
 
-        gconf_rr, fconf_rr,
-        trgK_rr, trfK_rr,
-        gA_rr, fA_rr,
-        gB_rr, fB_rr,
-        gA1_rr, fA1_rr,
-        gL_rr, fL_rr,
+    /// 'derrCheby' contains all the second radial derivatives that need to be expanded in Chebyshev series
+    enum derrCheby { DERRS };
+    static const derrCheby derrs[] = { DERRS };
 
-    };
-
-    /// The following vector contains the ORDERED fields whose spectral coefficients
-    /// have to be set equal to the values read by the class bispecInput.
-    /// This order MUST match the order of exportation in the Mathematica file.
-
-    static const std::vector<int> bispecInput_fields =
-    {
-        gconf,
-        fconf,
-        trgK,
-        trfK,
-        gA,
-        gB,
-        fA,
-        fB,
-        gA1,
-        fA1,
-        gL,
-        fL
-
-    };
+    /// perhaps the vector below is useless
+    static const std::vector<int> bispecInput_fields = { FIELDS };
 
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class ChebyshevCoefficients
 {
@@ -203,6 +190,9 @@ public:
 
 };
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
 class bispecInput
 {
     size_t number_fields;
@@ -223,12 +213,13 @@ public:
     //
     size_t n_fields () const{ return number_fields; }
     size_t exp_order () const{ return expansion_order; }
+    size_t size_ID () const{ return data_size; }
 
     // Method to access the initial data
     //
-    Real operator() ( size_t i, size_t j )
+    Real operator() ( size_t field, size_t n )
     {
-        return spec_coeff[ i * ( expansion_order + 1 ) + j ];
+        return spec_coeff[ ( expansion_order + 1 ) * field + n ];
     }
 
     // Constructor: Reads the spectral initial data from a file.
@@ -293,6 +284,12 @@ public:
 
 };
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/** The following class should be inherited from bispecID. However, if I do that, an error occurs...
+    The first exp_ord * field + n elements of this array is set equal to the initial data.
+  */
 class ChebyshevExpansion
 {
 
@@ -304,77 +301,75 @@ private:
     size_t mExtra;
     size_t exp_ord;
     size_t n_flds;
-
     /// The array containing the spectral coefficients for all the Chebychev series of the fields
     Real *spcoeffs;
-    ///The array containing the initial data
-    Real *spID;
 
 public:
 
     /// Method to access the spectral coefficients. Since we will make use of the integrator from bim-solver, we copy the structure of GF in gridDriver.
-    Real specC( int field, int m, int colloc )
+    Real specC( size_t m, size_t field, size_t n )
     {
-        return spcoeffs[ ( n_flds *( exp_ord + 1 ) ) * m + exp_ord * field + colloc ];
+        return spcoeffs[ ( n_flds * ( exp_ord + 1 ) ) * m + ( exp_ord + 1 ) * field + n ];
     }
 
-    /// Set the spectral coefficients to their initial values (TODO: check with the debug mode)
-    void instantiateSpecID()
-    {
-        for( size_t field = 0; field <= n_flds; ++field )
-        {
-            for( size_t n = 0; n <= exp_ord; ++n )
-            {
-                spcoeffs[ exp_ord * field + n ] = spID[ exp_ord * field + n ];
-            }
-        }
-    }
-
+    /// Constructor: Save the spectral coefficients to their initial values.
     ChebyshevExpansion( bispecInput& bispecID )
     {
 
-        mDim = 4 + 0*(mLen + mExtra);
+        mLen = 5;
+        mExtra = 9;
+        mDim = mLen + mExtra;
         exp_ord = bispecID.exp_order();
         n_flds = bispecID.n_fields();
-        spcoeffs = new Real[ mDim * ( ( exp_ord + 1 ) * n_flds ) ];
-        spID = new Real[ ( ( exp_ord + 1 ) * n_flds ) ];
+        spcoeffs = new Real[ mDim * n_flds * ( exp_ord + 1 ) ];
 
-        /// Set the spectral coefficients to their initial values (TODO: check with the debug mode)
-        for( size_t field = 0; field <= n_flds; ++field )
+        //std::cout << std::endl;
+        for( size_t field = 0; field < n_flds; ++field )
         {
-            for( size_t n = 0; n <= exp_ord; ++n )
+            //std::cout << "This is the field " << field << std::endl;
+            for( size_t n = 0; n < exp_ord + 1; ++n )
             {
-                spID[ exp_ord * field + n ] = bispecID( field, n );
+                spcoeffs[ ( exp_ord + 1 ) * field + n ] = bispecID( field, n );
+                 //std::cout << "(" << field << "," << n << ") : "
+                 //     << spcoeffs[ ( exp_ord + 1 ) * field + n ] << " = " << bispecID( field, n ) << std::endl;
             }
         }
+        //std::cout << std::endl;
 
     }
 };
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/** TODO: learn how to access the namespace variables and put them as arguments of the functions
+    defined here.
+  */
 class bispecEvolve
 {
     size_t m; /// The time step
     size_t n; /// The collocation point index
 
-    Real gconf  ( int m, int n );
-    Real gtrK   ( int m, int n );
+    Real gconf  ( size_t m, size_t n );
+    Real gtrK   ( size_t m, size_t n );
     Real gA     ( size_t m, size_t n );
-    Real gB     ( int m, int n );
-    Real gA1    ( int m, int n );
-    Real gL     ( int m, int n );
+    Real gB     ( size_t m, size_t n );
+    Real gA1    ( size_t m, size_t n );
+    Real gL     ( size_t m, size_t n );
 
-    Real fconf  ( int m, int n );
-    Real ftrK   ( int m, int n );
-    Real fA     ( int m, int n );
-    Real fB     ( int m, int n );
-    Real fA1    ( int m, int n );
-    Real fL     ( int m, int n );
+    Real fconf  ( size_t m, size_t n );
+    Real ftrK   ( size_t m, size_t n );
+    Real fA     ( size_t m, size_t n );
+    Real fB     ( size_t m, size_t n );
+    Real fA1    ( size_t m, size_t n );
+    Real fL     ( size_t m, size_t n );
 
-    /** The constructor
+    /** The constructor computs the values of the fields and the evolution equations on the initial hypersurface
      */
     bispecEvolve( bispecInput& bispecID, ChebyshevCoefficients& chebyC, ChebyshevExpansion& chebyExp )
     {
-            for( n = 0; n <= bispecID.exp_order(); ++n )
+        /// Here we can probably define a macro and run over all the fields by using the enumeration.
+        for( n = 0; n <= bispecID.exp_order(); ++n )
         {
             Real sum = 0;
             for( size_t i = 0; i <= bispecID.exp_order(); ++i )
@@ -385,6 +380,12 @@ class bispecEvolve
             //gA( m, n ) = sum;
         }
     }
+
+    /// Running over the enumeration (i)
+    /*for ( const auto e : fields::flds )
+    {
+        cout << e << endl;
+    }*/
 };
 
 /** Implementation of the constructor
@@ -405,14 +406,22 @@ class bispecEvolve
     }
 }*/
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
 int main()
 {
+
+    /** Import the values of the Chebyshev polynomials at the collocation points.
+        The are constant in time, hence we can compute them in Mathematica with high precision and load them once here.
+     */
+
     ChebyshevCoefficients cc( "include/chebyshev-values/testBin.dat" );
     if( ! cc.isOK () ) {
         return -1;
     }
 
-    std::cout << cc.orders() << " x " << cc.chebys()
+    /*std::cout << cc.orders() << " x " << cc.chebys()
         << " x " << cc.points() << std::endl;
 
     for( size_t i = 0; i < cc.orders(); ++i )
@@ -438,41 +447,56 @@ int main()
             std::cout << "(" << j << "," << k << ") = "
                         << cc.evolutionMatrix(j,k) << std::endl;
         }
-    }
+    }*/
+
+    /** Import the initial data, i.e., the values of the Chebyshev spectral coefficients in the Chebyshev series of the fields on the initial hypersurface.
+     */
 
     bispecInput ID("C:/Users/Francesco/Dropbox/Dottorato/Research/3+1_Numerical_bimetric_relativity/BSSN_formalism/C++/bimetric-ss-20181026/run/specInput.dat");
     if( ! ID.isOK () ) {
         return -1;
     }
 
-    std::cout << "The following is the spectral initial data," << std::endl;
+    /*std::cout << "The following is the spectral initial data," << std::endl;
 
 
-    std::cout << ID.n_fields() << " x " << ID.exp_order() << std::endl;
+    std::cout << ID.n_fields() << " x " << ID.exp_order() + 1 << std::endl;
 
-    for( size_t i = 0; i < ID.n_fields(); ++i )
+    for( size_t field = 0; field < ID.n_fields(); ++field )
     {
-        for( size_t j = 0; j < ID.exp_order() + 1; ++j )
+        std::cout << "This is the field " << field << std::endl;
+        for( size_t n = 0; n < ID.exp_order() + 1; ++n )
         {
-            std::cout << "(" << i << "," << j << ") = "
-                        << ID(i,j) << std::endl;
+            std::cout << "(" << field << "," << n << ") = "
+                      << ID(field,n) << std::endl;
         }
+
     }
+
+    std::cout << std::endl;*/
+
+    /** Define the array containing the spectral coefficients as a function of the fields defined in the namespace fields, the time step m and the collocation point index n.
+     */
 
     ChebyshevExpansion chebySeries( ID );
 
-    chebySeries.instantiateSpecID();
+    //chebySeries.instantiateSpecID();
 
-    /*for( size_t j = 0; j < ID.exp_order() + 1; ++j )
+    /*std::cout << "The following is the spectral initial data assigned to the coefficients," << std::endl;
+    for( size_t field = 0; field < ID.n_fields(); ++field )
     {
-           Real dbg1 = chebySeries.specC( 0, 0, j );
+        std::cout << "This is the field " << field << std::endl;
+        for( size_t n = 0; n < ID.exp_order() + 1; ++n )
+        {
+            std::cout << "(" << field << "," << n << ") = "
+                      << chebySeries.specC( 0, field, n ) << std::endl;
+        }
     }*/
 
-    //std::cout << "The following is the spectral initial data assigned to the coefficients," << std::endl;
-
-    for( size_t j = 0; j < ID.exp_order() + 1; ++j )
+    /// Running over the enumeration (i)
+    for ( const auto e : fields::flds )
     {
-           std::cout << chebySeries.specC( 0, 0, j ) << std::endl;
+        cout << e << endl;
     }
 
     return 0;
