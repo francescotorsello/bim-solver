@@ -298,29 +298,30 @@ class ChebyshevExpansion
 
 private:
 
-    /// The array containing the spectral coefficients for all the Chebychev series of the fields
-    Real *spcoeffs;
-    ///The array containing the initial data
-    Real *spID;
     /// The size of the cached time steps
     size_t mDim;
     size_t mLen;
     size_t mExtra;
     size_t exp_ord;
-    size_t n_fields;
+    size_t n_flds;
+
+    /// The array containing the spectral coefficients for all the Chebychev series of the fields
+    Real *spcoeffs;
+    ///The array containing the initial data
+    Real *spID;
 
 public:
 
     /// Method to access the spectral coefficients. Since we will make use of the integrator from bim-solver, we copy the structure of GF in gridDriver.
     Real specC( int field, int m, int colloc )
     {
-        return spcoeffs[ ( n_fields *( exp_ord + 1 ) ) * m + exp_ord * field + colloc ];
+        return spcoeffs[ ( n_flds *( exp_ord + 1 ) ) * m + exp_ord * field + colloc ];
     }
 
     /// Set the spectral coefficients to their initial values (TODO: check with the debug mode)
     void instantiateSpecID()
     {
-        for( size_t field = 0; field <= n_fields; ++field )
+        for( size_t field = 0; field <= n_flds; ++field )
         {
             for( size_t n = 0; n <= exp_ord; ++n )
             {
@@ -332,17 +333,18 @@ public:
     ChebyshevExpansion( bispecInput& bispecID )
     {
 
-        mDim = 4+0*(mLen + mExtra);
+        mDim = 4 + 0*(mLen + mExtra);
         exp_ord = bispecID.exp_order();
-        n_fields = bispecID.n_fields();
-        spcoeffs = new Real[ mDim * ( ( bispecID.exp_order() + 1 ) * bispecID.n_fields() ) ];
+        n_flds = bispecID.n_fields();
+        spcoeffs = new Real[ mDim * ( ( exp_ord + 1 ) * n_flds ) ];
+        spID = new Real[ ( ( exp_ord + 1 ) * n_flds ) ];
 
         /// Set the spectral coefficients to their initial values (TODO: check with the debug mode)
-        for( size_t field = 0; field <= n_fields; ++field )
+        for( size_t field = 0; field <= n_flds; ++field )
         {
             for( size_t n = 0; n <= exp_ord; ++n )
             {
-                spID[ n_fields * field + n ] = bispecID( field, n );
+                spID[ exp_ord * field + n ] = bispecID( field, n );
             }
         }
 
