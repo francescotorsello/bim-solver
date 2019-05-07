@@ -14,6 +14,8 @@
 #include <chrono>
 #include <vector>
 
+#include "../include/numMethods/dataTypes.h"
+
 #ifndef OBSERVER
     #define OBSERVER 1
 #endif // OBSERVER
@@ -42,19 +44,19 @@
     It defines the functions that are included in the evolution equations exported by Mathematica
   */
 #define setfield( field ) \
-        inline Real field( int m, int n ) \
+        inline Real field( Int m, Int n ) \
         { \
             return values_fields[ ( fields::field * ( exp_ord + 1 ) ) * m + ( exp_ord + 1 ) * fields::field + n ]; \
         }
 
 #define setder( field ) \
-        inline Real field( int m, int n ) \
+        inline Real field( Int m, Int n ) \
         { \
             return values_ders[ ( fields::field * ( exp_ord + 1 ) ) * m + ( exp_ord + 1 ) * fields::field + n ]; \
         }
 
 #define setderr( field ) \
-        inline Real field( int m, int n ) \
+        inline Real field( Int m, Int n ) \
         { \
             return values_derrs[ ( fields::field * ( exp_ord + 1 ) ) * m + ( exp_ord + 1 ) * fields::field + n ]; \
         }
@@ -62,6 +64,7 @@
 using namespace std;
 
 typedef double Real;
+typedef long Int;
 
 
 
@@ -86,7 +89,7 @@ namespace fields
     static const derrCheby derrs[] = { DERRS };
 
     /// perhaps the vector below is useless
-    static const std::vector<int> bispecInput_fields = { FIELDS };
+    static const std::vector<Int> bispecInput_fields = { FIELDS };
 
 }
 
@@ -323,8 +326,7 @@ public:
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/** The following class should be inherited from bispecID. However, if I do that, an error occurs...
-    The first exp_ord * field + n elements of this array is set equal to the initial data.
+/** 'ChebyshevExpansion' defines the array containing the spectral coefficients and a method to access them. It also stores the initial data into this array.
   */
 class ChebyshevExpansion
 {
@@ -380,9 +382,150 @@ public:
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/** TODO: learn how to access the namespace variables and put them as arguments of the functions
-    defined here.
+/** 'defineFields' defines the methods to access the values of the fields. The constructor assigns the initial data to the fields. This was part of bispecEvolve, but it is now a separate class, since the classes gaugeVariables and and dependentFields need the fields to be defined. In turn, bispecEvolve needs gaugeVariables and dependentFields in order to use the evolution equations. Hence, bispecEvolve is now relegated strictly to the computation of the time derivative of the spectral coefficients and their evolution through 'integrator.h'.
   */
+class defineFields
+{
+    size_t m; /// The time step
+    size_t n; /// The collocation point index
+
+    /// The size of the cached time steps
+    size_t mDim;
+    size_t mLen;
+    size_t mExtra;
+    size_t exp_ord;
+    size_t n_flds;
+
+    Real *values_fields;
+    Real *values_ders;
+    Real *values_derrs;
+
+    Real *fields_t;
+
+    //#include "../include/eom-BSSN/eomBSSNEvolutionCompEul.h"
+
+public:
+
+    setfield( gconf )   setfield( gtrK )    setfield( gA )
+    setfield( gB )      setfield( gA1 )     setfield( gL )
+    setfield( fconf )   setfield( ftrK )    setfield( fA )
+    setfield( fB )      setfield( fA1 )     setfield( fL )
+
+    setder( gconf_r )   setder( gtrK_r )    setder( gA_r )
+    setder( gB_r )      setder( gA1_r )     setder( gL_r )
+    setder( fconf_r )   setder( ftrK_r )    setder( fA_r )
+    setder( fB_r )      setder( fA1_r )     setder( fL_r )
+
+    setderr( gconf_rr ) setderr( gtrK_rr )  setderr( gA_rr )
+    setderr( gB_rr )    setderr( gA1_rr )   setderr( gL_rr )
+    setderr( fconf_rr ) setderr( ftrK_rr )  setderr( fA_rr )
+    setderr( fB_rr )    setderr( fA1_rr )   setderr( fL_rr )
+
+    /** The constructor computes the values of the fields, the derivatives and the evolution equations on the initial hypersurface
+     */
+    defineFields( bispecInput& bispecID, ChebyshevCoefficients& chebyC, ChebyshevExpansion& chebyExp )
+    {
+
+        /// These definitions below are temporary. This class should inherit from ChebyshevExpansion, but I get errors from the inheritance.
+        mLen    = 5;
+        mExtra  = 9;
+        mDim    = mLen + mExtra;
+        exp_ord = bispecID.exp_order();
+        n_flds  = bispecID.n_fields();
+
+        /// These arrays contain the values of the fields and their spatial first and second derivatives at the collocation points at each time step
+        values_fields   = new Real[ mDim * n_flds * ( exp_ord + 1 ) ];
+        values_ders     = new Real[ mDim * n_flds * ( exp_ord + 1 ) ];
+        values_derrs    = new Real[ mDim * n_flds * ( exp_ord + 1 ) ];
+
+        /** TODO: In the expansion below, one should include only the appropriate parity in
+            the Chebyshev series of the fields
+          */
+
+        /// Computation of the values of the fields at the collocation points (CPs) on the initial hypersurface
+        for( const auto field : fields::flds )
+        {
+            for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+            {
+                Real sum = 0;
+                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+                {
+                    sum += chebyExp.specC( 0, field, cheby_index ) * chebyC( 0, cheby_index, n );
+                }
+                values_fields[ ( exp_ord + 1 ) * field + n ] = sum;
+            }
+        }
+
+        /// Computation of the values of the first radial derivatives at the collocation points (CPs) on the initial hypersurface
+        for( const auto der : fields::ders )
+        {
+            for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+            {
+                Real sum = 0;
+                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+                {
+                    sum += chebyExp.specC( 0, der, cheby_index ) * chebyC( 1, cheby_index, n );
+                }
+                values_ders[ ( exp_ord + 1 ) * der + n ] = sum;
+            }
+        }
+
+        /// Computation of the values of the second radial derivatives at the collocation points (CPs) on the initial hypersurface
+        for( const auto derr : fields::derrs )
+        {
+            for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+            {
+                Real sum = 0;
+                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+                {
+                    sum += chebyExp.specC( 0, derr, cheby_index ) * chebyC( 2, cheby_index, n );
+                }
+                values_derrs[ ( exp_ord + 1 ) * derr + n ] = sum;
+            }
+        }
+
+    }
+};
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/** 'gaugeVariables' defines and compute the gauge variables
+  */
+/*class gaugeVariables
+    : defineFields
+{
+    Real *gaugevariables;
+
+    Real Kdiff = 0.01;
+    Real Kelas = 0.03;
+
+    //#include "../include/eom-BSSN/eomBSSNKDGaugeComp.h"
+
+    gaugeVariables()
+    {
+        //gaugevariables = new Real[];
+    }
+
+};*/
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/** 'dependentFields' defines all the functions appearing in the evolution equations
+  */
+/*class dependentFields
+    : gaugeVariables
+{
+
+};*/
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
 class bispecEvolve
 {
     size_t m; /// The time step
@@ -401,13 +544,9 @@ class bispecEvolve
 
     Real *fields_t;
 
-public:
+    //#include "../include/eom-BSSN/eomBSSNEvolutionCompEul.h"
 
-    /// The loop above would define automatically all the fields in terms of the array initialized by the constructor. However, apparently a loop cannot be 'alone' inside the body of a class. In addition, this is a loop of declarations, and declarations cannot be inside the body of a function. Hnece, encapsulating the loop in a void method in the class does not work. For now, we just type all the declarations by hand, as we do in bim-solver with emitfield().
-    /*for ( const auto fld : fields::flds )
-    {
-        setfield( fld )
-    }*/
+public:
 
     setfield( gconf )   setfield( gtrK )    setfield( gA )
     setfield( gB )      setfield( gA1 )     setfield( gL )
@@ -440,6 +579,10 @@ public:
         values_fields   = new Real[ mDim * n_flds * ( exp_ord + 1 ) ];
         values_ders     = new Real[ mDim * n_flds * ( exp_ord + 1 ) ];
         values_derrs    = new Real[ mDim * n_flds * ( exp_ord + 1 ) ];
+
+        /** TODO: In the expansion below, one should include only the appropriate parity in
+            the Chebyshev series of the fields
+          */
 
         /// Computation of the values of the fields at the collocation points (CPs) on the initial hypersurface
         for( const auto field : fields::flds )
@@ -530,7 +673,7 @@ public:
             std::cout << gL( 0, n ) << std::endl;
         }*/
 
-        //#include "eom-BSSN/eomBSSNEvolutionCompEul.h"
+        //#include "C:\Users\Francesco\Dropbox\Dottorato\Research\3+1_Numerical_bimetric_relativity\BSSN_formalism\C++\bimetric-ss-20181026\bim-solver\include\eom-BSSN\eomBSSNEvolutionCompEul.h"
 
         /// This array contains the right-hand sides of the evolution equations for the fields.
         fields_t   = new Real[ n_flds ];
