@@ -1,7 +1,7 @@
 /**
  *  @file      bispec.cpp
  *  @brief     The covariant BSSN evolution for spherically symmetric bimetric spacetimes, with the pseudospectral method.
- *  @authors   Mikica Kocic, Francesco Torsello
+ *  @authors   Francesco Torsello, Mikica Kocic
  *  @copyright GNU General Public License (GPLv3).
  */
 
@@ -15,6 +15,10 @@
 #include <vector>
 
 #include "../include/numMethods/dataTypes.h"
+
+#include "../include/sys/slog.h"
+#include "../include/sys/paramsHolder.h"
+#include "../include/bimetricModel.h"
 
 #ifndef OBSERVER
     #define OBSERVER 1
@@ -38,6 +42,24 @@
 #define DERS   gconf_r, fconf_r, gtrK_r, ftrK_r, gA_r, fA_r, gB_r, fB_r, gA1_r, fA1_r, gL_r, fL_r
 
 #define DERRS  gconf_rr, fconf_rr, gtrK_rr, ftrK_rr, gA_rr, fA_rr, gB_rr, fB_rr, gA1_rr, fA1_rr, gL_rr, fL_rr
+
+#define GAUGE  gAlp, fAlp, hAlp, gBet, fBet, hBet, p
+
+#define GAUGE_R  gAlp_r, fAlp_r, hAlp_r, gBet_r, fBet_r, hBet_r, p_r
+
+#define GAUGE_RR  gAlp_rr, fAlp_rr, hAlp_rr, gBet_rr, fBet_rr, hBet_rr, p_rr
+
+#define VALENCIA  pfD, pfS, pftau
+
+#define VALENCIA_R  pfD_r, pfS_r, pftau_r
+
+#define VALENCIA_RR  pfD_rr, pfS_rr, pftau_rr
+
+#define ALL_FIELDS gconf, fconf, gtrK, ftrK, gA, fA, gB, fB, gA1, fA1, gL, fL, gAlp, fAlp, hAlp, gBet, fBet, hBet, p,pfD, pfS, pftau
+
+#define ALL_DERS gconf_r, fconf_r, gtrK_r, ftrK_r, gA_r, fA_r, gB_r, fB_r, gA1_r, fA1_r, gL_r, fL_r, gAlp_r, fAlp_r, hAlp_r, gBet_r, fBet_r, hBet_r, p_r, pfD_r, pfS_r, pftau_r
+
+#define ALL_DERRS gconf_rr, fconf_rr, gtrK_rr, ftrK_rr, gA_rr, fA_rr, gB_rr, fB_rr, gA1_rr, fA1_rr, gL_rr, fL_rr, gAlp_rr, fAlp_rr, hAlp_rr, gBet_rr, fBet_rr, hBet_rr, p_rr, pfD_rr, pfS_rr, pftau_rr
 
 
 /** Note that the macro 'setfield' below, at present, only works inside bispecEvolve.
@@ -76,7 +98,7 @@ typedef long Int;
   */
 namespace fields
 {
-    /// 'fldCheby' contains all the fields that need to be expanded in Chebyshev series
+    /*/// 'fldCheby' contains all the fields that need to be expanded in Chebyshev series
     enum fldCheby { FIELDS };
     static const fldCheby flds[] = { FIELDS }; // this is needed to be able to iterate over the enumeration ( taken from https://stackoverflow.com/questions/261963/how-can-i-iterate-over-an-enum )
 
@@ -88,8 +110,46 @@ namespace fields
     enum derrCheby { DERRS };
     static const derrCheby derrs[] = { DERRS };
 
+    /// 'gaugeVars' contains all the gauge variables
+    enum gaugeVars { GAUGE };
+    static const gaugeVars gauges[] = { GAUGE };
+
+    /// 'gaugeDers' contains the first radial derivatives of the gauge variables
+    enum gaugeDers { GAUGE_R };
+    static const gaugeDers gauges_r[] = { GAUGE_R };
+
+    /// 'gaugeDerrs' contains the second radial derivatives of the gauge variables
+    enum gaugeDerrs { GAUGE_RR };
+    static const gaugeDerrs gauges_rr[] = { GAUGE_RR };
+
+    /// 'valenciaVars' contains all the gauge variables
+    enum valenciaVars { VALENCIA };
+    static const valenciaVars valencia[] = { VALENCIA };
+
+    /// 'valenciaDers' contains the first radial derivatives of the gauge variables
+    enum valenciaDers { VALENCIA_R };
+    static const valenciaDers valencia_r[] = { VALENCIA_R };
+
+    /// 'valenciaDerrs' contains the second radial derivatives of the gauge variables
+    enum valenciaDerrs { VALENCIA_RR };
+    static const valenciaDerrs valencia_rr[] = { VALENCIA_RR };*/
+
+    /// TODO: instead of defining different enumerations, define different vectors over which you can run over.
+
+    /// 'allFields' contains all the gauge variables
+    enum allFields { ALL_FIELDS };
+    static const allFields all_flds[] = { ALL_FIELDS };
+
+    /// 'allDers' contains the first radial derivatives of the gauge variables
+    enum allDers { ALL_DERS };
+    static const allDers all_ders[] = { ALL_DERS };
+
+    /// 'allDerrs' contains the second radial derivatives of the gauge variables
+    enum allDerrs { ALL_DERRS };
+    static const allDerrs all_derrs[] = { ALL_DERRS };
+
     /// perhaps the vector below is useless
-    static const std::vector<Int> bispecInput_fields = { FIELDS };
+    //static const std::vector<Int> bispecInput_fields = { FIELDS };
 
 }
 
@@ -161,7 +221,7 @@ public:
         FILE* inf = fopen( fileName.c_str(), "rb" );
 
         if( ! inf ) {
-            std::cerr << "err: Cannot open file" << std::endl;
+            std::cerr << "err: CC: Cannot open file" << std::endl;
             return;
         }
 
@@ -170,7 +230,7 @@ public:
         Real x = 0;
         if( 1 != fread( &x, sizeof(Real), 1, inf ) || x != 201905021128 )
         {
-            std::cerr << "err: Magic number wrong" << std::endl;
+            std::cerr << "err: CC: Magic number wrong" << std::endl;
             fclose( inf );
             return;
         }
@@ -184,7 +244,7 @@ public:
             collocation_point = size_t(x + 1);
         }
         else {
-            std::cerr << "err: Cannot read expansion_order" << std::endl;
+            std::cerr << "err: CC: Cannot read expansion_order" << std::endl;
             fclose( inf );
             return;
         }
@@ -196,7 +256,7 @@ public:
 
         if ( data_size != fread( coeff, sizeof(Real), data_size, inf ) )
         {
-            std::cerr << "err: Cannot read all the Chebyshev coefficients" << std::endl;
+            std::cerr << "err: CC: Cannot read all the Chebyshev coefficients" << std::endl;
             delete [] coeff;
             coeff = nullptr;
             fclose( inf );
@@ -210,7 +270,7 @@ public:
 
         if ( ee_matrix_size != fread( ee_matrix, sizeof(Real), ee_matrix_size, inf ) )
         {
-            std::cerr << "err: Cannot read all the elements in the evolution matrix" << std::endl;
+            std::cerr << "err: CC: Cannot read all the elements in the evolution matrix" << std::endl;
             delete [] ee_matrix;
             ee_matrix = nullptr;
             fclose( inf );
@@ -232,7 +292,10 @@ public:
   */
 class bispecInput
 {
+    size_t input_fields;
     size_t number_fields;
+    size_t number_gauge_vars = 7;
+    size_t number_valencia   = 3;
     size_t expansion_order;
     size_t data_size;
     Real* spec_coeff;
@@ -248,9 +311,12 @@ public:
 
     // Methods to access the dimensions
     //
-    size_t n_fields () const{ return number_fields; }
-    size_t exp_order () const{ return expansion_order; }
-    size_t size_ID () const{ return data_size; }
+    size_t n_allfields() const{ return input_fields; }
+    size_t n_fields   () const{ return number_fields; }
+    size_t n_gauges   () const{ return number_gauge_vars; }
+    size_t n_valencia () const{ return number_valencia; }
+    size_t exp_order  () const{ return expansion_order; }
+    size_t size_ID    () const{ return data_size; }
 
     // Method to access the initial data
     //
@@ -283,7 +349,8 @@ public:
         // Read the number of evolved fields
         //
         if( 1 == fread( &x, sizeof(Real), 1, specid ) ) {
-            number_fields = size_t(x);
+            input_fields    = size_t(x);
+            number_fields   = input_fields - number_gauge_vars - number_valencia;
         }
         else {
             std::cerr << "err: ID: Cannot read number_fields" << std::endl;
@@ -304,7 +371,7 @@ public:
 
         // Read the spectral initial data
         //
-        data_size = number_fields * ( expansion_order + 1 );
+        data_size = input_fields * ( expansion_order + 1 );
         spec_coeff = new Real[ data_size ];
 
         if ( data_size != fread( spec_coeff, sizeof(Real), data_size, specid ) )
@@ -358,7 +425,7 @@ public:
         mExtra = 9;
         mDim = mLen + mExtra;
         exp_ord = bispecID.exp_order();
-        n_flds = bispecID.n_fields();
+        n_flds = bispecID.n_allfields();
         spcoeffs = new Real[ mDim * n_flds * ( exp_ord + 1 ) ];
 
         //std::cout << std::endl;
@@ -382,10 +449,19 @@ public:
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/** 'defineFields' defines the methods to access the values of the fields. The constructor assigns the initial data to the fields. This was part of bispecEvolve, but it is now a separate class, since the classes gaugeVariables and and dependentFields need the fields to be defined. In turn, bispecEvolve needs gaugeVariables and dependentFields in order to use the evolution equations. Hence, bispecEvolve is now relegated strictly to the computation of the time derivative of the spectral coefficients and their evolution through 'integrator.h'.
+/** 'defineFields' defines the methods to access the values of the fields, the gauges variables, the Valencia variables and their first and second radial derivatives.
+
+The format is: field( m, n ), with m being the time step and n being the index of the collocation point. This is the same format exported by Mathematica.
+
+The constructor assigns the initial data to the fields, i.e., it assignes values to field( 0, n ) for all n.
+
+'defineFields' was part of 'bispecEvolve', but it is now a separate class, since the classes gaugeVariables and and dependentFields need the fields to be defined. In turn, bispecEvolve needs gaugeVariables and dependentFields in order to use the evolution equations. Hence, bispecEvolve is now relegated strictly to the computation of the time derivative of the spectral coefficients and their evolution through 'integrator.h'.
   */
-class defineFields
+class primaryFields
 {
+
+protected:
+
     size_t m; /// The time step
     size_t n; /// The collocation point index
 
@@ -395,10 +471,14 @@ class defineFields
     size_t mExtra;
     size_t exp_ord;
     size_t n_flds;
+    size_t n_gauge;
+    size_t n_vlc;
+    size_t n_all_flds;
 
     Real *values_fields;
     Real *values_ders;
     Real *values_derrs;
+    Real *values_colpoints;
 
     Real *fields_t;
 
@@ -406,24 +486,60 @@ class defineFields
 
 public:
 
+    /** Method to access the values of the collocation points.
+      */
+
+    inline Real r( Int m, Int n )
+    {
+            return values_colpoints[ n ];
+    }
+
+    /** Methods to access the values of the fields at the collocation points. Everyone of these functions depend on the time step m and the collocation point index n.
+      */
+
     setfield( gconf )   setfield( gtrK )    setfield( gA )
     setfield( gB )      setfield( gA1 )     setfield( gL )
     setfield( fconf )   setfield( ftrK )    setfield( fA )
     setfield( fB )      setfield( fA1 )     setfield( fL )
+
+    setfield( gAlp )    setfield( fAlp )    setfield( hAlp )
+    setfield( gBet )    setfield( fBet )    setfield( hBet )
+    setfield( p )
+
+    setfield( pfD )     setfield( pfS )     setfield( pftau )
+
+    /** Define methods to access the values of the first radial derivatives of the fields at the collocation points. Everyone of these functions depend on the time step m and the collocation point index n.
+      */
 
     setder( gconf_r )   setder( gtrK_r )    setder( gA_r )
     setder( gB_r )      setder( gA1_r )     setder( gL_r )
     setder( fconf_r )   setder( ftrK_r )    setder( fA_r )
     setder( fB_r )      setder( fA1_r )     setder( fL_r )
 
+    setfield( gAlp_r )    setfield( fAlp_r )    setfield( hAlp_r )
+    setfield( gBet_r )    setfield( fBet_r )    setfield( hBet_r )
+    setfield( p_r )
+
+    setfield( pfD_r )     setfield( pfS_r )     setfield( pftau_r )
+
+    /** Define methods to access the values of the second radial derivatives of the fields at the collocation points. Everyone of these functions depend on the time step m and the collocation point index n.
+      */
+
     setderr( gconf_rr ) setderr( gtrK_rr )  setderr( gA_rr )
     setderr( gB_rr )    setderr( gA1_rr )   setderr( gL_rr )
     setderr( fconf_rr ) setderr( ftrK_rr )  setderr( fA_rr )
     setderr( fB_rr )    setderr( fA1_rr )   setderr( fL_rr )
 
+    setfield( gAlp_rr )    setfield( fAlp_rr )    setfield( hAlp_rr )
+    setfield( gBet_rr )    setfield( fBet_rr )    setfield( hBet_rr )
+    setfield( p_rr )
+
+    setfield( pfD_rr )     setfield( pfS_rr )     setfield( pftau_rr )
+
+
     /** The constructor computes the values of the fields, the derivatives and the evolution equations on the initial hypersurface
      */
-    defineFields( bispecInput& bispecID, ChebyshevCoefficients& chebyC, ChebyshevExpansion& chebyExp )
+    primaryFields( bispecInput& bispecID, ChebyshevCoefficients& chebyC, ChebyshevExpansion& chebyExp )
     {
 
         /// These definitions below are temporary. This class should inherit from ChebyshevExpansion, but I get errors from the inheritance.
@@ -431,19 +547,28 @@ public:
         mExtra  = 9;
         mDim    = mLen + mExtra;
         exp_ord = bispecID.exp_order();
+        n_all_flds = bispecID.n_allfields();
         n_flds  = bispecID.n_fields();
+        n_gauge = bispecID.n_gauges();
+        n_vlc   = bispecID.n_valencia();
 
         /// These arrays contain the values of the fields and their spatial first and second derivatives at the collocation points at each time step
-        values_fields   = new Real[ mDim * n_flds * ( exp_ord + 1 ) ];
-        values_ders     = new Real[ mDim * n_flds * ( exp_ord + 1 ) ];
-        values_derrs    = new Real[ mDim * n_flds * ( exp_ord + 1 ) ];
+        values_colpoints = new Real[ exp_ord + 1 ];
+        values_fields    = new Real[ mDim * n_all_flds * ( exp_ord + 1 ) ];
+        values_ders      = new Real[ mDim * n_all_flds * ( exp_ord + 1 ) ];
+        values_derrs     = new Real[ mDim * n_all_flds * ( exp_ord + 1 ) ];
+
+        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        {
+            values_colpoints[ n ] = bispecID( n_all_flds - 1, n );
+        }
 
         /** TODO: In the expansion below, one should include only the appropriate parity in
             the Chebyshev series of the fields
           */
 
         /// Computation of the values of the fields at the collocation points (CPs) on the initial hypersurface
-        for( const auto field : fields::flds )
+        for( const auto field : fields::all_flds )
         {
             for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
@@ -457,7 +582,7 @@ public:
         }
 
         /// Computation of the values of the first radial derivatives at the collocation points (CPs) on the initial hypersurface
-        for( const auto der : fields::ders )
+        for( const auto der : fields::all_ders )
         {
             for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
@@ -471,7 +596,7 @@ public:
         }
 
         /// Computation of the values of the second radial derivatives at the collocation points (CPs) on the initial hypersurface
-        for( const auto derr : fields::derrs )
+        for( const auto derr : fields::all_derrs )
         {
             for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
@@ -484,6 +609,103 @@ public:
             }
         }
 
+        /// The printouts below print the values of the fields at the collocation points on the initial hypersurface. They are compared against the values in Mathematica and they coincide (up to MachinePrecision).
+
+        /*std::cout << "The following are the values of the fields on the collocation points on the initial hypersurface (g-sector)," << std::endl;
+
+        std::cout << std::endl;
+
+        std::cout << "Collocation points," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "Conformal factor," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << gconf( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gtrK," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << gtrK( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gA," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << gA( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gB," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << gB( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gA1," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << gA1( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gL," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << gL( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gAlp," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << gAlp( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gBet," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << gBet( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "p," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << p( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pfD," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << pfD( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pfS," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << pfS( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pftau," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << pftau( 0, n ) << std::endl;
+        }*/
+
     }
 };
 
@@ -491,21 +713,25 @@ public:
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/** 'gaugeVariables' defines and compute the gauge variables
+/** 'gaugeVariables' defines and compute the gauge variables (maybe not needed, or maybe it can be used for the maximal slicing BVP)
   */
 /*class gaugeVariables
     : defineFields
 {
-    Real *gaugevariables;
+
+protected:
 
     Real Kdiff = 0.01;
     Real Kelas = 0.03;
 
     //#include "../include/eom-BSSN/eomBSSNKDGaugeComp.h"
 
-    gaugeVariables()
+public:
+
+    gaugeVariables( bispecInput& bispecID, ChebyshevCoefficients& chebyC, ChebyshevExpansion& chebyExp )
+    : defineFields( bispecID, chebyC, chebyExp )
     {
-        //gaugevariables = new Real[];
+
     }
 
 };*/
@@ -514,13 +740,96 @@ public:
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/** 'dependentFields' defines all the functions appearing in the evolution equations
+/** 'dependentFields' defines the methods to access the dependent (nonprimary) fields appearing in the evolution equations.
   */
-/*class dependentFields
-    : gaugeVariables
+class dependentFields
+    : primaryFields,
+      BimetricModel
 {
+    /// Dependent fields depending only on the primary fields
 
-};*/
+    #include "../include/eom-BSSN/eomBSSNRicciComp.h"
+
+    /// Dependent fields which over dependent fields depend upon
+
+    inline Real R  ( Int m, Int n )
+    {
+        Real x;
+        isGR() ? x = 1 : x = ( fB(m,n)*exp(2 * fconf(m,n)) ) /(gB(m,n)*exp(2 * gconf(m,n)));
+
+        return x;
+    }
+
+    inline Real Lt ( Int m, Int n )
+    {
+        Real x;
+        isGR() ? x = 1 : x = sqrt( 1 + p(m,n) * p(m,n) );
+
+        return x;
+    }
+
+    inline Real Lt2 ( Int m, Int n )
+    {
+        Real x;
+        isGR() ? x = 1 : x = 1 + p(m,n) * p(m,n);
+
+        return x;
+    }
+
+    inline Real gA2 ( Int m, Int n )
+    {
+
+        return - gA1( m, n ) / 2;
+    }
+
+    inline Real fA2 ( Int m, Int n )
+    {
+
+        return - fA1( m, n ) / 2;
+    }
+
+    inline Real gK1 ( Int m, Int n )
+    {
+
+        return gA1(m, n) + 1/3 *gtrK(m, n);
+    }
+
+    inline Real gK2 ( Int m, Int n )
+    {
+
+        return gA2(m, n) + 1/3 *gtrK(m, n);
+    }
+
+    inline Real fK1 ( Int m, Int n )
+    {
+
+        return fA1(m, n) + 1/3 *ftrK(m, n);
+    }
+
+    inline Real fK2 ( Int m, Int n )
+    {
+
+        return fA2(m, n) + 1/3 *ftrK(m, n);
+    }
+
+    /// Last dependent fields
+
+    #include "../include/eom-BSSN/eomBSSNMatterComp.h"
+    #include "../include/eom-BSSN/eomBSSNSourcesCompEul.h"
+    #include "../include/eom-BSSN/eomBSSNEvolutionCompEul.h"
+
+    dependentFields(
+                        bispecInput&            bispecID,
+                        ChebyshevCoefficients&  chebyC,
+                        ChebyshevExpansion&     chebyExp,
+                        Parameters&             params
+                    ):
+        primaryFields( bispecID, chebyC, chebyExp ),
+        BimetricModel( params )
+    {
+
+    }
+};
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -585,7 +894,7 @@ public:
           */
 
         /// Computation of the values of the fields at the collocation points (CPs) on the initial hypersurface
-        for( const auto field : fields::flds )
+        for( const auto field : fields::all_flds )
         {
             for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
@@ -599,7 +908,7 @@ public:
         }
 
         /// Computation of the values of the first radial derivatives at the collocation points (CPs) on the initial hypersurface
-        for( const auto der : fields::ders )
+        for( const auto der : fields::all_ders )
         {
             for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
@@ -613,7 +922,7 @@ public:
         }
 
         /// Computation of the values of the second radial derivatives at the collocation points (CPs) on the initial hypersurface
-        for( const auto derr : fields::derrs )
+        for( const auto derr : fields::all_derrs )
         {
             for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
@@ -698,7 +1007,7 @@ int main()
         The are constant in time, hence we can compute them in Mathematica with high precision and load them once here.
      */
 
-    ChebyshevCoefficients cc( "include/chebyshev-values/testBin.dat" );
+    ChebyshevCoefficients cc( "C:/Users/Francesco/Dropbox/Dottorato/Research/3+1_Numerical_bimetric_relativity/BSSN_formalism/C++/bimetric-ss-20181026/bim-solver/include/chebyshev-values/testBin.dat" );
     if( ! cc.isOK () ) {
         return -1;
     }
@@ -744,7 +1053,7 @@ int main()
 
     std::cout << ID.n_fields() << " x " << ID.exp_order() + 1 << std::endl;
 
-    for( size_t field = 0; field < ID.n_fields(); ++field )
+    for( size_t field = 0; field < ID.n_allfields(); ++field )
     {
         std::cout << "This is the field " << field << std::endl;
         for( size_t n = 0; n < ID.exp_order() + 1; ++n )
@@ -775,10 +1084,15 @@ int main()
         }
     }*/
 
+    /** Define and compute the values of the fields at the collocation points
+     */
+
+     primaryFields defineFlds( ID, cc, chebySeries );
+
     /** Evolve the coefficients
      */
 
-    bispecEvolve bispecEvolution( ID, cc, chebySeries );
+    //bispecEvolve bispecEvolution( ID, cc, chebySeries );
 
     return 0;
 }

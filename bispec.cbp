@@ -31,6 +31,14 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="include/bimetricModel.h" />
+		<Unit filename="include/eom-BSSN/eomBSSNEvolutionCompEul.h" />
+		<Unit filename="include/eom-BSSN/eomBSSNKDGaugeComp.h" />
+		<Unit filename="include/eom-BSSN/eomBSSNRicciComp.h" />
+		<Unit filename="include/eom-BSSN/eomBSSNSourcesCompEul.h" />
+		<Unit filename="include/numMethods/dataTypes.h" />
+		<Unit filename="include/sys/paramsHolder.h" />
+		<Unit filename="include/sys/slog.h" />
 		<Unit filename="src/bispec.cpp" />
 		<Extensions>
 			<code_completion />
