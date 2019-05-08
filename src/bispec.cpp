@@ -516,11 +516,11 @@ public:
     setder( fconf_r )   setder( ftrK_r )    setder( fA_r )
     setder( fB_r )      setder( fA1_r )     setder( fL_r )
 
-    setfield( gAlp_r )    setfield( fAlp_r )    setfield( hAlp_r )
-    setfield( gBet_r )    setfield( fBet_r )    setfield( hBet_r )
-    setfield( p_r )
+    setder( gAlp_r )    setder( fAlp_r )    setder( hAlp_r )
+    setder( gBet_r )    setder( fBet_r )    setder( hBet_r )
+    setder( p_r )
 
-    setfield( pfD_r )     setfield( pfS_r )     setfield( pftau_r )
+    setder( pfD_r )     setder( pfS_r )     setder( pftau_r )
 
     /** Define methods to access the values of the second radial derivatives of the fields at the collocation points. Everyone of these functions depend on the time step m and the collocation point index n.
       */
@@ -530,11 +530,11 @@ public:
     setderr( fconf_rr ) setderr( ftrK_rr )  setderr( fA_rr )
     setderr( fB_rr )    setderr( fA1_rr )   setderr( fL_rr )
 
-    setfield( gAlp_rr )    setfield( fAlp_rr )    setfield( hAlp_rr )
-    setfield( gBet_rr )    setfield( fBet_rr )    setfield( hBet_rr )
-    setfield( p_rr )
+    setderr( gAlp_rr )  setderr( fAlp_rr )  setderr( hAlp_rr )
+    setderr( gBet_rr )  setderr( fBet_rr )  setderr( hBet_rr )
+    setderr( p_rr )
 
-    setfield( pfD_rr )     setfield( pfS_rr )     setfield( pftau_rr )
+    setderr( pfD_rr )   setderr( pfS_rr )   setderr( pftau_rr )
 
 
     /** The constructor computes the values of the fields, the derivatives and the evolution equations on the initial hypersurface
@@ -1129,6 +1129,21 @@ public:
         for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
         {
             std::cout << fL_t( 0, n ) << ", ";
+        }
+        std::cout << std::endl << std::endl;
+
+        std::cout << "Other fields," << std::endl << std::endl;
+
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << (gBet(0,n) * (2 - 2 * r(0,n))) / (1 + TINY_Real
+    /*2*/  + r(0,n)) << ", ";
+        }
+        std::cout << std::endl << std::endl;
+
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << gBet(0,n) << ", ";
         }
         std::cout << std::endl << std::endl;
 
