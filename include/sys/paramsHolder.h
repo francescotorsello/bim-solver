@@ -28,7 +28,7 @@ public:
         FILE* inf = fileName == "stdin" ? stdin
                   : fopen( fileName.c_str(), "r" );
         if( ! inf ) {
-            std::cerr << "Error: Could not open " << fileName << std::endl;
+            std::cerr << "Error in class Parameters: Could not open " << fileName << std::endl;
             return;
         }
 
@@ -41,7 +41,7 @@ public:
                 // empty line
             }
             else if ( eqpos < 0 || line[eqpos] != '=' ) {
-                std::cerr << "Error: Not 'key = value' pair:" << std::endl << line;
+                std::cerr << "Error in class Parameters: Not 'key = value' pair:" << std::endl << line;
             }
             else {
                 char* chp = line + value;

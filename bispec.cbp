@@ -34,6 +34,7 @@
 		<Unit filename="include/bimetricModel.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNEvolutionCompEul.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNKDGaugeComp.h" />
+		<Unit filename="include/eom-BSSN/eomBSSNMatterComp.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNRicciComp.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNSourcesCompEul.h" />
 		<Unit filename="include/numMethods/dataTypes.h" />
