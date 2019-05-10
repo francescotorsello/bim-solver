@@ -39,10 +39,11 @@
     This order MUST match the order of exportation in the Mathematica file.
   */
 
-#define EVOLVED_FIELDS gconf, fconf, gtrK, ftrK, gA, fA, gB, fB, gA1, fA1, gL, fL
+#define EVOLVED_FIELDS  gconf, fconf, gtrK, ftrK, gA, fA, gB, fB, gA1, fA1, gL, fL, \
+                        pfD, pfS, pftau
 
 #define FIELDS_T    gconf_t, fconf_t, gtrK_t, ftrK_t, gA_t, fA_t, gB_t, fB_t, gA1_t, \
-                    fA1_t, gL_t, fL_t
+                    fA1_t, gL_t, fL_t, gD_t, gS_t, gtau_t
 
 #define DERS    gconf_r, fconf_r, gtrK_r, ftrK_r, gA_r, fA_r, gB_r, fB_r, gA1_r, fA1_r, \
                 gL_r, fL_r
@@ -100,10 +101,6 @@
         }
 
 using namespace std;
-
-typedef double Real;
-typedef long Int;
-
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -187,10 +184,11 @@ class ChebyshevCoefficients
     size_t collocation_point;
     size_t data_size;
     size_t ee_matrix_size;
-    Real* coeff;
-    Real* ee_matrix;
 
 public:
+
+    Real* coeff;
+    Real* ee_matrix;
 
     // isOK() returns true if the coefficients were successfully read
     // from a file (so the object is correctly instantiated).
@@ -207,15 +205,10 @@ public:
 
     // Method to access the coefficients
     //
-    Real operator() ( size_t i, size_t j, size_t k )
+    Real operator()( size_t der_order, size_t cheby_index, size_t n )
     {
-        return coeff[ i * chebyshev_index * collocation_point
-                    + j * collocation_point + k ];
-    }
-
-    Real evolutionMatrix ( size_t j, size_t k )
-    {
-        return ee_matrix[ j * collocation_point + k ];
+        return coeff[ der_order * chebyshev_index * collocation_point
+                    + cheby_index * collocation_point + n ];
     }
 
     // Method to print the coefficients to a file
@@ -303,8 +296,6 @@ public:
 
 };
 
-
-
 //////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -372,7 +363,9 @@ public:
         //
         if( 1 == fread( &x, sizeof(Real), 1, specid ) ) {
             input_fields    = size_t(x);
-            number_fields   = input_fields - number_gauge_vars;
+            /// The basic number of evolved fields is the number of input fields, \
+                minus the number of gauge variables minus p
+            number_fields   = input_fields - number_gauge_vars - 1;
         }
         else {
             std::cerr << "err: ID: Cannot read number_fields" << std::endl;
@@ -491,8 +484,19 @@ public:
     evolution equations. Hence, bispecEvolve is now relegated strictly to the computation
     of the time derivative of the spectral coefficients and their evolution through
     'integrator.h'.
+
+    Note that bispecEvolve is also responsible to assign values to the arrays
+    values_fields, values_fields, values_fields at the next time step. The primary
+    fields are called through methods accessing these arrays. Hence, if these arrays
+    have a meaningful value, the primary fields will access them. This is necessary for
+    the dependent fields in the derived class dependentFields to have a meaningful value.
+    Hence, in the end what we need to do in bispecEvolve is to evolve the coefficients
+    and to assign values to values_fields, values_fields, values_fields. The rest will
+    follow.
   */
 class primaryFields
+    : //ChebyshevCoefficients,
+      ChebyshevExpansion
 {
 
 protected:
@@ -516,6 +520,7 @@ protected:
     Real *values_colpoints;
 
     Real *fields_t;
+    Real *chebyCoeff;
 
 public:
 
@@ -558,9 +563,9 @@ public:
 
     setder( pfD_r )     setder( pfS_r )     setder( pftau_r )
 
-    /** Define methods to access the values of the second radial derivatives of the fields
-        at the collocation points. Everyone of these functions depend on the time step m
-        and the collocation point index n.
+    /** Define methods to access the values of the second radial derivatives of the
+        fields at the collocation points. Everyone of these functions depend on the
+        time step m and the collocation point index n.
       */
 
     setderr( gconf_rr ) setderr( gtrK_rr )  setderr( gA_rr )
@@ -574,19 +579,76 @@ public:
 
     setderr( pfD_rr )   setderr( pfS_rr )   setderr( pftau_rr )
 
+    inline void computeFields( size_t m )
+    {
+        /** TODO: In the expansion below, one should include only the appropriate parity
+            in the Chebyshev series of the fields
+          */
+
+        /// Computation of the values of the fields at the collocation points (CPs) on \
+            the initial hypersurface
+        for( const auto field : fields::all_flds )
+        {
+            for( size_t n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+            {
+                Real sum = 0;
+                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+                {
+                    sum += specC( m, field, cheby_index )
+                            * chebyCoeff[ cheby_index * ( exp_ord + 1 ) + n ];
+                }
+                values_fields[ ( exp_ord + 1 ) * field + n ] = sum;
+            }
+        }
+
+        /// Computation of the values of the first radial derivatives at the \
+            collocation points (CPs) on the initial hypersurface
+        for( const auto der : fields::all_ders )
+        {
+            for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+            {
+                Real sum = 0;
+                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+                {
+                    sum += specC( m, der, cheby_index )
+                            * chebyCoeff[ ( exp_ord + 1 ) * ( exp_ord + 1 )
+                                + cheby_index * ( exp_ord + 1 ) + n ];
+                }
+                values_ders[ ( exp_ord + 1 ) * der + n ] = sum;
+            }
+        }
+
+        /// Computation of the values of the second radial derivatives at the \
+            collocation points (CPs) on the initial hypersurface
+        for( const auto derr : fields::all_derrs )
+        {
+            for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+            {
+                Real sum = 0;
+                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+                {
+                    sum += specC( m, derr, cheby_index )
+                            * chebyCoeff[ 2*( exp_ord + 1 ) * ( exp_ord + 1 )
+                                + cheby_index * ( exp_ord + 1 ) + n ];
+                }
+                values_derrs[ ( exp_ord + 1 ) * derr + n ] = sum;
+            }
+        }
+    }
+
 
     /** The constructor computes the values of the fields, the derivatives and the
         evolution equations on the initial hypersurface
      */
     primaryFields(
-        bispecInput& bispecID,
-        ChebyshevCoefficients& chebyC,
-        ChebyshevExpansion& chebyExp
-    )
+        bispecInput&            bispecID,
+        //const std::string   fileName
+        ChebyshevCoefficients&  chebyC
+        //ChebyshevExpansion&     chebyExp
+    ) :
+        //ChebyshevCoefficients( fileName ),
+        ChebyshevExpansion( bispecID )
     {
-
-        /// These definitions below are temporary. This class should inherit from \
-            ChebyshevExpansion, but I get errors from the inheritance.
         mLen    = 5;
         mExtra  = 9;
         mDim    = mLen + mExtra;
@@ -608,15 +670,32 @@ public:
             values_colpoints[ n ] = bispecID( n_all_flds - 1, n );
         }
 
+        chebyCoeff = new Real[ 3 * ( exp_ord + 1 ) * ( exp_ord + 1 ) ];
+
+        for( size_t der_order = 0; der_order < 3; ++der_order )
+        {
+            for( size_t cheby_index = 0; cheby_index < ( exp_ord + 1 ); ++cheby_index )
+            {
+                for( size_t n = 0; n < ( exp_ord + 1 ); ++n )
+                {
+                    chebyCoeff[ der_order * ( exp_ord + 1 ) * ( exp_ord + 1 )
+                        + cheby_index * ( exp_ord + 1 ) + n ] =
+                            chebyC( der_order, cheby_index, n );
+                }
+            }
+        }
+
+        computeFields( 0 );
+
         /** TODO: In the expansion below, one should include only the appropriate parity
             in the Chebyshev series of the fields
           */
 
         /// Computation of the values of the fields at the collocation points (CPs) on \
             the initial hypersurface
-        for( const auto field : fields::all_flds )
+        /*for( const auto field : fields::all_flds )
         {
-            for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+            for( size_t n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
                 Real sum = 0;
                 for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
@@ -658,7 +737,7 @@ public:
                 }
                 values_derrs[ ( exp_ord + 1 ) * derr + n ] = sum;
             }
-        }
+        }*/
 
         /// The printouts below print the values of the fields at the collocation points \
             on the initial hypersurface. They are compared against the values in \
@@ -800,7 +879,8 @@ public:
 //////////////////////////////////////////////////////////////////////////////////////////
 
 /** 'dependentFields' defines the methods to access the dependent (nonprimary) fields
-    appearing in the evolution equations.
+    appearing in the evolution equations. If the primary fields have an assigned value
+    at the time step m, then the dependent fields will also have a defined value.
   */
 class dependentFields
     : primaryFields,
@@ -876,17 +956,18 @@ public:
 
     dependentFields(
         bispecInput&            bispecID,
+        //const std::string       fileName,
         ChebyshevCoefficients&  chebyC,
-        ChebyshevExpansion&     chebyExp,
+        //ChebyshevExpansion&     chebyExp,
         Parameters&             params
     ) :
-        primaryFields( bispecID, chebyC, chebyExp ),
+        primaryFields( bispecID, chebyC ),
         BimetricModel( params )
     {
 
         /// The printouts below print the values of the dependent fields at the collocation points on the initial hypersurface.
 
-        std::cout << "The following are the values of the dependent fields on the collocation points on the initial hypersurface," << std::endl << std::endl;
+        /*std::cout << "The following are the values of the dependent fields on the collocation points on the initial hypersurface," << std::endl << std::endl;
 
         std::cout << "The collocation points, "<< std::endl << std::endl;
         for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
@@ -1083,7 +1164,8 @@ public:
         }
         std::cout << std::endl << std::endl;;
 
-        std::cout << "The sources in the evolution equations," << std::endl << std::endl;
+        std::cout << "The sources in the evolution equations at the collocation points,"
+            << std::endl << std::endl;
 
         std::cout << "gJK: ";
         for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
@@ -1213,12 +1295,33 @@ public:
         }
         std::cout << std::endl << std::endl;
 
+        std::cout << "gD_t: ";
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << gD_t( 0, n ) << ", ";
+        }
+        std::cout << std::endl << std::endl;
+
+        std::cout << "gS_t: ";
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << gS_t( 0, n ) << ", ";
+        }
+        std::cout << std::endl << std::endl;
+
+        std::cout << "gtau_t: ";
+        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        {
+            std::cout << gtau_t( 0, n ) << ", ";
+        }
+        std::cout << std::endl << std::endl;
+
         std::cout << "Other fields," << std::endl << std::endl;
 
         for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
         {
             std::cout << (gBet(0,n) * (2 - 2 * r(0,n))) / (1 + TINY_Real
-    /*2*/  + r(0,n)) << ", ";
+                + r(0,n)) << ", ";
         }
         std::cout << std::endl << std::endl;
 
@@ -1228,7 +1331,7 @@ public:
         }
         std::cout << std::endl << std::endl;
 
-        std::cout << std::endl;
+        std::cout << std::endl;*/
 
     }
 };
@@ -1237,6 +1340,8 @@ public:
 //////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
 
+/** The evolution of the gauge variables is not included yet in 'bispecEvolve'. It must be handled separately because it depends on the choice of the user.
+  */
 class bispecEvolve
     : //primaryFields,
       dependentFields
@@ -1252,6 +1357,15 @@ class bispecEvolve
     std::vector<FP> fields_t = { FIELDS_T };
 
     Real *b;
+    Real *A;
+    //ChebyshevCoefficients* cheby_pointer;
+
+    /*Real evolutionMatrix( size_t cheby_index, size_t n )
+    {
+        return ee_matrix[ cheby_index * collocation_point + n ];
+    }*/
+
+public:
 
     /** Method to access the vector b
       */
@@ -1262,22 +1376,53 @@ class bispecEvolve
             + ( exp_ord + 1 ) * field + n ];
     }
 
-    ChebyshevCoefficients* cheby_pointer;
-
-    inline void solveDerivatives( Int m, Int n )
+    inline Real get_spec_t( size_t m, size_t field, size_t n )
     {
-        for( Int field = 0; field < fields_t.size(); ++field )
+        return spec_t[ ( exp_ord + 1 * fields_t.size() ) * m
+            + ( exp_ord + 1 ) * field + n ];
+    }
+
+    inline void arrange_fields_t( size_t m )
+    {
+        for( size_t field = 0; field < fields_t.size(); ++field )
         {
-            spec_t[field] = 0;
-            for( Int cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            for( size_t n = 0; n < exp_ord + 1; ++n )
             {
-                spec_t[field] += (cheby_pointer -> evolutionMatrix( field, cheby_index ))
-                    * evolution_eqs( m, field, n );
+                b[ ( ( exp_ord + 1 ) * fields_t.size() ) * m
+                    + ( exp_ord + 1 ) * field + n ] =
+                        ( this ->* fields_t[ field ] )( m, n );
             }
         }
     }
 
-public:
+    inline void solveDerivatives( size_t m )
+    {
+        /// For each field
+        for( size_t field = 0; field < fields_t.size(); ++field )
+        { /// Solve the linear algebraic system, i.e.,
+            /// for each Chebyshev index (row)
+            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            {
+                spec_t[ ( ( exp_ord + 1 ) * fields_t.size() ) * m
+                    + ( exp_ord + 1 ) * field + cheby_index ] = 0;
+                /// For each collocation point (column)
+                for( size_t n = 0; n < exp_ord +1; ++n )
+                {
+                    spec_t[ ( ( exp_ord + 1 ) * fields_t.size() ) * m
+                        + ( exp_ord + 1 ) * field + cheby_index ] +=
+                            A[ cheby_index * ( exp_ord + 1 ) + n ]
+                                * evolution_eqs( m, field, n );
+                            /*(cheby_pointer -> evolutionMatrix( cheby_index, n ))
+                            * evolution_eqs( m, field, n );*/
+                            /*ChebyshevCoefficients::evolutionMatrix( cheby_index, n )
+                                * evolution_eqs( m, field, n );*/
+                            /*ChebyshevCoefficients::evolutionMatrix( cheby_index, n )
+                                * evolution_eqs( m, field, n );*/
+
+                }
+            }
+        }
+    }
 
     void test_dump () {
         std::cout << "test dump " << (this->*fields_t[0])( 0, 3 ) << std::endl;
@@ -1285,28 +1430,46 @@ public:
 
     bispecEvolve(
         bispecInput&            bispecID,
+        //const std::string       fileName,
         ChebyshevCoefficients&  chebyC,
-        ChebyshevExpansion&     chebyExp,
+        //ChebyshevExpansion&     chebyExp,
         Parameters&             params
     ) :
         //primaryFields  ( bispecID, chebyC, chebyExp ),
-        dependentFields( bispecID, chebyC, chebyExp, params ),
-        cheby_pointer( &chebyC )
+        dependentFields( bispecID, chebyC, params )//chebyC, chebyExp, params ),
+        //cheby_pointer( &chebyC )
     {
 
         exp_ord  = bispecID.exp_order();
 
-        /// TODO: check that it is the same as n_flds
-        b = new Real[ get_mDim() * fields_t.size() * ( bispecID.exp_order() + 1 ) ];
+        A       = new Real[ ( bispecID.exp_order() + 1 ) * ( bispecID.exp_order() + 1 ) ];
+        b       = new Real[ get_mDim() * fields_t.size() * ( bispecID.exp_order() + 1 ) ];
+        spec_t  = new Real[ get_mDim() * fields_t.size() * ( bispecID.exp_order() + 1 ) ];
 
-        for( size_t field = 0; field < fields_t.size(); ++field )
+        if( bispecID.n_fields() != fields_t.size() )
         {
-            for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+            std::cerr << "err: bispecEvolve: mismatch in the number of fields"
+                << std::endl << std::endl;
+            std::cout << bispecID.n_fields() << ", " << fields_t.size() << std::endl
+                 << std::endl;
+
+            /// To stop the run from here, an exception must be thrown
+            return;
+        }
+
+        for( size_t cheby_index = 0; cheby_index < ( bispecID.exp_order() + 1 );
+            ++cheby_index )
+        {
+            for( size_t n = 0; n < ( bispecID.exp_order() + 1 ); ++n )
             {
-                b[ ( bispecID.exp_order() + 1 ) * field + n ] =
-                    ( this ->* fields_t[ field ] )( 0, n );
+                A[ cheby_index * ( bispecID.exp_order() + 1 ) + n ] =
+                    chebyC.ee_matrix[ cheby_index * ( bispecID.exp_order() + 1 ) + n ];
             }
         }
+
+
+        arrange_fields_t( 0 );
+        solveDerivatives( 0 );
 
         /*std::cout << "The evolution equations stored in the vector," << std::endl
             << std::endl;
@@ -1370,7 +1533,7 @@ int main()
     /** Import the values of the Chebyshev polynomials at the collocation points.
         The are constant in time, hence we can compute them in Mathematica with high
         precision and load them once here.
-     */
+      */
 
     ChebyshevCoefficients cc( "../bim-solver/include/chebyshev-values/testBin.dat" );
     if( ! cc.isOK () ) {
@@ -1394,7 +1557,7 @@ int main()
 
     cc.exportChebyCoeffs();*/
 
-    std::cout << "The following is the evolution matrix," << std::endl;
+    /*std::cout << "The following is the evolution matrix," << std::endl;
 
     for( size_t j = 0; j < cc.chebys(); ++j )
     {
@@ -1403,11 +1566,11 @@ int main()
             std::cout << "(" << j << "," << k << ") = "
                         << cc.evolutionMatrix(j,k) << std::endl;
         }
-    }
+    }*/
 
     /** Import the initial data, i.e., the values of the Chebyshev spectral coefficients
         in the Chebyshev series of the fields on the initial hypersurface.
-     */
+      */
 
     bispecInput ID("../run/specInput.dat");
     if( ! ID.isOK () ) {
@@ -1440,7 +1603,7 @@ int main()
     /** Define the array containing the spectral coefficients as a function of the fields
         defined in the namespace fields, the time step m and the
         collocation point index n.
-     */
+      */
 
     ChebyshevExpansion chebySeries( ID );
 
@@ -1459,23 +1622,52 @@ int main()
     }*/
 
     /** Define and compute the values of the fields at the collocation points
-     */
+      */
 
-     //primaryFields defineFlds( ID, cc, chebySeries );
+     //primaryFields defineFlds( ID, cc );
 
-    /** Define and compute everything on the initial hypersurface. The constructor of dependentFields calls primaryFields' one.
-     */
+    /** Define and compute everything on the initial hypersurface. The constructor of
+        dependentFields calls primaryFields' one.
+      */
 
-     dependentFields setupIH( ID, cc, chebySeries, params );
+     //dependentFields setupIH( ID, cc, params );
 
-    /** Evolve the coefficients
-     */
+    /** Evolve the spectral coefficients
+      */
 
-    //bispecEvolve bispecEvolution( ID, cc, chebySeries );
+    bispecEvolve evolution( ID, cc, /*chebySeries,*/ params );
 
-    bispecEvolve foo( ID, cc, chebySeries, params );
+    //evolution.solveDerivatives( 0 );
 
-    foo.test_dump();
+    /*std::cout <<
+        "The time derivatives of the fields arranged in the vector b,"
+            << std::endl << std::endl;
+    for( size_t field = 0; field < ID.n_fields(); ++field )
+    {
+        std::cout << "These are the derivatives of the fields "
+            << "(field,collocation_point), " << std::endl << std::endl;
+        for( size_t n = 0; n < ID.exp_order() + 1; ++n )
+        {
+            std::cout << "(" << field << "," << n << ") = "
+                      << evolution.evolution_eqs( 0, field, n ) << std::endl;
+        }
+        std::cout << std::endl;
+    }*/
+
+    /*std::cout <<
+        "The time derivatives of the spectral coefficients on the initial hypersurface,"
+            << std::endl << std::endl;
+    for( size_t field = 0; field < ID.n_fields(); ++field )
+    {
+        std::cout << "These are the derivatives of the spectral coefficients of "
+            << "(field,cheby_index), " << std::endl << std::endl;
+        for( size_t cheby_index = 0; cheby_index < ID.exp_order() + 1; ++cheby_index )
+        {
+            std::cout << "(" << field << "," << cheby_index << ") = "
+                      << evolution.get_spec_t( 0, field, cheby_index ) << std::endl;
+        }
+        std::cout << std::endl;
+    }*/
 
     return 0;
 }
