@@ -883,7 +883,7 @@ public:
     at the time step m, then the dependent fields will also have a defined value.
   */
 class dependentFields
-    : primaryFields,
+    : virtual primaryFields,
       BimetricModel
 {
 
@@ -1343,7 +1343,7 @@ public:
 /** The evolution of the gauge variables is not included yet in 'bispecEvolve'. It must be handled separately because it depends on the choice of the user.
   */
 class bispecEvolve
-    : //primaryFields,
+    : virtual primaryFields,
       dependentFields
 {
 
@@ -1382,6 +1382,9 @@ public:
             + ( exp_ord + 1 ) * field + n ];
     }
 
+    /** Method fill the vector b
+      */
+
     inline void arrange_fields_t( size_t m )
     {
         for( size_t field = 0; field < fields_t.size(); ++field )
@@ -1394,6 +1397,9 @@ public:
             }
         }
     }
+
+    /** Method solve for the time derivatives of the spectral coefficients
+      */
 
     inline void solveDerivatives( size_t m )
     {
@@ -1424,10 +1430,6 @@ public:
         }
     }
 
-    void test_dump () {
-        std::cout << "test dump " << (this->*fields_t[0])( 0, 3 ) << std::endl;
-    }
-
     bispecEvolve(
         bispecInput&            bispecID,
         //const std::string       fileName,
@@ -1435,7 +1437,7 @@ public:
         //ChebyshevExpansion&     chebyExp,
         Parameters&             params
     ) :
-        //primaryFields  ( bispecID, chebyC, chebyExp ),
+        primaryFields  ( bispecID, chebyC ),
         dependentFields( bispecID, chebyC, params )//chebyC, chebyExp, params ),
         //cheby_pointer( &chebyC )
     {
@@ -1654,7 +1656,7 @@ int main()
         std::cout << std::endl;
     }*/
 
-    /*std::cout <<
+    std::cout <<
         "The time derivatives of the spectral coefficients on the initial hypersurface,"
             << std::endl << std::endl;
     for( size_t field = 0; field < ID.n_fields(); ++field )
@@ -1667,7 +1669,7 @@ int main()
                       << evolution.get_spec_t( 0, field, cheby_index ) << std::endl;
         }
         std::cout << std::endl;
-    }*/
+    }
 
     return 0;
 }
