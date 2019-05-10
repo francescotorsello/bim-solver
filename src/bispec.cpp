@@ -303,7 +303,7 @@ public:
     on the initial hypersurface.
     TODO: merge with ChebyshevCoefficients.
   */
-class bispecInput
+class BispecInput
 {
     size_t input_fields;
     size_t number_fields;
@@ -340,7 +340,7 @@ public:
 
     // Constructor: Reads the spectral initial data from a file.
     //
-    bispecInput( const std::string fileName )
+    BispecInput( const std::string fileName )
     {
         FILE* specid = fopen( fileName.c_str(), "rb" );
 
@@ -436,7 +436,7 @@ public:
     }
 
     /// Constructor: Save the spectral coefficients to their initial values.
-    ChebyshevExpansion( bispecInput& bispecID )
+    ChebyshevExpansion( BispecInput& bispecID )
     {
 
         mLen = 5;
@@ -494,7 +494,7 @@ public:
     and to assign values to values_fields, values_fields, values_fields. The rest will
     follow.
   */
-class primaryFields
+class PrimaryFields
     : //ChebyshevCoefficients,
       ChebyshevExpansion
 {
@@ -640,8 +640,8 @@ public:
     /** The constructor computes the values of the fields, the derivatives and the
         evolution equations on the initial hypersurface
      */
-    primaryFields(
-        bispecInput&            bispecID,
+    PrimaryFields(
+        BispecInput&            bispecID,
         //const std::string   fileName
         ChebyshevCoefficients&  chebyC
         //ChebyshevExpansion&     chebyExp
@@ -882,8 +882,8 @@ public:
     appearing in the evolution equations. If the primary fields have an assigned value
     at the time step m, then the dependent fields will also have a defined value.
   */
-class dependentFields
-    : virtual primaryFields,
+class DependentFields
+    : virtual PrimaryFields,
       BimetricModel
 {
 
@@ -954,14 +954,14 @@ protected:
 
 public:
 
-    dependentFields(
-        bispecInput&            bispecID,
+    DependentFields(
+        BispecInput&            bispecID,
         //const std::string       fileName,
         ChebyshevCoefficients&  chebyC,
         //ChebyshevExpansion&     chebyExp,
         Parameters&             params
     ) :
-        primaryFields( bispecID, chebyC ),
+        PrimaryFields( bispecID, chebyC ),
         BimetricModel( params )
     {
 
@@ -1342,9 +1342,9 @@ public:
 
 /** The evolution of the gauge variables is not included yet in 'bispecEvolve'. It must be handled separately because it depends on the choice of the user.
   */
-class bispecEvolve
-    : virtual primaryFields,
-      dependentFields
+class BispecEvolve
+    : virtual PrimaryFields,
+      DependentFields
 {
 
     Int m;
@@ -1353,7 +1353,7 @@ class bispecEvolve
 
     size_t exp_ord;
 
-    typedef Real (dependentFields::*FP)( Int m, Int n );
+    typedef Real (DependentFields::*FP)( Int m, Int n );
     std::vector<FP> fields_t = { FIELDS_T };
 
     Real *b;
@@ -1376,13 +1376,16 @@ public:
             + ( exp_ord + 1 ) * field + n ];
     }
 
+    /** Method to access the time derivatives of the spectral coefficients
+      */
+
     inline Real get_spec_t( size_t m, size_t field, size_t n )
     {
         return spec_t[ ( exp_ord + 1 * fields_t.size() ) * m
             + ( exp_ord + 1 ) * field + n ];
     }
 
-    /** Method fill the vector b
+    /** Method to fill the vector b
       */
 
     inline void arrange_fields_t( size_t m )
@@ -1430,15 +1433,18 @@ public:
         }
     }
 
-    bispecEvolve(
-        bispecInput&            bispecID,
+    /** The constructor sets up the linear algebraic system on the initial hypersurface
+      */
+
+    BispecEvolve(
+        BispecInput&            bispecID,
         //const std::string       fileName,
         ChebyshevCoefficients&  chebyC,
         //ChebyshevExpansion&     chebyExp,
         Parameters&             params
     ) :
-        primaryFields  ( bispecID, chebyC ),
-        dependentFields( bispecID, chebyC, params )//chebyC, chebyExp, params ),
+        PrimaryFields  ( bispecID, chebyC ),
+        DependentFields( bispecID, chebyC, params )//chebyC, chebyExp, params ),
         //cheby_pointer( &chebyC )
     {
 
@@ -1574,7 +1580,7 @@ int main()
         in the Chebyshev series of the fields on the initial hypersurface.
       */
 
-    bispecInput ID("../run/specInput.dat");
+    BispecInput ID("../run/specInput.dat");
     if( ! ID.isOK () ) {
         return -1;
     }
@@ -1637,7 +1643,7 @@ int main()
     /** Evolve the spectral coefficients
       */
 
-    bispecEvolve evolution( ID, cc, /*chebySeries,*/ params );
+    BispecEvolve evolution( ID, cc, /*chebySeries,*/ params );
 
     //evolution.solveDerivatives( 0 );
 
@@ -1670,6 +1676,15 @@ int main()
         }
         std::cout << std::endl;
     }
+
+    //////////////////////////////////////////////////////////////////////////////////////
+
+    /// The following is the last line in bim-solver. It should be the same here.
+    /// - Evolve the equations of motion
+    ///
+    //return integrator.evolveEquations () ? 0 : -1;
+
+    //////////////////////////////////////////////////////////////////////////////////////
 
     return 0;
 }

@@ -869,7 +869,6 @@ void MoL::integrate_MoL( const MoLDescriptor& MoL, bool adaptiveStepSize )
             }
 
             /////////////////////////////////////////////////////////////////////////////
-            //
             if( adaptiveStepSize )
             {
                 // Do an alternative last step, i = N - 1, but slightly modified.
