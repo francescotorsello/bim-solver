@@ -422,18 +422,12 @@ protected:
     size_t mExtra;
     size_t exp_ord;
     size_t n_flds;
-    /// The array containing the spectral coefficients for all the Chebychev series \
-        of the fields
-    Real *spcoeffs;
 
 public:
 
-    /// Method to access the spectral coefficients. Since we will make use of the \
-        integrator from bim-solver, we copy the structure of GF in gridDriver.
-    Real specC( size_t m, size_t field, size_t n )
-    {
-        return spcoeffs[ ( n_flds * ( exp_ord + 1 ) ) * m + ( exp_ord + 1 ) * field + n ];
-    }
+    /// The array containing the spectral coefficients for all the Chebychev series \
+        of the fields
+    Real *spcoeffs;
 
     /// Constructor: Save the spectral coefficients to their initial values.
     ChebyshevExpansion( BispecInput& bispecID )
@@ -523,6 +517,13 @@ protected:
     Real *chebyCoeff;
 
 public:
+
+    /// Method to access the spectral coefficients. Since we will make use of the \
+        integrator from bim-solver, we copy the structure of GF in gridDriver.
+    Real specC( size_t m, size_t field, size_t n )
+    {
+        return spcoeffs[ ( n_flds * ( exp_ord + 1 ) ) * m + ( exp_ord + 1 ) * field + n ];
+    }
 
     /** Method to access the values of the collocation points.
       */
@@ -1344,7 +1345,8 @@ public:
   */
 class BispecEvolve
     : virtual PrimaryFields,
-      DependentFields
+      DependentFields,
+      ChebyshevExpansion
 {
 
     Int m;
@@ -1444,7 +1446,8 @@ public:
         Parameters&             params
     ) :
         PrimaryFields  ( bispecID, chebyC ),
-        DependentFields( bispecID, chebyC, params )//chebyC, chebyExp, params ),
+        DependentFields( bispecID, chebyC, params ),//chebyC, chebyExp, params ),
+        ChebyshevExpansion( bispecID )
         //cheby_pointer( &chebyC )
     {
 
@@ -1478,6 +1481,8 @@ public:
 
         arrange_fields_t( 0 );
         solveDerivatives( 0 );
+        specC( 0, 1, 3 );
+        computeFields( 1 );
 
         /*std::cout << "The evolution equations stored in the vector," << std::endl
             << std::endl;
@@ -1643,7 +1648,7 @@ int main()
     /** Evolve the spectral coefficients
       */
 
-    BispecEvolve evolution( ID, cc, /*chebySeries,*/ params );
+    BispecEvolve evolution( ID, cc, params );
 
     //evolution.solveDerivatives( 0 );
 
