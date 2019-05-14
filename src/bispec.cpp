@@ -547,8 +547,10 @@ public:
 //////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
 
-/** 'primaryFields' defines the methods to access the values of the fields, the gauges
-    variables, the Valencia variables and their first and second radial derivatives.
+/** 'primaryFields' defines the methods to access the values of the fields, (the gauges
+    variables), the Valencia variables and their first and second radial derivatives. A
+    'primary field' is a field which needs to access the values of the Chebyshev
+    coefficients to be computed.
 
     The format is: field( m, n ), with m being the time step and n being the index of the
     collocation point. This is the same format exported by Mathematica.
