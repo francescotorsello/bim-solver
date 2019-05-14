@@ -56,9 +56,21 @@
 #define REG_DERS    gBetr_r, fBetr_r, gLr_r, fLr_r, gderAlpr_r, fderAlpr_r, \
                     gderconfr_r, fderconfr_r
 
+#define EVEN_DERS   gconf_r, fconf_r, gtrK_r, ftrK_r, gA_r, fA_r, gB_r, fB_r, gA1_r, \
+                    fA1_r, gL_r, fL_r, gsig_r, fsig_r, gAsig_r, fAsig_r, pfD_r, pfS_r, \
+                    pftau_r
+
+#define ODD_DERS  gL_r, fL_r, pfS_r
+
 #define DERRS   gconf_rr, fconf_rr, gtrK_rr, ftrK_rr, gA_rr, fA_rr, gB_rr, fB_rr, \
                 gA1_rr, fA1_rr, gL_rr, fL_rr, gsig_rr, fsig_rr, gAsig_rr, fAsig_rr, \
                 pfD_rr, pfS_rr, pftau_rr
+
+#define EVEN_DERRS  gconf_rr, fconf_rr, gtrK_rr, ftrK_rr, gA_rr, fA_rr, gB_rr, fB_rr, \
+                    gA1_rr, fA1_rr, gL_rr, fL_rr, gsig_rr, fsig_rr, gAsig_rr, fAsig_rr, \
+                    pfD_rr, pfS_rr, pftau_rr
+
+#define ODD_DERRS   gL_rr, fL_rr, pfS_rr
 
 #define GAUGE       gAlp, fAlp, hAlp, gBet, fBet, hBet, p
 
@@ -172,10 +184,13 @@ namespace fields
     static const allFields all_flds[]       = { ALL_FIELDS };
     static const allFields evolved_flds[]   = { EVOLVED_FIELDS };
     static const allFields even_flds[]      = { EVEN_FIELDS };
+    static const allFields odd_flds[]       = { ODD_FIELDS };
 
     /// 'allDers' contains the first radial derivatives of the gauge variables
     enum allDers { ALL_DERS };
-    static const allDers all_ders[] = { ALL_DERS };
+    static const allDers all_ders[]  = { ALL_DERS };
+    static const allDers even_ders[] = { EVEN_DERS };
+    static const allDers odd_ders[]  = { ODD_DERS };
 
     /// 'regDers' contains the regularizing radial derivatives
     enum regDers { REG_DERS };
@@ -183,7 +198,9 @@ namespace fields
 
     /// 'allDerrs' contains the second radial derivatives of the gauge variables
     enum allDerrs { ALL_DERRS };
-    static const allDerrs all_derrs[] = { ALL_DERRS };
+    static const allDerrs all_derrs[]   = { ALL_DERRS };
+    static const allDerrs even_derrs[]  = { EVEN_DERRS };
+    static const allDerrs odd_derrs[]   = { ODD_DERRS };
 
     /// perhaps the vector below is useless
     //static const std::vector<Int> bispecInput_fields = { FIELDS };
@@ -627,10 +644,10 @@ public:
         return values_colpoints[ n ] - 1;
     }
 
-    inline Real r_plus( Int m, Int n )
+    /*inline Real r_plus( Int m, Int n )
     {
         return values_colpoints[ n ] + 1 + TINY_Real;
-    }
+    }*/
 
     /** Methods to access the values of the fields at the collocation points. Everyone of
         these functions depend on the time step m and the collocation point index n.
@@ -707,12 +724,26 @@ public:
 
         /// Computation of the values of the fields at the collocation points (CPs) on \
             the initial hypersurface
-        for( const auto field : fields::all_flds )
+        for( const auto field : fields::even_flds )
         {
             for( size_t n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
                 Real sum = 0;
-                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
+                {
+                    sum += specC( m, field, cheby_index )
+                            * chebyCoeff[ cheby_index * ( exp_ord + 1 ) + n ];
+                }
+                values_fields[ m * ( exp_ord + 1 ) * n_flds + ( exp_ord + 1 ) * field
+                    + n ] = sum;
+            }
+        }
+        for( const auto field : fields::odd_flds )
+        {
+            for( size_t n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+            {
+                Real sum = 0;
+                for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
                     sum += specC( m, field, cheby_index )
                             * chebyCoeff[ cheby_index * ( exp_ord + 1 ) + n ];
@@ -724,12 +755,27 @@ public:
 
         /// Computation of the values of the first radial derivatives at the \
             collocation points (CPs) on the initial hypersurface
-        for( const auto der : fields::all_ders )
+        for( const auto der : fields::even_ders )
         {
             for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
                 Real sum = 0;
-                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
+                {
+                    sum += specC( m, der, cheby_index )
+                            * chebyCoeff[ ( exp_ord + 1 ) * ( exp_ord + 1 )
+                                + cheby_index * ( exp_ord + 1 ) + n ];
+                }
+                values_ders[ m * ( exp_ord + 1 ) * n_flds + ( exp_ord + 1 ) * der
+                    + n ] = sum;
+            }
+        }
+        for( const auto der : fields::odd_ders )
+        {
+            for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+            {
+                Real sum = 0;
+                for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
                     sum += specC( m, der, cheby_index )
                             * chebyCoeff[ ( exp_ord + 1 ) * ( exp_ord + 1 )
@@ -740,14 +786,30 @@ public:
             }
         }
 
+
         /// Computation of the values of the second radial derivatives at the \
             collocation points (CPs) on the initial hypersurface
-        for( const auto derr : fields::all_derrs )
+        for( const auto derr : fields::even_derrs )
         {
             for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
                 Real sum = 0;
-                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
+                {
+                    sum += specC( m, derr, cheby_index )
+                            * chebyCoeff[ 2*( exp_ord + 1 ) * ( exp_ord + 1 )
+                                + cheby_index * ( exp_ord + 1 ) + n ];
+                }
+                values_derrs[ m * ( exp_ord + 1 ) * n_flds + ( exp_ord + 1 ) * derr
+                    + n ] = sum;
+            }
+        }
+        for( const auto derr : fields::odd_derrs )
+        {
+            for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+            {
+                Real sum = 0;
+                for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
                     sum += specC( m, derr, cheby_index )
                             * chebyCoeff[ 2*( exp_ord + 1 ) * ( exp_ord + 1 )
@@ -760,7 +822,7 @@ public:
     }
 
     /** The following fields needs to access the spectral coefficients even if they
-        are not primary. Hence, they need to be computed in here.
+        are not primary. Hence, they need to be computed in here. TODO: check the parity conditions for these fields.
       */
 
     inline void computeRegDers( size_t m )
@@ -1189,43 +1251,31 @@ protected:
         return x;
     }
 
-    inline Real gA2 ( Int m, Int n ){ return - gA1(m,n) / 2; }
+    inline Real gA2 ( Int m, Int n )    { return - gA1(m,n) / 2; }
 
-    inline Real fA2 ( Int m, Int n ){ return - fA1(m,n) / 2; }
+    inline Real fA2 ( Int m, Int n )    { return - fA1(m,n) / 2; }
 
-    inline Real gK1 ( Int m, Int n ){ return gA1(m,n) + 1/3 *gtrK(m,n); }
+    inline Real gK1 ( Int m, Int n )    { return gA1(m,n) + 1/3 *gtrK(m,n); }
 
-    inline Real gK2 ( Int m, Int n ){ return gA2(m,n) + 1/3 *gtrK(m,n); }
+    inline Real gK2 ( Int m, Int n )    { return gA2(m,n) + 1/3 *gtrK(m,n); }
 
-    inline Real fK1 ( Int m, Int n ){ return fA1(m,n) + 1/3 *ftrK(m,n); }
+    inline Real fK1 ( Int m, Int n )    { return fA1(m,n) + 1/3 *ftrK(m,n); }
 
-    inline Real fK2 ( Int m, Int n ){ return fA2(m,n) + 1/3 *ftrK(m,n); }
+    inline Real fK2 ( Int m, Int n )    { return fA2(m,n) + 1/3 *ftrK(m,n); }
 
     /// Regularizing fields
 
-    inline Real gBetr( Int m, Int n ){ return -2 * r_minus(m,n) * gBet(m,n)
-        / ( r_plus(m,n) + TINY_Real ); }
+    inline Real gBetr( Int m, Int n )   { return -2 * r_minus(m,n) * gBet(m,n)
+        / ( r(m,n) + TINY_Real ); }
 
-    inline Real fBetr( Int m, Int n ){ return -2 * r_minus(m,n) * fBet(m,n)
-        / ( r_plus(m,n) + TINY_Real ); }
+    inline Real fBetr( Int m, Int n )   { return -2 * r_minus(m,n) * fBet(m,n)
+        / ( r(m,n) + TINY_Real ); }
 
-    inline Real gLr( Int m, Int n ){ return -2 * r_minus(m,n) * gL(m,n)
-        / ( r_plus(m,n) + TINY_Real ); }
+    inline Real gLr( Int m, Int n )     { return -2 * r_minus(m,n) * gL(m,n)
+        / ( r(m,n) + TINY_Real ); }
 
-    inline Real fLr( Int m, Int n ){ return -2 * r_minus(m,n) * fL(m,n)
-        / ( r_plus(m,n) + TINY_Real ); }
-
-    inline Real gderAlpr( Int m, Int n ){ return -2 * pow3(r_minus(m,n)) * gAlp_r(m,n)
-        / ( r_plus(m,n) + TINY_Real ); }
-
-    inline Real gderconfr( Int m, Int n ){ return -2 * pow3(r_minus(m,n)) * gconf_r(m,n)
-        / ( r_plus(m,n) + TINY_Real ); }
-
-    inline Real fderAlpr( Int m, Int n ){ return -2 * pow3(r_minus(m,n)) * fAlp_r(m,n)
-        / ( r_plus(m,n) + TINY_Real ); }
-
-    inline Real fderconfr( Int m, Int n ){ return -2 * pow3(r_minus(m,n)) * fconf_r(m,n)
-        / ( r_plus(m,n) + TINY_Real ); }
+    inline Real fLr( Int m, Int n )     { return -2 * r_minus(m,n) * fL(m,n)
+        / ( r(m,n) + TINY_Real ); }
 
     /// Last dependent fields
 
