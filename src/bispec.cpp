@@ -40,16 +40,25 @@
   */
 
 #define EVOLVED_FIELDS  gconf, fconf, gtrK, ftrK, gA, fA, gB, fB, gA1, fA1, gL, fL, \
-                        pfD, pfS, pftau
+                        gsig, fsig, gAsig, fAsig, pfD, pfS, pftau
 
-#define FIELDS_T    gconf_t, fconf_t, gtrK_t, ftrK_t, gA_t, fA_t, gB_t, fB_t, gA1_t, \
-                    fA1_t, gL_t, fL_t, gD_t, gS_t, gtau_t
+#define EVEN_FIELDS  gconf, fconf, gtrK, ftrK, gA, fA, gB, fB, gA1, fA1, gL, fL, \
+                     gsig, fsig, gAsig, fAsig, pfD, pfS, pftau
+
+#define ODD_FIELDS  gL, fL, pfS
+
+#define FIELDS_T    gconf_t, fconf_t, gtrK_t, ftrK_t, gA_t, fA_t, gB_t, fB_t, gA1_t,  \
+                    fA1_t, gsig_t, fsig_t, gAsig_t, fAsig_t,  gD_t, gS_t, gtau_t
 
 #define DERS    gconf_r, fconf_r, gtrK_r, ftrK_r, gA_r, fA_r, gB_r, fB_r, gA1_r, fA1_r, \
-                gL_r, fL_r
+                gL_r, fL_r, gsig_r, fsig_r, gAsig_r, fAsig_r, pfD_r, pfS_r, pftau_r
+
+#define REG_DERS    gBetr_r, fBetr_r, gLr_r, fLr_r, gderAlpr_r, fderAlpr_r, \
+                    gderconfr_r, fderconfr_r
 
 #define DERRS   gconf_rr, fconf_rr, gtrK_rr, ftrK_rr, gA_rr, fA_rr, gB_rr, fB_rr, \
-                gA1_rr, fA1_rr, gL_rr, fL_rr
+                gA1_rr, fA1_rr, gL_rr, fL_rr, gsig_rr, fsig_rr, gAsig_rr, fAsig_rr, \
+                pfD_rr, pfS_rr, pftau_rr
 
 #define GAUGE       gAlp, fAlp, hAlp, gBet, fBet, hBet, p
 
@@ -63,16 +72,18 @@
 
 #define VALENCIA_RR pfD_rr, pfS_rr, pftau_rr
 
-#define ALL_FIELDS  gconf, fconf, gtrK, ftrK, gA, fA, gB, fB, gA1, fA1, gL, fL, gAlp, \
-                    fAlp, hAlp, gBet, fBet, hBet, p,pfD, pfS, pftau
+#define ALL_FIELDS  gconf, fconf, gtrK, ftrK, gA, fA, gB, fB, gA1, fA1, gL, fL, \
+                    gsig, fsig, gAsig, fAsig, gAlp, fAlp, hAlp, gBet, fBet, hBet, p, \
+                    pfD, pfS, pftau
 
 #define ALL_DERS    gconf_r, fconf_r, gtrK_r, ftrK_r, gA_r, fA_r, gB_r, fB_r, gA1_r, \
-                    fA1_r, gL_r, fL_r, gAlp_r, fAlp_r, hAlp_r, gBet_r, fBet_r, hBet_r, \
-                    p_r, pfD_r, pfS_r, pftau_r
+                    fA1_r, gL_r, fL_r, gsig_r, fsig_r, gAsig_r, fAsig_r, gAlp_r, fAlp_r, \
+                    hAlp_r, gBet_r, fBet_r, hBet_r, p_r, pfD_r, pfS_r, pftau_r
 
 #define ALL_DERRS   gconf_rr, fconf_rr, gtrK_rr, ftrK_rr, gA_rr, fA_rr, gB_rr, fB_rr, \
-                    gA1_rr, fA1_rr, gL_rr, fL_rr, gAlp_rr, fAlp_rr, hAlp_rr, gBet_rr, \
-                    fBet_rr, hBet_rr, p_rr, pfD_rr, pfS_rr, pftau_rr
+                    gA1_rr, fA1_rr, gL_rr, fL_rr, gsig_rr, fsig_rr, gAsig_rr, fAsig_rr, \
+                    gAlp_rr, fAlp_rr, hAlp_rr, gBet_rr, fBet_rr, hBet_rr, p_rr, \
+                    pfD_rr, pfS_rr, pftau_rr
 
 
 /** Note that the macro 'setfield' below, at present, only works inside bispecEvolve.
@@ -82,21 +93,28 @@
 #define setfield( field ) \
         inline Real field( Int m, Int n ) \
         { \
-            return values_fields[ ( fields::field * ( exp_ord + 1 ) ) * m \
+            return values_fields[ ( n_all_flds * ( exp_ord + 1 ) ) * m \
             + ( exp_ord + 1 ) * fields::field + n ]; \
         }
 
 #define setder( field ) \
         inline Real field( Int m, Int n ) \
         { \
-            return values_ders[ ( fields::field * ( exp_ord + 1 ) ) * m \
+            return values_ders[ ( n_all_flds * ( exp_ord + 1 ) ) * m \
             + ( exp_ord + 1 ) * fields::field + n ]; \
         }
 
 #define setderr( field ) \
         inline Real field( Int m, Int n ) \
         { \
-            return values_derrs[ ( fields::field * ( exp_ord + 1 ) ) * m \
+            return values_derrs[ ( n_all_flds * ( exp_ord + 1 ) ) * m \
+            + ( exp_ord + 1 ) * fields::field + n ]; \
+        }
+
+#define setregder( field ) \
+        inline Real field( Int m, Int n ) \
+        { \
+            return values_reg_ders[ ( 8 * ( exp_ord + 1 ) ) * m \
             + ( exp_ord + 1 ) * fields::field + n ]; \
         }
 
@@ -151,12 +169,17 @@ namespace fields
 
     /// 'allFields' contains all the gauge variables
     enum allFields { ALL_FIELDS };
-    static const allFields all_flds[] = { ALL_FIELDS };
-    static const allFields evolved_flds[] = { EVOLVED_FIELDS };
+    static const allFields all_flds[]       = { ALL_FIELDS };
+    static const allFields evolved_flds[]   = { EVOLVED_FIELDS };
+    static const allFields even_flds[]      = { EVEN_FIELDS };
 
     /// 'allDers' contains the first radial derivatives of the gauge variables
     enum allDers { ALL_DERS };
     static const allDers all_ders[] = { ALL_DERS };
+
+    /// 'regDers' contains the regularizing radial derivatives
+    enum regDers { REG_DERS };
+    static const regDers reg_ders[] = { REG_DERS };
 
     /// 'allDerrs' contains the second radial derivatives of the gauge variables
     enum allDerrs { ALL_DERRS };
@@ -180,15 +203,19 @@ namespace fields
 class ChebyshevCoefficients
 {
     size_t derivative_order;
-    size_t chebyshev_index;
+    size_t expansion_order;
     size_t collocation_point;
     size_t data_size;
+    size_t reg_coeff_size;
     size_t ee_matrix_size;
 
 public:
 
     Real* coeff;
-    Real* ee_matrix;
+    Real* reg_der_coeff;
+    Real* reg_derr_coeff;
+    Real* ee_matrix_even;
+    Real* ee_matrix_odd;
 
     // isOK() returns true if the coefficients were successfully read
     // from a file (so the object is correctly instantiated).
@@ -200,15 +227,29 @@ public:
     // Methods to access the dimensions
     //
     size_t orders () const{ return derivative_order; }
-    size_t chebys () const{ return chebyshev_index; }
+    size_t chebys () const{ return expansion_order; }
     size_t points () const{ return collocation_point; }
 
     // Method to access the coefficients
     //
     Real operator()( size_t der_order, size_t cheby_index, size_t n )
     {
-        return coeff[ der_order * chebyshev_index * collocation_point
+        return coeff[ der_order * ( expansion_order + 1 ) * collocation_point
                     + cheby_index * collocation_point + n ];
+    }
+
+    // Method to access the coefficients of the regularized first derivatives
+    //
+    Real reg_ders_cheby( size_t cheby_index, size_t n )
+    {
+        return reg_der_coeff[ ( expansion_order + 1 ) * n + n ];
+    }
+
+    // Method to access the coefficients of the regularized second derivatives
+    //
+    Real reg_derrs_cheby( size_t cheby_index, size_t n )
+    {
+        return reg_derr_coeff[ ( expansion_order + 1 ) * n + n ];
     }
 
     // Method to print the coefficients to a file
@@ -225,7 +266,7 @@ public:
     //
     ChebyshevCoefficients( const std::string fileName )
         : derivative_order(0)
-        , chebyshev_index(0)
+        , expansion_order(0)
         , collocation_point(0)
         , data_size(0)
         , coeff(nullptr)
@@ -249,10 +290,10 @@ public:
 
         derivative_order = 4;
 
-        // Read chebyshev_index
+        // Read the expansion order
         //
         if( 1 == fread( &x, sizeof(Real), 1, inf ) ) {
-            chebyshev_index = size_t(x + 1);
+            expansion_order = size_t(x);
             collocation_point = size_t(x + 1);
         }
         else {
@@ -263,8 +304,8 @@ public:
 
         // Read the coefficients
         //
-        data_size = derivative_order * chebyshev_index * collocation_point;
-        coeff = new Real[ derivative_order * chebyshev_index * collocation_point ];
+        data_size = derivative_order * ( expansion_order + 1 ) * collocation_point;
+        coeff = new Real[derivative_order * ( expansion_order + 1 ) * collocation_point];
 
         if ( data_size != fread( coeff, sizeof(Real), data_size, inf ) )
         {
@@ -276,17 +317,60 @@ public:
             return;
         }
 
-        // Read the evolution matrix
+        // Read the coefficients of the regularized first derivatives
         //
-        ee_matrix_size = chebyshev_index * collocation_point;
-        ee_matrix = new Real[ chebyshev_index * collocation_point ];
+        reg_coeff_size = ( expansion_order + 1 ) * collocation_point;
+        reg_der_coeff = new Real[ ( expansion_order + 1 ) * collocation_point ];
 
-        if ( ee_matrix_size != fread( ee_matrix, sizeof(Real), ee_matrix_size, inf ) )
+        if ( reg_coeff_size != fread( reg_der_coeff, sizeof(Real), data_size, inf ) )
         {
-            std::cerr << "err: CC: Cannot read all the elements in the evolution matrix"
+            std::cerr << "err: CC: Cannot read all the Chebyshev coefficients"
                 << std::endl;
-            delete [] ee_matrix;
-            ee_matrix = nullptr;
+            delete [] reg_der_coeff;
+            reg_der_coeff = nullptr;
+            fclose( inf );
+            return;
+        }
+
+        // Read the coefficients of the regularized second derivatives
+        //
+        reg_derr_coeff = new Real[ ( expansion_order + 1 ) * collocation_point ];
+
+        if ( reg_coeff_size != fread( reg_derr_coeff, sizeof(Real), data_size, inf ) )
+        {
+            std::cerr << "err: CC: Cannot read all the Chebyshev coefficients"
+                << std::endl;
+            delete [] reg_derr_coeff;
+            reg_derr_coeff = nullptr;
+            fclose( inf );
+            return;
+        }
+
+        // Read the even evolution matrix
+        //
+        ee_matrix_size = ( expansion_order + 1 ) / 2 * collocation_point;
+        ee_matrix_even = new Real[ ( expansion_order + 1 ) / 2 * collocation_point ];
+
+        if ( ee_matrix_size != fread( ee_matrix_even, sizeof(Real), ee_matrix_size, inf ) )
+        {
+            std::cerr << "err: CC: Cannot read all the elements in the even ev. matrix"
+                << std::endl;
+            delete [] ee_matrix_even;
+            ee_matrix_even = nullptr;
+            fclose( inf );
+            return;
+        }
+
+        // Read the odd evolution matrix
+        //
+        ee_matrix_odd = new Real[ ( expansion_order + 1 ) / 2 * collocation_point ];
+
+        if ( ee_matrix_size != fread( ee_matrix_odd, sizeof(Real), ee_matrix_size, inf ) )
+        {
+            std::cerr << "err: CC: Cannot read all the elements in the odd ev. matrix"
+                << std::endl;
+            delete [] ee_matrix_odd;
+            ee_matrix_odd = nullptr;
             fclose( inf );
             return;
         }
@@ -510,11 +594,14 @@ protected:
 
     Real *values_fields;
     Real *values_ders;
+    Real *values_reg_ders;
     Real *values_derrs;
     Real *values_colpoints;
 
     Real *fields_t;
     Real *chebyCoeff;
+    Real *regDerCheby;
+    Real *regDerrCheby;
 
 public:
 
@@ -533,6 +620,16 @@ public:
         return values_colpoints[ n ];
     }
 
+    inline Real r_minus( Int m, Int n )
+    {
+        return values_colpoints[ n ] - 1;
+    }
+
+    inline Real r_plus( Int m, Int n )
+    {
+        return values_colpoints[ n ] + 1 + TINY_Real;
+    }
+
     /** Methods to access the values of the fields at the collocation points. Everyone of
         these functions depend on the time step m and the collocation point index n.
       */
@@ -541,6 +638,9 @@ public:
     setfield( gB )      setfield( gA1 )     setfield( gL )
     setfield( fconf )   setfield( ftrK )    setfield( fA )
     setfield( fB )      setfield( fA1 )     setfield( fL )
+
+    setfield( gsig )    setfield( fsig )
+    setfield( gAsig )   setfield( fAsig )
 
     setfield( gAlp )    setfield( fAlp )    setfield( hAlp )
     setfield( gBet )    setfield( fBet )    setfield( hBet )
@@ -558,6 +658,9 @@ public:
     setder( fconf_r )   setder( ftrK_r )    setder( fA_r )
     setder( fB_r )      setder( fA1_r )     setder( fL_r )
 
+    setder( gsig_r )    setder( fsig_r )
+    setder( gAsig_r )   setder( fAsig_r )
+
     setder( gAlp_r )    setder( fAlp_r )    setder( hAlp_r )
     setder( gBet_r )    setder( fBet_r )    setder( hBet_r )
     setder( p_r )
@@ -574,11 +677,25 @@ public:
     setderr( fconf_rr ) setderr( ftrK_rr )  setderr( fA_rr )
     setderr( fB_rr )    setderr( fA1_rr )   setderr( fL_rr )
 
+    setderr( gsig_rr )  setderr( fsig_rr )
+    setderr( gAsig_rr ) setderr( fAsig_rr )
+
     setderr( gAlp_rr )  setderr( fAlp_rr )  setderr( hAlp_rr )
     setderr( gBet_rr )  setderr( fBet_rr )  setderr( hBet_rr )
     setderr( p_rr )
 
     setderr( pfD_rr )   setderr( pfS_rr )   setderr( pftau_rr )
+
+    /** Define methods to access the values of the first and second regularized
+        radial derivatives of some of the fields at the collocation points.
+        Everyone of these functions depend on the time step m and the collocation
+        point index n.
+      */
+
+    setregder( gBetr_r )        setregder( fBetr_r )
+    setregder( gLr_r )          setregder( fLr_r )
+    setregder( gderAlpr_r )     setregder( fderAlpr_r )
+    setregder( gderconfr_r )    setregder( fderconfr_r )
 
     inline void computeFields( size_t m )
     {
@@ -598,7 +715,8 @@ public:
                     sum += specC( m, field, cheby_index )
                             * chebyCoeff[ cheby_index * ( exp_ord + 1 ) + n ];
                 }
-                values_fields[ ( exp_ord + 1 ) * field + n ] = sum;
+                values_fields[ m * ( exp_ord + 1 ) * n_flds + ( exp_ord + 1 ) * field
+                    + n ] = sum;
             }
         }
 
@@ -615,7 +733,8 @@ public:
                             * chebyCoeff[ ( exp_ord + 1 ) * ( exp_ord + 1 )
                                 + cheby_index * ( exp_ord + 1 ) + n ];
                 }
-                values_ders[ ( exp_ord + 1 ) * der + n ] = sum;
+                values_ders[ m * ( exp_ord + 1 ) * n_flds + ( exp_ord + 1 ) * der
+                    + n ] = sum;
             }
         }
 
@@ -632,9 +751,129 @@ public:
                             * chebyCoeff[ 2*( exp_ord + 1 ) * ( exp_ord + 1 )
                                 + cheby_index * ( exp_ord + 1 ) + n ];
                 }
-                values_derrs[ ( exp_ord + 1 ) * derr + n ] = sum;
+                values_derrs[ m * ( exp_ord + 1 ) * n_flds + ( exp_ord + 1 ) * derr
+                    + n ] = sum;
             }
         }
+    }
+
+    /** The following fields needs to access the spectral coefficients even if they
+        are not primary. Hence, they need to be computed in here.
+      */
+
+    inline void computeRegDers( size_t m )
+    {
+        /*for( const auto regder : fields::reg_ders )
+        {
+            for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+            {
+                Real sum = 0;
+                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+                {
+                    sum += specC( m, derr, cheby_index )
+                            * chebyCoeff[ 2*( exp_ord + 1 ) * ( exp_ord + 1 )
+                                + cheby_index * ( exp_ord + 1 ) + n ];
+                }
+                values_derrs[ ( exp_ord + 1 ) * derr + n ] = sum;
+            }
+        }*/
+
+        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        {
+            Real sum = 0;
+            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            {
+                sum += specC( m, fields::gBet, cheby_index )
+                        * regDerCheby[ cheby_index * ( exp_ord + 1 ) + n ];
+            }
+            values_reg_ders[ m * ( exp_ord + 1 ) * n_flds +
+                ( exp_ord + 1 ) * 0 + n ] = sum;
+        }
+
+        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        {
+            Real sum = 0;
+            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            {
+                sum += specC( m, fields::fBet, cheby_index )
+                        * regDerCheby[ cheby_index * ( exp_ord + 1 ) + n ];
+            }
+            values_reg_ders[ m * ( exp_ord + 1 ) * n_flds +
+                ( exp_ord + 1 ) * 1 + n ] = sum;
+        }
+
+        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        {
+            Real sum = 0;
+            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            {
+                sum += specC( m, fields::gL, cheby_index )
+                        * regDerCheby[ cheby_index * ( exp_ord + 1 ) + n ];
+            }
+            values_reg_ders[ m * ( exp_ord + 1 ) * n_flds +
+                ( exp_ord + 1 ) * 2 + n ] = sum;
+        }
+
+        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        {
+            Real sum = 0;
+            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            {
+                sum += specC( m, fields::fL, cheby_index )
+                        * regDerCheby[ cheby_index * ( exp_ord + 1 ) + n ];
+            }
+            values_reg_ders[ m * ( exp_ord + 1 ) * n_flds +
+                ( exp_ord + 1 ) * 3 + n ] = sum;
+        }
+
+        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        {
+            Real sum = 0;
+            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            {
+                sum += specC( m, fields::gAlp, cheby_index )
+                        * regDerrCheby[ cheby_index * ( exp_ord + 1 ) + n ];
+            }
+            values_reg_ders[ m * ( exp_ord + 1 ) * n_flds +
+                ( exp_ord + 1 ) * 4 + n ] = sum;
+        }
+
+        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        {
+            Real sum = 0;
+            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            {
+                sum += specC( m, fields::fAlp, cheby_index )
+                        * regDerrCheby[ cheby_index * ( exp_ord + 1 ) + n ];
+            }
+            values_reg_ders[ m * ( exp_ord + 1 ) * n_flds +
+                ( exp_ord + 1 ) * 5 + n ] = sum;
+        }
+
+        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        {
+            Real sum = 0;
+            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            {
+                sum += specC( m, fields::gconf, cheby_index )
+                        * regDerrCheby[ cheby_index * ( exp_ord + 1 ) + n ];
+            }
+            values_reg_ders[ m * ( exp_ord + 1 ) * n_flds +
+                ( exp_ord + 1 ) * 6 + n ] = sum;
+        }
+
+        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        {
+            Real sum = 0;
+            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            {
+                sum += specC( m, fields::fconf, cheby_index )
+                        * regDerrCheby[ cheby_index * ( exp_ord + 1 ) + n ];
+            }
+            values_reg_ders[ m * ( exp_ord + 1 ) * n_flds +
+                ( exp_ord + 1 ) * 7 + n ] = sum;
+        }
+
     }
 
 
@@ -660,10 +899,12 @@ public:
         n_vlc   = bispecID.n_valencia();
 
         /// These arrays contain the values of the fields and their spatial first and  \
-            second derivatives at the collocation points at each time step
+        second derivatives at the collocation points at each time step
+
         values_colpoints = new Real[ exp_ord + 1 ];
         values_fields    = new Real[ mDim * n_all_flds * ( exp_ord + 1 ) ];
         values_ders      = new Real[ mDim * n_all_flds * ( exp_ord + 1 ) ];
+        values_reg_ders  = new Real[ mDim * 8          * ( exp_ord + 1 ) ];
         values_derrs     = new Real[ mDim * n_all_flds * ( exp_ord + 1 ) ];
 
         for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
@@ -671,7 +912,8 @@ public:
             values_colpoints[ n ] = bispecID( n_all_flds - 1, n );
         }
 
-        chebyCoeff = new Real[ 3 * ( exp_ord + 1 ) * ( exp_ord + 1 ) ];
+        chebyCoeff  = new Real[ 3 * ( exp_ord + 1 ) * ( exp_ord + 1 ) ];
+        regDerCheby = new Real[ ( exp_ord + 1 ) * ( exp_ord + 1 ) ];
 
         for( size_t der_order = 0; der_order < 3; ++der_order )
         {
@@ -686,7 +928,17 @@ public:
             }
         }
 
+        for( size_t cheby_index = 0; cheby_index < ( exp_ord + 1 ); ++cheby_index )
+        {
+            for( size_t n = 0; n < ( exp_ord + 1 ); ++n )
+            {
+                regDerCheby[ cheby_index * ( exp_ord + 1 ) + n ] =
+                        chebyC.reg_derrs_cheby( cheby_index, n );
+            }
+        }
+
         computeFields( 0 );
+        computeRegDers( 0 );
 
         /** TODO: In the expansion below, one should include only the appropriate parity
             in the Chebyshev series of the fields
@@ -935,17 +1187,43 @@ protected:
         return x;
     }
 
-    inline Real gA2 ( Int m, Int n ){ return - gA1(m, n) / 2; }
+    inline Real gA2 ( Int m, Int n ){ return - gA1(m,n) / 2; }
 
-    inline Real fA2 ( Int m, Int n ){ return - fA1(m, n) / 2; }
+    inline Real fA2 ( Int m, Int n ){ return - fA1(m,n) / 2; }
 
-    inline Real gK1 ( Int m, Int n ){ return gA1(m, n) + 1/3 *gtrK(m, n); }
+    inline Real gK1 ( Int m, Int n ){ return gA1(m,n) + 1/3 *gtrK(m,n); }
 
-    inline Real gK2 ( Int m, Int n ){ return gA2(m, n) + 1/3 *gtrK(m, n); }
+    inline Real gK2 ( Int m, Int n ){ return gA2(m,n) + 1/3 *gtrK(m,n); }
 
-    inline Real fK1 ( Int m, Int n ){ return fA1(m, n) + 1/3 *ftrK(m, n); }
+    inline Real fK1 ( Int m, Int n ){ return fA1(m,n) + 1/3 *ftrK(m,n); }
 
-    inline Real fK2 ( Int m, Int n ){ return fA2(m, n) + 1/3 *ftrK(m, n); }
+    inline Real fK2 ( Int m, Int n ){ return fA2(m,n) + 1/3 *ftrK(m,n); }
+
+    /// Regularizing fields
+
+    inline Real gBetr( Int m, Int n ){ return -2 * r_minus(m,n) * gBet(m,n)
+        / ( r_plus(m,n) + TINY_Real ); }
+
+    inline Real fBetr( Int m, Int n ){ return -2 * r_minus(m,n) * fBet(m,n)
+        / ( r_plus(m,n) + TINY_Real ); }
+
+    inline Real gLr( Int m, Int n ){ return -2 * r_minus(m,n) * gL(m,n)
+        / ( r_plus(m,n) + TINY_Real ); }
+
+    inline Real fLr( Int m, Int n ){ return -2 * r_minus(m,n) * fL(m,n)
+        / ( r_plus(m,n) + TINY_Real ); }
+
+    inline Real gderAlpr( Int m, Int n ){ return -2 * pow3(r_minus(m,n)) * gAlp_r(m,n)
+        / ( r_plus(m,n) + TINY_Real ); }
+
+    inline Real gderconfr( Int m, Int n ){ return -2 * pow3(r_minus(m,n)) * gconf_r(m,n)
+        / ( r_plus(m,n) + TINY_Real ); }
+
+    inline Real fderAlpr( Int m, Int n ){ return -2 * pow3(r_minus(m,n)) * fAlp_r(m,n)
+        / ( r_plus(m,n) + TINY_Real ); }
+
+    inline Real fderconfr( Int m, Int n ){ return -2 * pow3(r_minus(m,n)) * fconf_r(m,n)
+        / ( r_plus(m,n) + TINY_Real ); }
 
     /// Last dependent fields
 
@@ -1359,7 +1637,8 @@ class BispecEvolve
     std::vector<FP> fields_t = { FIELDS_T };
 
     Real *b;
-    Real *A;
+    Real *A_even;
+    Real *A_odd;
     //ChebyshevCoefficients* cheby_pointer;
 
     /*Real evolutionMatrix( size_t cheby_index, size_t n )
@@ -1421,7 +1700,7 @@ public:
                 {
                     spec_t[ ( ( exp_ord + 1 ) * fields_t.size() ) * m
                         + ( exp_ord + 1 ) * field + cheby_index ] +=
-                            A[ cheby_index * ( exp_ord + 1 ) + n ]
+                            A_even[ cheby_index * ( exp_ord + 1 ) + n ]
                                 * evolution_eqs( m, field, n );
                             /*(cheby_pointer -> evolutionMatrix( cheby_index, n ))
                             * evolution_eqs( m, field, n );*/
@@ -1453,9 +1732,14 @@ public:
 
         exp_ord  = bispecID.exp_order();
 
-        A       = new Real[ ( bispecID.exp_order() + 1 ) * ( bispecID.exp_order() + 1 ) ];
-        b       = new Real[ get_mDim() * fields_t.size() * ( bispecID.exp_order() + 1 ) ];
-        spec_t  = new Real[ get_mDim() * fields_t.size() * ( bispecID.exp_order() + 1 ) ];
+        A_even  = new Real[ ( bispecID.exp_order() + 1 ) / 2
+                    * ( bispecID.exp_order() + 1 ) / 2 ];
+        A_odd   = new Real[ ( bispecID.exp_order() + 1 ) / 2
+                    * ( bispecID.exp_order() + 1 ) / 2 ];
+        b       = new Real[ get_mDim() * fields_t.size()
+                    * ( bispecID.exp_order() + 1 ) / 2 ];
+        spec_t  = new Real[ get_mDim() * fields_t.size()
+                    * ( bispecID.exp_order() + 1 ) / 2 ];
 
         if( bispecID.n_fields() != fields_t.size() )
         {
@@ -1473,8 +1757,20 @@ public:
         {
             for( size_t n = 0; n < ( bispecID.exp_order() + 1 ); ++n )
             {
-                A[ cheby_index * ( bispecID.exp_order() + 1 ) + n ] =
-                    chebyC.ee_matrix[ cheby_index * ( bispecID.exp_order() + 1 ) + n ];
+                A_even[ cheby_index * ( bispecID.exp_order() + 1 ) + n ] =
+                    chebyC.ee_matrix_even[ cheby_index * ( bispecID.exp_order() + 1 )
+                        + n ];
+            }
+        }
+
+        for( size_t cheby_index = 0; cheby_index < ( bispecID.exp_order() + 1 );
+            ++cheby_index )
+        {
+            for( size_t n = 0; n < ( bispecID.exp_order() + 1 ); ++n )
+            {
+                A_odd[ cheby_index * ( bispecID.exp_order() + 1 ) + n ] =
+                    chebyC.ee_matrix_odd[ cheby_index * ( bispecID.exp_order() + 1 )
+                        + n ];
             }
         }
 
