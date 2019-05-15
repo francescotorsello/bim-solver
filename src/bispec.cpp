@@ -434,6 +434,7 @@ public:
     size_t n_valencia       () const{ return number_valencia; }
     size_t exp_order        () const{ return expansion_order; }
     size_t n_collocations   () const{ return number_collocations; }
+    size_t n_chebycoeffs    () const{ return number_chebycoeffs; }
     size_t size_ID          () const{ return data_size; }
 
     // Method to access the initial data
@@ -528,32 +529,41 @@ protected:
     size_t mLen;
     size_t mExtra;
     size_t exp_ord;
-    size_t n_flds;
+    size_t n_collocs;
+    size_t n_chebycffs;
+    size_t n_allflds;
 
 public:
 
-    /// The array containing the spectral coefficients for all the Chebychev series \
+    /// The array containing the spectral coefficients for all the Chebyshev series \
         of the fields
     Real *spcoeffs;
 
-    /// Constructor: Save the spectral coefficients to their initial values.
+    /** The constructor defines the array containing the spectral coefficients for all
+        the fields and assigns their initial values
+      */
     ChebyshevExpansion( BispecInput& bispecID )
     {
 
-        mLen = 5;
-        mExtra = 9;
-        mDim = mLen + mExtra;
-        exp_ord = bispecID.exp_order();
-        n_flds = bispecID.n_allfields();
-        spcoeffs = new Real[ mDim * n_flds * ( exp_ord + 1 ) ];
+        /// The parameter mLen should be given by the user in config.ini
+        mLen        = 5;
+        mExtra      = 9;
+        mDim        = mLen + mExtra;
+
+        exp_ord     = bispecID.exp_order();
+        n_collocs   = bispecID.n_collocations();
+        n_chebycffs = bispecID.n_chebycoeffs();
+        n_allflds   = bispecID.n_allfields();
+
+        spcoeffs    = new Real[ mDim * n_allflds * n_chebycffs ];
 
         //std::cout << std::endl;
-        for( size_t field = 0; field < n_flds; ++field )
+        for( size_t field = 0; field < n_allflds; ++field )
         {
             //std::cout << "This is the field " << field << std::endl;
-            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            for( size_t cheby_index = 0; cheby_index < n_chebycffs; ++cheby_index )
             {
-                spcoeffs[ ( exp_ord + 1 ) * field + cheby_index ] =
+                spcoeffs[ n_chebycffs * field + cheby_index ] =
                     bispecID( field, cheby_index );
                  //std::cout << "(" << field << "," << n << ") : "
                  //     << spcoeffs[ ( exp_ord + 1 ) * field + n ] << " = "
