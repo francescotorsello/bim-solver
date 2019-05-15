@@ -1,7 +1,7 @@
 /** @file  eomBSSNSourcesCompEul.h
  *  @author Francesco Torsello
  *  @brief The compactified BSSN sources contained in the Eulerian evolution equations.
- *  @version 2019-05-14T16:22:51
+ *  @version 2019-05-15T15:50:17
  *  @image html BSSNsourcesCompEul.png
  */
 

@@ -221,7 +221,8 @@ class ChebyshevCoefficients
 {
     size_t derivative_order;
     size_t expansion_order;
-    size_t collocation_point;
+    size_t number_collocations;
+    size_t number_chebycoeffs;
     size_t data_size;
     size_t reg_coeff_size;
     size_t ee_matrix_size;
@@ -245,14 +246,14 @@ public:
     //
     size_t orders () const{ return derivative_order; }
     size_t chebys () const{ return expansion_order; }
-    size_t points () const{ return collocation_point; }
+    size_t points () const{ return number_collocations; }
 
     // Method to access the coefficients
     //
     Real operator()( size_t der_order, size_t cheby_index, size_t n )
     {
-        return coeff[ der_order * ( expansion_order + 1 ) * collocation_point
-                    + cheby_index * collocation_point + n ];
+        return coeff[ der_order * ( expansion_order + 1 ) * number_collocations
+                    + cheby_index * number_collocations + n ];
     }
 
     // Method to access the coefficients of the regularized first derivatives
@@ -282,9 +283,10 @@ public:
     // Constructor: Reads the coefficients from a file.
     //
     ChebyshevCoefficients( const std::string fileName )
-        : derivative_order(0)
+        : derivative_order(4)
         , expansion_order(0)
-        , collocation_point(0)
+        , number_collocations(0)
+        , number_chebycoeffs(number_collocations)
         , data_size(0)
         , coeff(nullptr)
     {
@@ -305,13 +307,12 @@ public:
             return;
         }
 
-        derivative_order = 4;
-
         // Read the expansion order
         //
         if( 1 == fread( &x, sizeof(Real), 1, inf ) ) {
-            expansion_order = size_t(x);
-            collocation_point = size_t(x + 1);
+            expansion_order     = size_t(x);
+            number_collocations = size_t(( x + 1 ) / 2);
+            number_chebycoeffs  = number_collocations;
         }
         else {
             std::cerr << "err: CC: Cannot read expansion_order" << std::endl;
@@ -319,10 +320,10 @@ public:
             return;
         }
 
-        // Read the coefficients
+        // Read the values of the Chebyshev polynomials and their derivatives
         //
-        data_size = derivative_order * ( expansion_order + 1 ) * collocation_point;
-        coeff = new Real[derivative_order * ( expansion_order + 1 ) * collocation_point];
+        data_size = derivative_order * (expansion_order + 1) * number_collocations;
+        coeff = new Real[derivative_order * (expansion_order + 1) * number_collocations];
 
         if ( data_size != fread( coeff, sizeof(Real), data_size, inf ) )
         {
@@ -336,8 +337,8 @@ public:
 
         // Read the coefficients of the regularized first derivatives
         //
-        reg_coeff_size = ( expansion_order + 1 ) * collocation_point;
-        reg_der_coeff = new Real[ ( expansion_order + 1 ) * collocation_point ];
+        reg_coeff_size = ( expansion_order + 1 ) * number_collocations;
+        reg_der_coeff = new Real[ ( expansion_order + 1 ) * number_collocations ];
 
         if ( reg_coeff_size != fread( reg_der_coeff, sizeof(Real), data_size, inf ) )
         {
@@ -351,7 +352,7 @@ public:
 
         // Read the coefficients of the regularized second derivatives
         //
-        reg_derr_coeff = new Real[ ( expansion_order + 1 ) * collocation_point ];
+        reg_derr_coeff = new Real[ ( expansion_order + 1 ) * number_collocations ];
 
         if ( reg_coeff_size != fread( reg_derr_coeff, sizeof(Real), data_size, inf ) )
         {
@@ -365,10 +366,10 @@ public:
 
         // Read the even evolution matrix
         //
-        ee_matrix_size = ( expansion_order + 1 ) / 2 * collocation_point;
-        ee_matrix_even = new Real[ ( expansion_order + 1 ) / 2 * collocation_point ];
+        ee_matrix_size = ( expansion_order + 1 ) / 2 * number_collocations;
+        ee_matrix_even = new Real[ ( expansion_order + 1 ) / 2 * number_collocations ];
 
-        if ( ee_matrix_size != fread( ee_matrix_even, sizeof(Real), ee_matrix_size, inf ) )
+        if( ee_matrix_size != fread( ee_matrix_even, sizeof(Real), ee_matrix_size, inf ) )
         {
             std::cerr << "err: CC: Cannot read all the elements in the even ev. matrix"
                 << std::endl;
@@ -380,9 +381,9 @@ public:
 
         // Read the odd evolution matrix
         //
-        ee_matrix_odd = new Real[ ( expansion_order + 1 ) / 2 * collocation_point ];
+        ee_matrix_odd = new Real[ ( expansion_order + 1 ) / 2 * number_collocations ];
 
-        if ( ee_matrix_size != fread( ee_matrix_odd, sizeof(Real), ee_matrix_size, inf ) )
+        if( ee_matrix_size != fread( ee_matrix_odd, sizeof(Real), ee_matrix_size, inf ) )
         {
             std::cerr << "err: CC: Cannot read all the elements in the odd ev. matrix"
                 << std::endl;
@@ -408,10 +409,12 @@ class BispecInput
 {
     size_t input_fields;
     size_t number_fields;
-    size_t number_gauge_vars = 7;
+    size_t number_gauge_vars = 6;
     size_t number_valencia   = 3;
     size_t expansion_order;
     size_t data_size;
+    size_t number_collocations;
+    size_t number_chebycoeffs;
     Real* spec_coeff;
 
 public:
@@ -425,12 +428,13 @@ public:
 
     // Methods to access the dimensions
     //
-    size_t n_allfields() const{ return input_fields; }
-    size_t n_fields   () const{ return number_fields; }
-    size_t n_gauges   () const{ return number_gauge_vars; }
-    size_t n_valencia () const{ return number_valencia; }
-    size_t exp_order  () const{ return expansion_order; }
-    size_t size_ID    () const{ return data_size; }
+    size_t n_allfields      () const{ return input_fields; }
+    size_t n_fields         () const{ return number_fields; }
+    size_t n_gauges         () const{ return number_gauge_vars; }
+    size_t n_valencia       () const{ return number_valencia; }
+    size_t exp_order        () const{ return expansion_order; }
+    size_t n_collocations   () const{ return number_collocations; }
+    size_t size_ID          () const{ return data_size; }
 
     // Method to access the initial data
     //
@@ -464,9 +468,9 @@ public:
         //
         if( 1 == fread( &x, sizeof(Real), 1, specid ) ) {
             input_fields    = size_t(x);
-            /// The basic number of evolved fields is the number of input fields, \
-                minus the number of gauge variables minus p
-            number_fields   = input_fields - number_gauge_vars - 1;
+            /// The number of evolved fields is the number of input fields, \
+                minus the number of gauge variables ( at present, 6 ) minus p minus r
+            number_fields   = input_fields - number_gauge_vars - 1 - 1;
         }
         else {
             std::cerr << "err: ID: Cannot read number_fields" << std::endl;
@@ -477,7 +481,9 @@ public:
         // Read the order of Chebyshev expansion
         //
         if( 1 == fread( &x, sizeof(Real), 1, specid ) ) {
-            expansion_order = size_t(x);
+            expansion_order     = size_t(x);
+            number_collocations = size_t(( x + 1 ) / 2);
+            number_chebycoeffs  = number_collocations;
         }
         else {
             std::cerr << "err: ID: Cannot read expansion_order" << std::endl;
@@ -487,8 +493,8 @@ public:
 
         // Read the spectral initial data
         //
-        data_size = input_fields * ( expansion_order + 1 );
-        spec_coeff = new Real[ data_size ];
+        data_size   = input_fields * number_chebycoeffs;
+        spec_coeff  = new Real[ data_size ];
 
         if ( data_size != fread( spec_coeff, sizeof(Real), data_size, specid ) )
         {
@@ -641,13 +647,13 @@ public:
 
     inline Real r_minus( Int m, Int n )
     {
-        return values_colpoints[ n ] - 1;
+        return pow2(values_colpoints[ n ]) - 1;
     }
 
-    /*inline Real r_plus( Int m, Int n )
+    inline Real r_plus( Int m, Int n )
     {
-        return values_colpoints[ n ] + 1 + TINY_Real;
-    }*/
+        return pow2(values_colpoints[ n ]) + 1;
+    }
 
     /** Methods to access the values of the fields at the collocation points. Everyone of
         these functions depend on the time step m and the collocation point index n.
@@ -845,7 +851,7 @@ public:
         for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
         {
             Real sum = 0;
-            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
                 sum += specC( m, fields::gBet, cheby_index )
                         * regDerCheby[ cheby_index * ( exp_ord + 1 ) + n ];
@@ -857,7 +863,7 @@ public:
         for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
         {
             Real sum = 0;
-            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
                 sum += specC( m, fields::fBet, cheby_index )
                         * regDerCheby[ cheby_index * ( exp_ord + 1 ) + n ];
@@ -869,7 +875,7 @@ public:
         for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
         {
             Real sum = 0;
-            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
                 sum += specC( m, fields::gL, cheby_index )
                         * regDerCheby[ cheby_index * ( exp_ord + 1 ) + n ];
@@ -881,7 +887,7 @@ public:
         for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
         {
             Real sum = 0;
-            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
                 sum += specC( m, fields::fL, cheby_index )
                         * regDerCheby[ cheby_index * ( exp_ord + 1 ) + n ];
@@ -893,7 +899,7 @@ public:
         for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
         {
             Real sum = 0;
-            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
                 sum += specC( m, fields::gAlp, cheby_index )
                         * regDerrCheby[ cheby_index * ( exp_ord + 1 ) + n ];
@@ -905,7 +911,7 @@ public:
         for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
         {
             Real sum = 0;
-            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
                 sum += specC( m, fields::fAlp, cheby_index )
                         * regDerrCheby[ cheby_index * ( exp_ord + 1 ) + n ];
@@ -917,7 +923,7 @@ public:
         for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
         {
             Real sum = 0;
-            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
                 sum += specC( m, fields::gconf, cheby_index )
                         * regDerrCheby[ cheby_index * ( exp_ord + 1 ) + n ];
@@ -929,7 +935,7 @@ public:
         for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
         {
             Real sum = 0;
-            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
                 sum += specC( m, fields::fconf, cheby_index )
                         * regDerrCheby[ cheby_index * ( exp_ord + 1 ) + n ];
@@ -1896,7 +1902,7 @@ int main()
         precision and load them once here.
       */
 
-    ChebyshevCoefficients cc( "../bim-solver/include/chebyshev-values/testBin.dat" );
+    ChebyshevCoefficients cc( "../bim-solver/include/chebyshev-values/chebyshev-values.dat" );
     if( ! cc.isOK () ) {
         return -1;
     }
