@@ -626,6 +626,8 @@ protected:
     size_t n_gauge;
     size_t n_vlc;
     size_t n_all_flds;
+    size_t n_collocs;
+    size_t n_chebycffs;
 
     Real *values_fields;
     Real *values_ders;
@@ -644,7 +646,7 @@ public:
         integrator from bim-solver, we copy the structure of GF in gridDriver.
     Real specC( size_t m, size_t field, size_t n )
     {
-        return spcoeffs[ ( n_flds * ( exp_ord + 1 ) ) * m + ( exp_ord + 1 ) * field + n ];
+        return spcoeffs[ ( n_flds * n_chebycffs ) * m + n_chebycffs * field + n ];
     }
 
     /** Method to access the values of the collocation points.
@@ -657,12 +659,12 @@ public:
 
     inline Real r_minus( Int m, Int n )
     {
-        return pow2(values_colpoints[ n ]) - 1;
+        return pow2( values_colpoints[ n ] ) - 1;
     }
 
     inline Real r_plus( Int m, Int n )
     {
-        return pow2(values_colpoints[ n ]) + 1;
+        return pow2( values_colpoints[ n ] ) + 1;
     }
 
     /** Methods to access the values of the fields at the collocation points. Everyone of
@@ -742,15 +744,15 @@ public:
             the initial hypersurface
         for( const auto field : fields::even_flds )
         {
-            for( size_t n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+            for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
             {
                 Real sum = 0;
                 for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
                     sum += specC( m, field, cheby_index )
-                            * chebyCoeff[ cheby_index * ( exp_ord + 1 ) + n ];
+                            * chebyCoeff[ cheby_index * n_collocs + n ];
                 }
-                values_fields[ m * ( exp_ord + 1 ) * n_flds + ( exp_ord + 1 ) * field
+                values_fields[ m * n_collocs * n_flds + n_collocs * field
                     + n ] = sum;
             }
         }
@@ -762,9 +764,9 @@ public:
                 for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
                     sum += specC( m, field, cheby_index )
-                            * chebyCoeff[ cheby_index * ( exp_ord + 1 ) + n ];
+                            * chebyCoeff[ cheby_index * n_collocs + n ];
                 }
-                values_fields[ m * ( exp_ord + 1 ) * n_flds + ( exp_ord + 1 ) * field
+                values_fields[ m * n_collocs * n_flds + n_collocs * field
                     + n ] = sum;
             }
         }
@@ -782,7 +784,7 @@ public:
                             * chebyCoeff[ ( exp_ord + 1 ) * ( exp_ord + 1 )
                                 + cheby_index * ( exp_ord + 1 ) + n ];
                 }
-                values_ders[ m * ( exp_ord + 1 ) * n_flds + ( exp_ord + 1 ) * der
+                values_ders[ m * n_collocs * n_flds + n_collocs * der
                     + n ] = sum;
             }
         }
@@ -797,7 +799,7 @@ public:
                             * chebyCoeff[ ( exp_ord + 1 ) * ( exp_ord + 1 )
                                 + cheby_index * ( exp_ord + 1 ) + n ];
                 }
-                values_ders[ m * ( exp_ord + 1 ) * n_flds + ( exp_ord + 1 ) * der
+                values_ders[ m * n_collocs * n_flds + n_collocs * der
                     + n ] = sum;
             }
         }
@@ -816,7 +818,7 @@ public:
                             * chebyCoeff[ 2*( exp_ord + 1 ) * ( exp_ord + 1 )
                                 + cheby_index * ( exp_ord + 1 ) + n ];
                 }
-                values_derrs[ m * ( exp_ord + 1 ) * n_flds + ( exp_ord + 1 ) * derr
+                values_derrs[ m * n_collocs * n_flds + n_collocs * derr
                     + n ] = sum;
             }
         }
@@ -831,7 +833,7 @@ public:
                             * chebyCoeff[ 2*( exp_ord + 1 ) * ( exp_ord + 1 )
                                 + cheby_index * ( exp_ord + 1 ) + n ];
                 }
-                values_derrs[ m * ( exp_ord + 1 ) * n_flds + ( exp_ord + 1 ) * derr
+                values_derrs[ m * n_collocs * n_flds + n_collocs * derr
                     + n ] = sum;
             }
         }
@@ -973,6 +975,8 @@ public:
         mExtra  = 9;
         mDim    = mLen + mExtra;
         exp_ord = bispecID.exp_order();
+        n_collocs   = bispecID.n_collocations();
+        n_chebycffs = bispecID.n_chebycoeffs();
         n_all_flds = bispecID.n_allfields();
         n_flds  = bispecID.n_fields();
         n_gauge = bispecID.n_gauges();
@@ -981,28 +985,28 @@ public:
         /// These arrays contain the values of the fields and their spatial first and  \
         second derivatives at the collocation points at each time step
 
-        values_colpoints = new Real[ exp_ord + 1 ];
-        values_fields    = new Real[ mDim * n_all_flds * ( exp_ord + 1 ) ];
-        values_ders      = new Real[ mDim * n_all_flds * ( exp_ord + 1 ) ];
-        values_reg_ders  = new Real[ mDim * 8          * ( exp_ord + 1 ) ];
-        values_derrs     = new Real[ mDim * n_all_flds * ( exp_ord + 1 ) ];
+        values_colpoints = new Real[ n_collocs ];
+        values_fields    = new Real[ mDim * n_all_flds * n_collocs ];
+        values_ders      = new Real[ mDim * n_all_flds * n_collocs ];
+        values_reg_ders  = new Real[ mDim * 8          * n_collocs ];
+        values_derrs     = new Real[ mDim * n_all_flds * n_collocs ];
 
-        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
             values_colpoints[ n ] = bispecID( n_all_flds - 1, n );
         }
 
-        chebyCoeff  = new Real[ 3 * ( exp_ord + 1 ) * ( exp_ord + 1 ) ];
-        regDerCheby = new Real[ ( exp_ord + 1 ) * ( exp_ord + 1 ) ];
+        chebyCoeff  = new Real[ 4 * ( exp_ord + 1 ) * n_collocs ];
+        regDerCheby = new Real[ ( exp_ord + 1 ) * n_collocs ];
 
-        for( size_t der_order = 0; der_order < 3; ++der_order )
+        for( size_t der_order = 0; der_order < 4; ++der_order )
         {
             for( size_t cheby_index = 0; cheby_index < ( exp_ord + 1 ); ++cheby_index )
             {
-                for( size_t n = 0; n < ( exp_ord + 1 ); ++n )
+                for( size_t n = 0; n < n_collocs; ++n )
                 {
-                    chebyCoeff[ der_order * ( exp_ord + 1 ) * ( exp_ord + 1 )
-                        + cheby_index * ( exp_ord + 1 ) + n ] =
+                    chebyCoeff[ der_order * ( exp_ord + 1 ) * n_collocs
+                        + cheby_index * n_collocs + n ] =
                             chebyC( der_order, cheby_index, n );
                 }
             }
@@ -1012,7 +1016,7 @@ public:
         {
             for( size_t n = 0; n < ( exp_ord + 1 ); ++n )
             {
-                regDerCheby[ cheby_index * ( exp_ord + 1 ) + n ] =
+                regDerCheby[ cheby_index * n_collocs + n ] =
                         chebyC.reg_derrs_cheby( cheby_index, n );
             }
         }
