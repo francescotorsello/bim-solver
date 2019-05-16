@@ -246,15 +246,16 @@ public:
 
     // Methods to access the dimensions
     //
-    size_t orders () const{ return derivative_order; }
-    size_t chebys () const{ return expansion_order; }
-    size_t points () const{ return number_collocations; }
+    size_t orders   () const{ return derivative_order; }
+    size_t expOrd   () const{ return expansion_order; }
+    size_t chebys   () const{ return number_chebycoeffs; }
+    size_t colpoints() const{ return number_collocations; }
 
     // Method to access the coefficients
     //
     Real operator()( size_t der_order, size_t cheby_index, size_t n )
     {
-        return coeff[ der_order * ( expansion_order + 1 ) * number_collocations
+        return coeff[ der_order * (expansion_order + 1) * number_collocations
                     + cheby_index * number_collocations + n ];
     }
 
@@ -342,7 +343,7 @@ public:
         reg_coeff_size = ( expansion_order + 1 ) * number_collocations;
         reg_der_coeff = new Real[ ( expansion_order + 1 ) * number_collocations ];
 
-        if ( reg_coeff_size != fread( reg_der_coeff, sizeof(Real), data_size, inf ) )
+        if ( reg_coeff_size != fread( reg_der_coeff, sizeof(Real), reg_coeff_size, inf ) )
         {
             std::cerr << "err: CC: Cannot read all the Chebyshev coefficients"
                 << std::endl;
@@ -356,7 +357,7 @@ public:
         //
         reg_derr_coeff = new Real[ ( expansion_order + 1 ) * number_collocations ];
 
-        if ( reg_coeff_size != fread( reg_derr_coeff, sizeof(Real), data_size, inf ) )
+        if ( reg_coeff_size != fread( reg_derr_coeff, sizeof(Real), reg_coeff_size, inf ) )
         {
             std::cerr << "err: CC: Cannot read all the Chebyshev coefficients"
                 << std::endl;
@@ -1975,27 +1976,29 @@ int main()
         precision and load them once here.
       */
 
-    ChebyshevCoefficients cc( "../bim-solver/include/chebyshev-values/chebyshev-values.dat" );
-    if( ! cc.isOK () ) {
+    ChebyshevCoefficients chebyshevValues( "../bim-solver/include/chebyshev-values/chebyshev-values.dat" );
+    if( ! chebyshevValues.isOK () ) {
         return -1;
     }
 
-    /*std::cout << cc.orders() << " x " << cc.chebys()
-        << " x " << cc.points() << std::endl;
+    /*std::cout << chebyshevValues.orders() << " x " << chebyshevValues.expOrd() + 1
+        << " x " << chebyshevValues.colpoints() << std::endl;
 
-    for( size_t i = 0; i < cc.orders(); ++i )
+    for( size_t der_order = 0; der_order < chebyshevValues.orders(); ++der_order )
     {
-        for( size_t j = 0; j < cc.chebys(); ++j )
+        for( size_t cheby_index = 0; cheby_index < chebyshevValues.expOrd() + 1;
+            ++cheby_index )
         {
-            for( size_t k = 0; k < cc.points(); ++k )
+            std::cout << std::endl;
+            for( size_t n = 0; n < chebyshevValues.colpoints(); ++n )
             {
-                std::cout << "(" << i << "," << j << "," << k << ") = "
-                          << cc(i,j,k) << std::endl;
+                std::cout << "(" << der_order << "," << cheby_index << "," << n << ") = "
+                          << chebyshevValues(der_order,cheby_index,n) << std::endl;
             }
         }
-    }
+    }*/
 
-    cc.exportChebyCoeffs();*/
+    //cc.exportChebyCoeffs();
 
     /*std::cout << "The following is the evolution matrix," << std::endl;
 
@@ -2012,10 +2015,10 @@ int main()
         in the Chebyshev series of the fields on the initial hypersurface.
       */
 
-    BispecInput ID("../run/specInput.dat");
+    /*BispecInput ID("../run/specInput.dat");
     if( ! ID.isOK () ) {
         return -1;
-    }
+    }*/
 
     /*std::cout << "The following is the spectral initial data," << std::endl;
 
@@ -2038,14 +2041,14 @@ int main()
     /// - Read the run-time configuration parameters (taken from bim-solver)
     ///
     //Parameters params( argc >= 2 ? argv[1] : "config.ini" );
-    Parameters params( "../run/config.ini" );
+    //Parameters params( "../run/config.ini" );
 
     /** Define the array containing the spectral coefficients as a function of the fields
         defined in the namespace fields, the time step m and the
         collocation point index n.
       */
 
-    ChebyshevExpansion chebySeries( ID );
+    //ChebyshevExpansion chebySeries( ID );
 
     //chebySeries.instantiateSpecID();
 
@@ -2075,7 +2078,7 @@ int main()
     /** Evolve the spectral coefficients
       */
 
-    BispecEvolve bispecEvolution( ID, cc, params );
+    /*BispecEvolve bispecEvolution( ID, cc, params );*/
 
     //evolution.solveDerivatives( 0 );
 
@@ -2094,7 +2097,7 @@ int main()
         std::cout << std::endl;
     }*/
 
-    std::cout <<
+    /*std::cout <<
         "The time derivatives of the spectral coefficients on the initial hypersurface,"
             << std::endl << std::endl;
     for( size_t field = 0; field < bispecEvolution.n_evenflds(); ++field )
@@ -2118,7 +2121,7 @@ int main()
                       << bispecEvolution.get_odd_spec_t( 0, field, cheby_index ) << std::endl;
         }
         std::cout << std::endl;
-    }
+    }*/
 
     //////////////////////////////////////////////////////////////////////////////////////
 
