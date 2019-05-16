@@ -485,8 +485,8 @@ public:
         //
         if( 1 == fread( &x, sizeof(Real), 1, specID ) ) {
             input_fields    = size_t(x);
-            /// The number of evolved fields is the number of input fields, \
-                minus the number of gauge variables ( at present, 6 ) minus p minus r
+            /// The number of evolved fields is the number of input fields,
+            /// minus the number of gauge variables ( at present, 6 ) minus p minus r
             number_fields   = input_fields - number_gauge_vars - 1 - 1;
         }
         else {
@@ -538,8 +538,8 @@ protected:
 
 public:
 
-    /// The array containing the spectral coefficients for all the Chebyshev series \
-        of the fields
+    /// The array containing the spectral coefficients for all the Chebyshev series
+    /// of the fields
     Real *spcoeffs;
 
     /** The constructor defines the array containing the spectral coefficients for all
@@ -645,8 +645,8 @@ protected:
 
 public:
 
-    /// Method to access the spectral coefficients. Since we will make use of the \
-        integrator from bim-solver, we copy the structure of GF in gridDriver.
+    /// Method to access the spectral coefficients. Since we will make use of the
+    /// integrator from bim-solver, we copy the structure of GF in gridDriver.
     Real specC( size_t m, size_t field, size_t cheby_index )
     {
         return spcoeffs[ ( n_all_flds * n_chebycffs ) * m + n_chebycffs * field
@@ -744,8 +744,8 @@ public:
     inline void computeFields( size_t m )
     {
 
-        /// Computation of the values of the fields at the collocation points (CPs) on \
-            the initial hypersurface
+        /// Computation of the values of the fields at the collocation points (CPs) on
+        /// the initial hypersurface
         for( const auto field : fields::even_flds )
         {
             for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
@@ -805,8 +805,8 @@ public:
         }
 
 
-        /// Computation of the values of the second radial derivatives at the \
-            collocation points (CPs) on the initial hypersurface
+        /// Computation of the values of the second radial derivatives at the
+        /// collocation points (CPs) on the initial hypersurface
         for( const auto derr : fields::even_derrs )
         {
             for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
@@ -1023,9 +1023,9 @@ public:
         computeRegDers( 0 );
 
 
-        /// The printouts below print the values of the fields at the collocation points \
-            on the initial hypersurface. They are compared against the values in \
-            Mathematica and they coincide (up to MachinePrecision).
+        /// The printouts below print the values of the fields at the collocation points
+        /// on the initial hypersurface. They are compared against the values in
+        /// Mathematica and they coincide (up to MachinePrecision).
 
         /*std::cout << "The following are the values of the fields at the collocation "
                   << "points on the initial hypersurface (g-sector)," << std::endl;
@@ -1279,7 +1279,7 @@ public:
 
         /// The printouts below print the values of the dependent fields at the collocation points on the initial hypersurface.
 
-        std::cout << "The following are the values of the dependent fields on the collocation points on the initial hypersurface," << std::endl << std::endl;
+        /*std::cout << "The following are the values of the dependent fields on the collocation points on the initial hypersurface," << std::endl << std::endl;
 
         std::cout << "The collocation points, "<< std::endl << std::endl;
         for( size_t n = 0; n < n_collocs; ++n )
@@ -1671,7 +1671,7 @@ public:
         }
         std::cout << std::endl << std::endl;
 
-        std::cout << std::endl;
+        std::cout << std::endl;*/
 
     }
 };
@@ -1732,7 +1732,7 @@ public:
     /** Method to access the vector b_odd
       */
 
-    inline Real odd_evolution_eqs( Int m, Int field, Int n )
+    inline Real odd_evolution_eqs( size_t m, size_t field, size_t n )
     {
         return b_odd[ odd_fields_t.size() * n_collocs * m
             + n_collocs * field + n ];
@@ -1761,7 +1761,7 @@ public:
 
     inline void arrange_fields_t( size_t m )
     {
-        for( size_t field = 0; field < even_fields_t.size(); field++ )
+        for( size_t field = 0; field < even_fields_t.size(); ++field )
         {
             for( size_t n = 0; n < n_collocs; ++n )
             {
@@ -1771,7 +1771,7 @@ public:
             }
         }
 
-        for( size_t field = 0; field < odd_fields_t.size(); field++ )
+        for( size_t field = 0; field < odd_fields_t.size(); ++field )
         {
             for( size_t n = 0; n < n_collocs; ++n )
             {
@@ -1850,33 +1850,27 @@ public:
         //ChebyshevExpansion&     chebyExp,
         Parameters&             params
     ) :
-        PrimaryFields  ( bispecID, chebyC ),
-        DependentFields( bispecID, chebyC, params ),//chebyC, chebyExp, params ),
-        ChebyshevExpansion( bispecID )
+        PrimaryFields       ( bispecID, chebyC ),
+        DependentFields     ( bispecID, chebyC, params ),//chebyC, chebyExp, params ),
+        ChebyshevExpansion  ( bispecID )
         //cheby_pointer( &chebyC )
     {
+        std::cout << "test0";
 
         exp_ord     = bispecID.exp_order();
         n_collocs   = bispecID.n_collocations();
         n_chebycffs = bispecID.n_chebycoeffs();
 
-        A_even  = new Real[ n_collocs * n_collocs ];
-        A_odd   = new Real[ n_collocs * n_collocs ];
-        b_even  = new Real[ get_mDim() * even_fields_t.size() * n_collocs ];
-        b_odd   = new Real[ get_mDim() * odd_fields_t.size() * n_collocs ];
+        std::cout << "test";
+
+        A_even      = new Real[ n_collocs * n_collocs ];
+        A_odd       = new Real[ n_collocs * n_collocs ];
+        b_even      = new Real[ get_mDim() * even_fields_t.size() * n_collocs ];
+        b_odd       = new Real[ get_mDim() * odd_fields_t.size() * n_collocs ];
         even_spec_t = new Real[ get_mDim() * even_fields_t.size() * n_collocs ];
         odd_spec_t  = new Real[ get_mDim() * odd_fields_t.size() * n_collocs ];
 
-        /*if( bispecID.n_fields() != fields_t.size() )
-        {
-            std::cerr << "err: bispecEvolve: mismatch in the number of fields"
-                << std::endl << std::endl;
-            std::cout << bispecID.n_fields() << ", " << fields_t.size() << std::endl
-                 << std::endl;
-
-            /// To stop the run from here, an exception must be thrown
-            return;
-        }*/
+        std::cout << "test2";
 
         // The index row runs over the even cheby_indices
         for( size_t row_ev = 0; row_ev < n_collocs; ++row_ev )
@@ -1888,6 +1882,8 @@ public:
             }
         }
 
+        std::cout << "test3";
+
         // The index row runs over the odd cheby_indices
         for( size_t row_odd = 0; row_odd < n_collocs; ++row_odd )
         {
@@ -1898,11 +1894,24 @@ public:
             }
         }
 
+        std::cout << "test4";
+
 
         arrange_fields_t( 0 );
+
+        std::cout << "test5";
+
         solveSpectralDerivatives( 0 );
+
+        std::cout << "test6";
+
         specC( 0, 1, 3 );
+
+        std::cout << "test7";
+
         computeFields( 1 );
+
+        std::cout << "test8";
 
         /*std::cout << "The evolution equations stored in the vector," << std::endl
             << std::endl;
@@ -1910,42 +1919,42 @@ public:
         std::cout << "gconf_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << evolution_eqs( 0, 0, n ) << ", ";
+            std::cout << even_evolution_eqs( 0, 0, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gtrK_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << evolution_eqs( 0, 2, n ) << ", ";
+            std::cout << even_evolution_eqs( 0, 2, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gA_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << evolution_eqs( 0, 4, n ) << ", ";
+            std::cout << even_evolution_eqs( 0, 4, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gB_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << evolution_eqs( 0, 5, n ) << ", ";
+            std::cout << even_evolution_eqs( 0, 5, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gA1_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << evolution_eqs( 0, 8, n ) << ", ";
+            std::cout << even_evolution_eqs( 0, 8, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gL_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << evolution_eqs( 0, 10, n ) << ", ";
+            std::cout << odd_evolution_eqs( 0, 1, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
@@ -2057,7 +2066,7 @@ int main()
         collocation point index n.
       */
 
-    ChebyshevExpansion chebySeries( ID );
+    //ChebyshevExpansion chebySeries( ID );
 
     /*std::cout << "The following is the spectral initial data assigned to the
         coefficients," << std::endl;
@@ -2080,29 +2089,28 @@ int main()
         dependentFields calls primaryFields' one.
       */
 
-     DependentFields setupIH( ID, chebyshevValues, params );
+     //DependentFields setupIH( ID, chebyshevValues, params );
 
     /** Evolve the spectral coefficients
       */
 
-    /*BispecEvolve bispecEvolution( ID, cc, params );*/
+    BispecEvolve bispecEvolution( ID, chebyshevValues, params );
 
-    //evolution.solveDerivatives( 0 );
-
-    /*std::cout <<
-        "The time derivatives of the fields arranged in the vector b,"
+    std::cout <<
+        "The time derivatives of the even fields arranged in the vector b,"
             << std::endl << std::endl;
-    for( size_t field = 0; field < ID.n_fields(); ++field )
+    for( size_t field = 0; field < bispecEvolution.n_evenflds(); ++field )
     {
-        std::cout << "These are the derivatives of the fields "
+        std::cout << "These are the derivatives of the even field "
             << "(field,collocation_point), " << std::endl << std::endl;
-        for( size_t n = 0; n < ID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < bispecEvolution.n_colpoints(); ++n )
         {
             std::cout << "(" << field << "," << n << ") = "
-                      << evolution.evolution_eqs( 0, field, n ) << std::endl;
+                      << bispecEvolution.even_evolution_eqs( 0, field, n )
+                      << std::endl;
         }
         std::cout << std::endl;
-    }*/
+    }
 
     /*std::cout <<
         "The time derivatives of the spectral coefficients on the initial hypersurface,"
