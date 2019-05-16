@@ -444,16 +444,16 @@ public:
     //
     Real operator() ( size_t field, size_t n )
     {
-        return spec_coeff[ ( expansion_order + 1 ) * field + n ];
+        return spec_coeff[ number_chebycoeffs * field + n ];
     }
 
     // Constructor: Reads the spectral initial data from a file.
     //
     BispecInput( const std::string fileName )
     {
-        FILE* specid = fopen( fileName.c_str(), "rb" );
+        FILE* specID = fopen( fileName.c_str(), "rb" );
 
-        if( ! specid ) {
+        if( ! specID ) {
             std::cerr << "err: ID: Cannot open file" << std::endl;
             return;
         }
@@ -461,16 +461,29 @@ public:
         // Read magic number
         //
         Real x = 0;
-        if( 1 != fread( &x, sizeof(Real), 1, specid ) || x != 4478245647 )
+        if( 1 != fread( &x, sizeof(Real), 1, specID ) || x != 4478245647 )
         {
             std::cerr << "err: ID: Magic number wrong" << std::endl;
-            fclose( specid );
+            fclose( specID );
+            return;
+        }
+
+        // Read the order of Chebyshev expansion
+        //
+        if( 1 == fread( &x, sizeof(Real), 1, specID ) ) {
+            expansion_order     = size_t(x);
+            number_collocations = size_t(( x + 1 ) / 2);
+            number_chebycoeffs  = number_collocations;
+        }
+        else {
+            std::cerr << "err: ID: Cannot read expansion_order" << std::endl;
+            fclose( specID );
             return;
         }
 
         // Read the number of evolved fields
         //
-        if( 1 == fread( &x, sizeof(Real), 1, specid ) ) {
+        if( 1 == fread( &x, sizeof(Real), 1, specID ) ) {
             input_fields    = size_t(x);
             /// The number of evolved fields is the number of input fields, \
                 minus the number of gauge variables ( at present, 6 ) minus p minus r
@@ -478,20 +491,7 @@ public:
         }
         else {
             std::cerr << "err: ID: Cannot read number_fields" << std::endl;
-            fclose( specid );
-            return;
-        }
-
-        // Read the order of Chebyshev expansion
-        //
-        if( 1 == fread( &x, sizeof(Real), 1, specid ) ) {
-            expansion_order     = size_t(x);
-            number_collocations = size_t(( x + 1 ) / 2);
-            number_chebycoeffs  = number_collocations;
-        }
-        else {
-            std::cerr << "err: ID: Cannot read expansion_order" << std::endl;
-            fclose( specid );
+            fclose( specID );
             return;
         }
 
@@ -500,16 +500,16 @@ public:
         data_size   = input_fields * number_chebycoeffs;
         spec_coeff  = new Real[ data_size ];
 
-        if ( data_size != fread( spec_coeff, sizeof(Real), data_size, specid ) )
+        if ( data_size != fread( spec_coeff, sizeof(Real), data_size, specID ) )
         {
             std::cerr << "err: ID: Cannot read all the initial data" << std::endl;
             delete [] spec_coeff;
             spec_coeff = nullptr;
-            fclose( specid );
+            fclose( specID );
             return;
         }
 
-        fclose(specid);
+        fclose(specID);
     }
 
 };
@@ -2000,14 +2000,32 @@ int main()
 
     //cc.exportChebyCoeffs();
 
-    /*std::cout << "The following is the evolution matrix," << std::endl;
+    /*std::cout << "The following is the even evolution matrix," << std::endl << std::endl;
 
-    for( size_t j = 0; j < cc.chebys(); ++j )
+    for( size_t even_cheby_index = 0; even_cheby_index < chebyshevValues.chebys();
+        ++even_cheby_index )
     {
-        for( size_t k = 0; k < cc.points(); ++k )
+        for( size_t n = 0; n < chebyshevValues.colpoints(); ++n )
         {
-            std::cout << "(" << j << "," << k << ") = "
-                        << cc.evolutionMatrix(j,k) << std::endl;
+            std::cout << "(" << even_cheby_index << "," << n << ") = "
+                        << chebyshevValues.ee_matrix_even[ n +
+                            even_cheby_index * chebyshevValues.colpoints() ]
+                            << std::endl;
+        }
+    }
+
+    std::cout << std::endl << "The following is the odd evolution matrix,"
+        << std::endl << std::endl;
+
+    for( size_t odd_cheby_index = 0; odd_cheby_index < chebyshevValues.chebys();
+        ++odd_cheby_index )
+    {
+        for( size_t n = 0; n < chebyshevValues.colpoints(); ++n )
+        {
+            std::cout << "(" << odd_cheby_index << "," << n << ") = "
+                        << chebyshevValues.ee_matrix_odd[ n +
+                            odd_cheby_index * chebyshevValues.colpoints() ]
+                            << std::endl;
         }
     }*/
 
@@ -2015,20 +2033,20 @@ int main()
         in the Chebyshev series of the fields on the initial hypersurface.
       */
 
-    /*BispecInput ID("../run/specInput.dat");
+    BispecInput ID("../run/specInput.dat");
     if( ! ID.isOK () ) {
         return -1;
-    }*/
+    }
 
-    /*std::cout << "The following is the spectral initial data," << std::endl;
+    std::cout << "The following is the spectral initial data," << std::endl;
 
 
-    std::cout << ID.n_fields() << " x " << ID.exp_order() + 1 << std::endl;
+    std::cout << ID.n_allfields() << " x " << ID.n_chebycoeffs() << std::endl;
 
     for( size_t field = 0; field < ID.n_allfields(); ++field )
     {
-        std::cout << "This is the field " << field << std::endl;
-        for( size_t n = 0; n < ID.exp_order() + 1; ++n )
+        std::cout << std::endl << "This is the field " << field << std::endl << std::endl;
+        for( size_t n = 0; n < ID.n_chebycoeffs(); ++n )
         {
             std::cout << "(" << field << "," << n << ") = "
                       << ID(field,n) << std::endl;
@@ -2036,7 +2054,7 @@ int main()
 
     }
 
-    std::cout << std::endl;*/
+    std::cout << std::endl;
 
     /// - Read the run-time configuration parameters (taken from bim-solver)
     ///
