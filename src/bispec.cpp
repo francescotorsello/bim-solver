@@ -47,8 +47,10 @@
 
 #define ODD_FIELDS  gL, fL, pfS
 
-#define FIELDS_T    gconf_t, fconf_t, gtrK_t, ftrK_t, gA_t, fA_t, gB_t, fB_t, gA1_t,  \
-                    fA1_t, gsig_t, fsig_t, gAsig_t, fAsig_t,  gD_t, gS_t, gtau_t
+#define EVEN_FIELDS_T   gconf_t, fconf_t, gtrK_t, ftrK_t, gA_t, fA_t, gB_t, \
+                        fB_t, gA1_t, fA1_t, gsig_t, fsig_t, gAsig_t, fAsig_t, gD_t, gtau_t
+
+#define ODD_FIELDS_T    gL_t, fL_t, gS_t
 
 #define DERS    gconf_r, fconf_r, gtrK_r, ftrK_r, gA_r, fA_r, gB_r, fB_r, gA1_r, fA1_r, \
                 gL_r, fL_r, gsig_r, fsig_r, gAsig_r, fAsig_r, pfD_r, pfS_r, pftau_r
@@ -734,11 +736,11 @@ public:
     setregder( gderAlpr_r )     setregder( fderAlpr_r )
     setregder( gderconfr_r )    setregder( fderconfr_r )
 
+    /** Method to compute the values of the fields via parity-restricted Chebyshev series
+      */
+
     inline void computeFields( size_t m )
     {
-        /** TODO: In the expansion below, one should include only the appropriate parity
-            in the Chebyshev series of the fields
-          */
 
         /// Computation of the values of the fields at the collocation points (CPs) on \
             the initial hypersurface
@@ -750,10 +752,9 @@ public:
                 for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
                     sum += specC( m, field, cheby_index )
-                            * chebyCoeff[ cheby_index * n_collocs + n ];
+                            * chebyCoeff[ n_collocs * cheby_index + n ];
                 }
-                values_fields[ m * n_collocs * n_flds + n_collocs * field
-                    + n ] = sum;
+                values_fields[ m * n_collocs * n_flds + n_collocs * field + n ] = sum;
             }
         }
         for( const auto field : fields::odd_flds )
@@ -766,8 +767,7 @@ public:
                     sum += specC( m, field, cheby_index )
                             * chebyCoeff[ cheby_index * n_collocs + n ];
                 }
-                values_fields[ m * n_collocs * n_flds + n_collocs * field
-                    + n ] = sum;
+                values_fields[ m * n_collocs * n_flds + n_collocs * field + n ] = sum;
             }
         }
 
@@ -784,8 +784,7 @@ public:
                             * chebyCoeff[ ( exp_ord + 1 ) * ( exp_ord + 1 )
                                 + cheby_index * ( exp_ord + 1 ) + n ];
                 }
-                values_ders[ m * n_collocs * n_flds + n_collocs * der
-                    + n ] = sum;
+                values_ders[ m * n_collocs * n_flds + n_collocs * der + n ] = sum;
             }
         }
         for( const auto der : fields::odd_ders )
@@ -799,8 +798,7 @@ public:
                             * chebyCoeff[ ( exp_ord + 1 ) * ( exp_ord + 1 )
                                 + cheby_index * ( exp_ord + 1 ) + n ];
                 }
-                values_ders[ m * n_collocs * n_flds + n_collocs * der
-                    + n ] = sum;
+                values_ders[ m * n_collocs * n_flds + n_collocs * der + n ] = sum;
             }
         }
 
@@ -818,8 +816,7 @@ public:
                             * chebyCoeff[ 2*( exp_ord + 1 ) * ( exp_ord + 1 )
                                 + cheby_index * ( exp_ord + 1 ) + n ];
                 }
-                values_derrs[ m * n_collocs * n_flds + n_collocs * derr
-                    + n ] = sum;
+                values_derrs[ m * n_collocs * n_flds + n_collocs * derr + n ] = sum;
             }
         }
         for( const auto derr : fields::odd_derrs )
@@ -833,14 +830,13 @@ public:
                             * chebyCoeff[ 2*( exp_ord + 1 ) * ( exp_ord + 1 )
                                 + cheby_index * ( exp_ord + 1 ) + n ];
                 }
-                values_derrs[ m * n_collocs * n_flds + n_collocs * derr
-                    + n ] = sum;
+                values_derrs[ m * n_collocs * n_flds + n_collocs * derr + n ] = sum;
             }
         }
     }
 
     /** The following fields needs to access the spectral coefficients even if they
-        are not primary. Hence, they need to be computed in here. TODO: check the parity conditions for these fields.
+        are not primary. Hence, they need to be computed in here.
       */
 
     inline void computeRegDers( size_t m )
@@ -1253,7 +1249,7 @@ protected:
     inline Real R  ( Int m, Int n )
     {
         Real x;
-        isGR() ? x = 1 : x = ( fB(m,n)*exp(2*fconf(m,n))) / (gB(m,n)*exp(2*gconf(m,n)));
+        isGR() ? x = 1 : x = (fB(m,n)*exp(2*fconf(m,n))) / (gB(m,n)*exp(2*gconf(m,n)));
         return x;
     }
 
@@ -1275,27 +1271,27 @@ protected:
 
     inline Real fA2 ( Int m, Int n )    { return - fA1(m,n) / 2; }
 
-    inline Real gK1 ( Int m, Int n )    { return gA1(m,n) + 1/3 *gtrK(m,n); }
+    inline Real gK1 ( Int m, Int n )    { return gA1(m,n) + 1/3 * gtrK(m,n); }
 
-    inline Real gK2 ( Int m, Int n )    { return gA2(m,n) + 1/3 *gtrK(m,n); }
+    inline Real gK2 ( Int m, Int n )    { return gA2(m,n) + 1/3 * gtrK(m,n); }
 
-    inline Real fK1 ( Int m, Int n )    { return fA1(m,n) + 1/3 *ftrK(m,n); }
+    inline Real fK1 ( Int m, Int n )    { return fA1(m,n) + 1/3 * ftrK(m,n); }
 
-    inline Real fK2 ( Int m, Int n )    { return fA2(m,n) + 1/3 *ftrK(m,n); }
+    inline Real fK2 ( Int m, Int n )    { return fA2(m,n) + 1/3 * ftrK(m,n); }
 
     /// Regularizing fields
 
-    inline Real gBetr( Int m, Int n )   { return -2 * r_minus(m,n) * gBet(m,n)
+    inline Real gBetr( Int m, Int n )   { return - r_minus(m,n) * gBet(m,n)
         / ( r(m,n) + TINY_Real ); }
 
-    inline Real fBetr( Int m, Int n )   { return -2 * r_minus(m,n) * fBet(m,n)
+    inline Real fBetr( Int m, Int n )   { return - r_minus(m,n) * fBet(m,n)
         / ( r(m,n) + TINY_Real ); }
 
-    inline Real gLr( Int m, Int n )     { return -2 * r_minus(m,n) * gL(m,n)
+    /*inline Real gLr( Int m, Int n )     { return - r_minus(m,n) * gL(m,n)
         / ( r(m,n) + TINY_Real ); }
 
-    inline Real fLr( Int m, Int n )     { return -2 * r_minus(m,n) * fL(m,n)
-        / ( r(m,n) + TINY_Real ); }
+    inline Real fLr( Int m, Int n )     { return - r_minus(m,n) * fL(m,n)
+        / ( r(m,n) + TINY_Real ); }*/
 
     /// Last dependent fields
 
@@ -1701,14 +1697,19 @@ class BispecEvolve
 
     Int m;
     Int n;
-    Real *spec_t;
+    Real *even_spec_t;
+    Real *odd_spec_t;
 
     size_t exp_ord;
+    size_t n_collocs;
+    size_t n_chebycffs;
 
     typedef Real (DependentFields::*FP)( Int m, Int n );
-    std::vector<FP> fields_t = { FIELDS_T };
+    std::vector<FP> even_fields_t   = { EVEN_FIELDS_T };
+    std::vector<FP> odd_fields_t    = { ODD_FIELDS_T };
 
-    Real *b;
+    Real *b_even;
+    Real *b_odd;
     Real *A_even;
     Real *A_odd;
     //ChebyshevCoefficients* cheby_pointer;
@@ -1720,36 +1721,70 @@ class BispecEvolve
 
 public:
 
-    /** Method to access the vector b
+    inline size_t n_evenflds()  { return even_fields_t.size(); }
+    inline size_t n_oddflds()   { return odd_fields_t.size(); }
+    inline size_t n_colpoints() { return n_collocs; }
+    inline size_t n_chebys()    { return n_chebycffs; }
+
+
+    /** Method to access the vector b_even
       */
 
-    inline Real evolution_eqs( Int m, Int field, Int n )
+    inline Real even_evolution_eqs( size_t m, size_t field, size_t n )
     {
-        return b[ fields_t.size() * ( exp_ord + 1 ) * m
-            + ( exp_ord + 1 ) * field + n ];
+        return b_even[ even_fields_t.size() * n_collocs * m
+            + n_collocs * field + n ];
     }
 
-    /** Method to access the time derivatives of the spectral coefficients
+    /** Method to access the vector b_odd
       */
 
-    inline Real get_spec_t( size_t m, size_t field, size_t n )
+    inline Real odd_evolution_eqs( Int m, Int field, Int n )
     {
-        return spec_t[ ( exp_ord + 1 * fields_t.size() ) * m
-            + ( exp_ord + 1 ) * field + n ];
+        return b_odd[ odd_fields_t.size() * n_collocs * m
+            + n_collocs * field + n ];
     }
 
-    /** Method to fill the vector b
+    /** Method to access the time derivatives of the even spectral coefficients
+      */
+
+    inline Real get_even_spec_t( size_t m, size_t field, size_t n )
+    {
+        return even_spec_t[ ( n_collocs * even_fields_t.size() ) * m
+            + n_collocs * field + n ];
+    }
+
+    /** Method to access the time derivatives of the odd spectral coefficients
+      */
+
+    inline Real get_odd_spec_t( size_t m, size_t field, size_t n )
+    {
+        return odd_spec_t[ ( n_collocs * odd_fields_t.size() ) * m
+            + n_collocs * field + n ];
+    }
+
+    /** Method to fill the vectors b_even and b_odd
       */
 
     inline void arrange_fields_t( size_t m )
     {
-        for( size_t field = 0; field < fields_t.size(); ++field )
+        for( size_t field = 0; field < even_fields_t.size(); field++ )
         {
-            for( size_t n = 0; n < exp_ord + 1; ++n )
+            for( size_t n = 0; n < n_collocs; ++n )
             {
-                b[ ( ( exp_ord + 1 ) * fields_t.size() ) * m
-                    + ( exp_ord + 1 ) * field + n ] =
-                        ( this ->* fields_t[ field ] )( m, n );
+                b_even[ ( n_collocs * even_fields_t.size() ) * m
+                    + n_collocs * field + n ] =
+                        ( this ->* even_fields_t[ field ] )( m, n );
+            }
+        }
+
+        for( size_t field = 0; field < odd_fields_t.size(); field++ )
+        {
+            for( size_t n = 0; n < n_collocs; ++n )
+            {
+                b_odd[ ( n_collocs * odd_fields_t.size() ) * m
+                    + n_collocs * field + n ] =
+                        ( this ->* odd_fields_t[ field ] )( m, n );
             }
         }
     }
@@ -1757,23 +1792,49 @@ public:
     /** Method solve for the time derivatives of the spectral coefficients
       */
 
-    inline void solveDerivatives( size_t m )
+    inline void solveSpectralDerivatives( size_t m )
     {
-        /// For each field
-        for( size_t field = 0; field < fields_t.size(); ++field )
+        /// For each even field
+        for( size_t field = 0; field < even_fields_t.size(); ++field )
         { /// Solve the linear algebraic system, i.e.,
-            /// for each Chebyshev index (row)
-            for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
+            /// for each even Chebyshev index (row)
+            for( size_t cheby_index = 0; cheby_index < n_collocs; ++cheby_index )
             {
-                spec_t[ ( ( exp_ord + 1 ) * fields_t.size() ) * m
-                    + ( exp_ord + 1 ) * field + cheby_index ] = 0;
+                even_spec_t[ ( n_chebycffs * even_fields_t.size() ) * m
+                    + n_chebycffs * field + cheby_index ] = 0;
                 /// For each collocation point (column)
                 for( size_t n = 0; n < exp_ord +1; ++n )
                 {
-                    spec_t[ ( ( exp_ord + 1 ) * fields_t.size() ) * m
-                        + ( exp_ord + 1 ) * field + cheby_index ] +=
-                            A_even[ cheby_index * ( exp_ord + 1 ) + n ]
-                                * evolution_eqs( m, field, n );
+                    even_spec_t[ ( n_chebycffs * even_fields_t.size() ) * m
+                    + n_chebycffs * field + cheby_index ] +=
+                            A_even[ cheby_index * n_collocs + n ]
+                                * even_evolution_eqs( m, field, n );
+                            /*(cheby_pointer -> evolutionMatrix( cheby_index, n ))
+                            * evolution_eqs( m, field, n );*/
+                            /*ChebyshevCoefficients::evolutionMatrix( cheby_index, n )
+                                * evolution_eqs( m, field, n );*/
+                            /*ChebyshevCoefficients::evolutionMatrix( cheby_index, n )
+                                * evolution_eqs( m, field, n );*/
+
+                }
+            }
+        }
+
+        /// For each odd field
+        for( size_t field = 0; field < odd_fields_t.size(); ++field )
+        { /// Solve the linear algebraic system, i.e.,
+            /// for each odd Chebyshev index (row)
+            for( size_t cheby_index = 0; cheby_index < n_collocs; ++cheby_index )
+            {
+                odd_spec_t[ ( n_chebycffs * odd_fields_t.size() ) * m
+                    + n_chebycffs * field + cheby_index ] = 0;
+                /// For each collocation point (column)
+                for( size_t n = 0; n < exp_ord +1; ++n )
+                {
+                    odd_spec_t[ ( n_chebycffs * odd_fields_t.size() ) * m
+                    + n_chebycffs * field + cheby_index ] +=
+                            A_odd[ cheby_index * n_collocs + n ]
+                                * odd_evolution_eqs( m, field, n );
                             /*(cheby_pointer -> evolutionMatrix( cheby_index, n ))
                             * evolution_eqs( m, field, n );*/
                             /*ChebyshevCoefficients::evolutionMatrix( cheby_index, n )
@@ -1802,18 +1863,18 @@ public:
         //cheby_pointer( &chebyC )
     {
 
-        exp_ord  = bispecID.exp_order();
+        exp_ord     = bispecID.exp_order();
+        n_collocs   = bispecID.n_collocations();
+        n_chebycffs = bispecID.n_chebycoeffs();
 
-        A_even  = new Real[ ( bispecID.exp_order() + 1 ) / 2
-                    * ( bispecID.exp_order() + 1 ) / 2 ];
-        A_odd   = new Real[ ( bispecID.exp_order() + 1 ) / 2
-                    * ( bispecID.exp_order() + 1 ) / 2 ];
-        b       = new Real[ get_mDim() * fields_t.size()
-                    * ( bispecID.exp_order() + 1 ) / 2 ];
-        spec_t  = new Real[ get_mDim() * fields_t.size()
-                    * ( bispecID.exp_order() + 1 ) / 2 ];
+        A_even  = new Real[ n_collocs * n_collocs ];
+        A_odd   = new Real[ n_collocs * n_collocs ];
+        b_even  = new Real[ get_mDim() * even_fields_t.size() * n_collocs ];
+        b_odd   = new Real[ get_mDim() * odd_fields_t.size() * n_collocs ];
+        even_spec_t = new Real[ get_mDim() * even_fields_t.size() * n_collocs ];
+        odd_spec_t  = new Real[ get_mDim() * odd_fields_t.size() * n_collocs ];
 
-        if( bispecID.n_fields() != fields_t.size() )
+        /*if( bispecID.n_fields() != fields_t.size() )
         {
             std::cerr << "err: bispecEvolve: mismatch in the number of fields"
                 << std::endl << std::endl;
@@ -1822,33 +1883,31 @@ public:
 
             /// To stop the run from here, an exception must be thrown
             return;
-        }
+        }*/
 
-        for( size_t cheby_index = 0; cheby_index < ( bispecID.exp_order() + 1 );
-            ++cheby_index )
+        // The index row runs over the even cheby_indices
+        for( size_t row_ev = 0; row_ev < n_collocs; ++row_ev )
         {
-            for( size_t n = 0; n < ( bispecID.exp_order() + 1 ); ++n )
+            for( size_t n = 0; n < n_collocs; ++n )
             {
-                A_even[ cheby_index * ( bispecID.exp_order() + 1 ) + n ] =
-                    chebyC.ee_matrix_even[ cheby_index * ( bispecID.exp_order() + 1 )
-                        + n ];
+                A_even[ row_ev * n_collocs + n ] =
+                    chebyC.ee_matrix_even[ row_ev * n_collocs + n ];
             }
         }
 
-        for( size_t cheby_index = 0; cheby_index < ( bispecID.exp_order() + 1 );
-            ++cheby_index )
+        // The index row runs over the odd cheby_indices
+        for( size_t row_odd = 0; row_odd < n_collocs; ++row_odd )
         {
-            for( size_t n = 0; n < ( bispecID.exp_order() + 1 ); ++n )
+            for( size_t n = 0; n < n_collocs; ++n )
             {
-                A_odd[ cheby_index * ( bispecID.exp_order() + 1 ) + n ] =
-                    chebyC.ee_matrix_odd[ cheby_index * ( bispecID.exp_order() + 1 )
-                        + n ];
+                A_odd[ row_odd * n_collocs + n ] =
+                    chebyC.ee_matrix_odd[ row_odd * n_collocs + n ];
             }
         }
 
 
         arrange_fields_t( 0 );
-        solveDerivatives( 0 );
+        solveSpectralDerivatives( 0 );
         specC( 0, 1, 3 );
         computeFields( 1 );
 
@@ -2016,7 +2075,7 @@ int main()
     /** Evolve the spectral coefficients
       */
 
-    BispecEvolve evolution( ID, cc, params );
+    BispecEvolve bispecEvolution( ID, cc, params );
 
     //evolution.solveDerivatives( 0 );
 
@@ -2038,14 +2097,25 @@ int main()
     std::cout <<
         "The time derivatives of the spectral coefficients on the initial hypersurface,"
             << std::endl << std::endl;
-    for( size_t field = 0; field < ID.n_fields(); ++field )
+    for( size_t field = 0; field < bispecEvolution.n_evenflds(); ++field )
     {
-        std::cout << "These are the derivatives of the spectral coefficients of "
+        std::cout << "These are the derivatives of the even spectral coefficients of "
             << "(field,cheby_index), " << std::endl << std::endl;
-        for( size_t cheby_index = 0; cheby_index < ID.exp_order() + 1; ++cheby_index )
+        for( size_t cheby_index = 0; cheby_index < bispecEvolution.n_chebys(); ++cheby_index )
         {
             std::cout << "(" << field << "," << cheby_index << ") = "
-                      << evolution.get_spec_t( 0, field, cheby_index ) << std::endl;
+                      << bispecEvolution.get_even_spec_t( 0, field, cheby_index ) << std::endl;
+        }
+        std::cout << std::endl << std::endl;
+    }
+    for( size_t field = 0; field < bispecEvolution.n_oddflds(); ++field )
+    {
+        std::cout << "These are the derivatives of the even spectral coefficients of "
+            << "(field,cheby_index), " << std::endl << std::endl;
+        for( size_t cheby_index = 0; cheby_index < bispecEvolution.n_chebys(); ++cheby_index )
+        {
+            std::cout << "(" << field << "," << cheby_index << ") = "
+                      << bispecEvolution.get_odd_spec_t( 0, field, cheby_index ) << std::endl;
         }
         std::cout << std::endl;
     }
