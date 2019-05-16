@@ -1279,10 +1279,10 @@ public:
 
         /// The printouts below print the values of the dependent fields at the collocation points on the initial hypersurface.
 
-        /*std::cout << "The following are the values of the dependent fields on the collocation points on the initial hypersurface," << std::endl << std::endl;
+        std::cout << "The following are the values of the dependent fields on the collocation points on the initial hypersurface," << std::endl << std::endl;
 
         std::cout << "The collocation points, "<< std::endl << std::endl;
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << r( 0, n ) << ", ";
         }
@@ -1291,14 +1291,14 @@ public:
         std::cout << "The Ricci terms," << std::endl << std::endl;
 
         std::cout << "gRicci:   ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gRicci( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fRicci:   ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << fRicci( 0, n ) << ", ";
         }
@@ -1307,63 +1307,63 @@ public:
         std::cout << "Lorentz factor, extrinsic curvatures and auxiliary field," << std::endl << std::endl;
 
         std::cout << "R:   ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << R( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "Lt:  ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << Lt( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "Lt2: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << Lt2( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gA2: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gA2( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gK1: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gK1( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gK2: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gK2( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fA2: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << fA2( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fK1: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << fK1( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fK2: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << fK2( 0, n ) << ", ";
         }
@@ -1372,105 +1372,105 @@ public:
         std::cout << "The matter fields," << std::endl << std::endl;
 
         std::cout << "pfv:   ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << pfv( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "pfv_r: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << pfv_r( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gD_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gD_t( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gS_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gS_t( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gtau_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gtau_t( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gW: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gW( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "grhobar: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << grhobar( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "grho: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << grho( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gj: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gj( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gJ11: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gJ11( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gJ22: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gJ22( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "frho: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << grho( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fj: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << fj( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fJ11: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << fJ11( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fJ22: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << fJ22( 0, n ) << ", ";
         }
@@ -1480,42 +1480,42 @@ public:
             << std::endl << std::endl;
 
         std::cout << "gJK: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gJK( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gJA1: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gJA1( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gJL: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gJL( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fJK: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << fJK( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fJA1: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << fJA1( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fJL: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << fJL( 0, n ) << ", ";
         }
@@ -1524,105 +1524,133 @@ public:
         std::cout << "The evolution equations," << std::endl << std::endl;
 
         std::cout << "gconf_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gconf_t( 0, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gtrK_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gtrK_t( 0, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gA_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gA_t( 0, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gB_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gB_t( 0, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gA1_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gA1_t( 0, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gL_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gL_t( 0, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
+        std::cout << "gsig_t: ";
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gsig_t( 0, n ) << ", ";
+        }
+        std::cout << std::endl << std::endl;
+
+        std::cout << "gAsig_t: ";
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gAsig_t( 0, n ) << ", ";
+        }
+        std::cout << std::endl << std::endl;
+
         std::cout << "fconf_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << fconf_t( 0, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "ftrK_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << ftrK_t( 0, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "fA_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << fA_t( 0, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "fB_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << fB_t( 0, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "fA1_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << fA1_t( 0, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "fL_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << fL_t( 0, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
+        std::cout << "fsig_t: ";
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << fsig_t( 0, n ) << ", ";
+        }
+        std::cout << std::endl << std::endl;
+
+        std::cout << "fAsig_t: ";
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << fAsig_t( 0, n ) << ", ";
+        }
+        std::cout << std::endl << std::endl;
+
         std::cout << "gD_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gD_t( 0, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gS_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gS_t( 0, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gtau_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gtau_t( 0, n ) << ", ";
         }
@@ -1630,20 +1658,20 @@ public:
 
         std::cout << "Other fields," << std::endl << std::endl;
 
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << (gBet(0,n) * (2 - 2 * r(0,n))) / (1 + TINY_Real
                 + r(0,n)) << ", ";
         }
         std::cout << std::endl << std::endl;
 
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << gBet(0,n) << ", ";
         }
         std::cout << std::endl << std::endl;
 
-        std::cout << std::endl;*/
+        std::cout << std::endl;
 
     }
 };
@@ -1880,42 +1908,42 @@ public:
             << std::endl;
 
         std::cout << "gconf_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << evolution_eqs( 0, 0, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gtrK_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << evolution_eqs( 0, 2, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gA_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << evolution_eqs( 0, 4, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gB_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << evolution_eqs( 0, 5, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gA1_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << evolution_eqs( 0, 8, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gL_t: ";
-        for( size_t n = 0; n < bispecID.exp_order() + 1; ++n )
+        for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << evolution_eqs( 0, 10, n ) << ", ";
         }
@@ -2046,13 +2074,13 @@ int main()
     /** Define and compute the values of the fields at the collocation points
       */
 
-     PrimaryFields defineFlds( ID, chebyshevValues );
+     //PrimaryFields defineFlds( ID, chebyshevValues );
 
     /** Define and compute everything on the initial hypersurface. The constructor of
         dependentFields calls primaryFields' one.
       */
 
-     //DependentFields setupIH( ID, chebyshevValues, params );
+     DependentFields setupIH( ID, chebyshevValues, params );
 
     /** Evolve the spectral coefficients
       */
