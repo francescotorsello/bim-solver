@@ -71,7 +71,7 @@ typedef long Int;
 #endif
 
 
-const Real TINY_Real = 1e-5; // 1e-100 // std::numeric_limits<Real>::min();
+const Real TINY_Real = 1e-100; // 1e-100 // std::numeric_limits<Real>::min();
 
 
 /** Reads an array of real numbers from a string.
