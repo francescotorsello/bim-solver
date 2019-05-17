@@ -1705,8 +1705,8 @@ public:
   */
 class BispecEvolve
     : virtual PrimaryFields,
-      DependentFields,
-      ChebyshevExpansion
+      DependentFields//,
+      //ChebyshevExpansion
 {
 
     Int m;
@@ -1872,8 +1872,8 @@ public:
         Parameters&             params
     ) :
         PrimaryFields       ( bispecID, chebyC ),
-        DependentFields     ( bispecID, chebyC, params ),//chebyC, chebyExp, params ),
-        ChebyshevExpansion  ( bispecID )
+        DependentFields     ( bispecID, chebyC, params )//,//chebyC, chebyExp, params ),
+        //ChebyshevExpansion  ( bispecID )
         //cheby_pointer( &chebyC )
     {
 
@@ -1913,11 +1913,9 @@ public:
 
         solveSpectralDerivatives( 0 );
 
-        specC( 0, 1, 3 );
-
         computeFields( 1 );
 
-        std::cout << "The evolution equations stored in the vector," << std::endl
+        /*std::cout << "The evolution equations stored in the vector," << std::endl
             << std::endl;
 
         std::cout << "gconf_t: ";
@@ -1962,7 +1960,119 @@ public:
         }
         std::cout << std::endl << std::endl;
 
+        std::cout << std::endl;*/
+
+        /*Int m1 = 1;
+
+        std::cout << "The following are the values of the fields at the collocation "
+                  << "points on the initial hypersurface (g-sector)," << std::endl;
+
         std::cout << std::endl;
+
+        std::cout << "Collocation points," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << r( m1, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "Conformal factor," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gconf( m1, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gtrK," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gtrK( m1, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gA," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gA( m1, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gB," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gB( m1, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gA1," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gA1( m1, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gL," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gL( m1, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gsig," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gsig( m1, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gAsig," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gAsig( m1, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gAlp," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gAlp( m1, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gBet," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gBet( m1, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "p," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << p( m1, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pfD," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pfD( m1, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pfS," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pfS( m1, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pftau," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pftau( m1, n ) << std::endl;
+        }*/
 
     }
 
