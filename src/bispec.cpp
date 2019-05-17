@@ -263,14 +263,14 @@ public:
     //
     Real reg_ders_cheby( size_t cheby_index, size_t n )
     {
-        return reg_der_coeff[ ( expansion_order + 1 ) * n + n ];
+        return reg_der_coeff[ cheby_index * number_collocations + n ];
     }
 
     // Method to access the coefficients of the regularized second derivatives
     //
     Real reg_derrs_cheby( size_t cheby_index, size_t n )
     {
-        return reg_derr_coeff[ ( expansion_order + 1 ) * n + n ];
+        return reg_derr_coeff[ cheby_index * number_collocations + n ];
     }
 
     // Method to print the coefficients to a file
@@ -744,8 +744,8 @@ public:
     inline void computeFields( size_t m )
     {
 
-        /// Computation of the values of the fields at the collocation points (CPs) on
-        /// the initial hypersurface
+        /// Computation of the values of the fields at the collocation points (CPs)
+
         for( const auto field : fields::even_flds )
         {
             for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
@@ -783,8 +783,8 @@ public:
                 for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
                     sum += specC( m, der, cheby_index / 2 )
-                            * chebyValues[ ( exp_ord + 1 ) * ( exp_ord + 1 )
-                                + cheby_index * ( exp_ord + 1 ) + n ];
+                            * chebyValues[ ( exp_ord + 1 ) * n_collocs
+                                + cheby_index * n_collocs + n ];
                 }
                 values_ders[ m * n_collocs * n_flds + n_collocs * der + n ] = sum;
             }
@@ -797,8 +797,8 @@ public:
                 for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
                     sum += specC( m, der, ( cheby_index - 1 ) / 2 )
-                            * chebyValues[ ( exp_ord + 1 ) * ( exp_ord + 1 )
-                                + cheby_index * ( exp_ord + 1 ) + n ];
+                            * chebyValues[ ( exp_ord + 1 ) * n_collocs
+                                + cheby_index * n_collocs + n ];
                 }
                 values_ders[ m * n_collocs * n_flds + n_collocs * der + n ] = sum;
             }
@@ -815,8 +815,8 @@ public:
                 for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
                     sum += specC( m, derr, cheby_index / 2 )
-                            * chebyValues[ 2*( exp_ord + 1 ) * ( exp_ord + 1 )
-                                + cheby_index * ( exp_ord + 1 ) + n ];
+                            * chebyValues[ 2*( exp_ord + 1 ) * n_collocs
+                                + cheby_index * n_collocs + n ];
                 }
                 values_derrs[ m * n_collocs * n_flds + n_collocs * derr + n ] = sum;
             }
@@ -829,8 +829,8 @@ public:
                 for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
                     sum += specC( m, derr, ( cheby_index - 1 ) / 2 )
-                            * chebyValues[ 2*( exp_ord + 1 ) * ( exp_ord + 1 )
-                                + cheby_index * ( exp_ord + 1 ) + n ];
+                            * chebyValues[ 2*( exp_ord + 1 ) * n_collocs
+                                + cheby_index * n_collocs + n ];
                 }
                 values_derrs[ m * n_collocs * n_flds + n_collocs * derr + n ] = sum;
             }
@@ -858,101 +858,111 @@ public:
             }
         }*/
 
-        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        /// TODO:make a unique loop for all the computations in computeRegDers
+
+        for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
             Real sum = 0;
             for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
                 sum += specC( m, fields::gBet, ( cheby_index + 1 ) / 2 )
-                        * regDerCheby[ cheby_index * n_collocs + n ];
+                        * regDerCheby[ n +
+                            cheby_index * n_collocs ];
             }
             values_reg_ders[ m * n_collocs * n_flds +
                 n_collocs * 0 + n ] = sum;
         }
 
-        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
             Real sum = 0;
             for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
                 sum += specC( m, fields::fBet, ( cheby_index + 1 ) / 2 )
-                        * regDerCheby[ cheby_index * ( exp_ord + 1 ) + n ];
+                        * regDerCheby[ n +
+                            cheby_index * n_collocs ];
             }
             values_reg_ders[ m * n_collocs * n_flds +
                 n_collocs * 1 + n ] = sum;
         }
 
-        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
             Real sum = 0;
             for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
                 sum += specC( m, fields::gL, ( cheby_index + 1 ) / 2 )
-                        * regDerCheby[ cheby_index * ( exp_ord + 1 ) + n ];
+                        * regDerCheby[ n +
+                            cheby_index * n_collocs ];
             }
             values_reg_ders[ m * n_collocs * n_flds +
                 n_collocs * 2 + n ] = sum;
         }
 
-        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
             Real sum = 0;
             for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
                 sum += specC( m, fields::fL, ( cheby_index + 1 ) / 2 )
-                        * regDerCheby[ cheby_index * ( exp_ord + 1 ) + n ];
+                        * regDerCheby[ n +
+                            cheby_index * n_collocs ];
             }
             values_reg_ders[ m * n_collocs * n_flds +
                 n_collocs * 3 + n ] = sum;
         }
 
-        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        /*for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
             Real sum = 0;
             for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
                 sum += specC( m, fields::gAlp, cheby_index / 2 )
-                        * regDerrCheby[ cheby_index * ( exp_ord + 1 ) + n ];
+                        * regDerrCheby[ n +
+                            cheby_index * n_collocs ];
             }
             values_reg_ders[ m * n_collocs * n_flds +
                 n_collocs * 4 + n ] = sum;
         }
 
-        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        /*for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
             Real sum = 0;
             for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
                 sum += specC( m, fields::fAlp, cheby_index / 2 )
-                        * regDerrCheby[ cheby_index * ( exp_ord + 1 ) + n ];
+                        * regDerrCheby[ n +
+                            cheby_index * n_collocs ];
             }
             values_reg_ders[ m * n_collocs * n_flds +
                 n_collocs * 5 + n ] = sum;
         }
 
-        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
             Real sum = 0;
             for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
                 sum += specC( m, fields::gconf, cheby_index / 2 )
-                        * regDerrCheby[ cheby_index * ( exp_ord + 1 ) + n ];
+                        * regDerrCheby[ n +
+                            cheby_index * n_collocs ];
             }
             values_reg_ders[ m * n_collocs * n_flds +
                 n_collocs * 6 + n ] = sum;
         }
 
-        for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+        for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
             Real sum = 0;
             for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
                 sum += specC( m, fields::fconf, cheby_index / 2 )
-                        * regDerrCheby[ cheby_index * ( exp_ord + 1 ) + n ];
+                        * regDerrCheby[ n +
+                            cheby_index * n_collocs ];
             }
             values_reg_ders[ m * n_collocs * n_flds +
                 n_collocs * 7 + n ] = sum;
-        }
+        }*/
 
     }
 
@@ -994,8 +1004,9 @@ public:
             values_colpoints[ n ] = bispecID( n_all_flds - 1, n );
         }
 
-        chebyValues = new Real[ 4 * ( exp_ord + 1 ) * n_collocs ];
-        regDerCheby = new Real[ ( exp_ord + 1 ) * n_collocs ];
+        chebyValues  = new Real[ 4 * ( exp_ord + 1 ) * n_collocs ];
+        regDerCheby  = new Real[ ( exp_ord + 1 ) * n_collocs ];
+        regDerrCheby = new Real[ ( exp_ord + 1 ) * n_collocs ];
 
         for( size_t der_order = 0; der_order < 4; ++der_order )
         {
@@ -1015,13 +1026,23 @@ public:
             for( size_t n = 0; n < n_collocs; ++n )
             {
                 regDerCheby[ cheby_index * n_collocs + n ] =
+                        chebyC.reg_ders_cheby( cheby_index, n );
+                            // reg_ders_cheby( row        , column )
+            }
+        }
+
+        for( size_t cheby_index = 0; cheby_index < ( exp_ord + 1 ); ++cheby_index )
+        {
+            for( size_t n = 0; n < n_collocs; ++n )
+            {
+                regDerrCheby[ cheby_index * n_collocs + n ] =
                         chebyC.reg_derrs_cheby( cheby_index, n );
+                            // reg_derrs_cheby( row        , column )
             }
         }
 
         computeFields( 0 );
         computeRegDers( 0 );
-
 
         /// The printouts below print the values of the fields at the collocation points
         /// on the initial hypersurface. They are compared against the values in
@@ -1451,7 +1472,7 @@ public:
         std::cout << "frho: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << grho( 0, n ) << ", ";
+            std::cout << frho( 0, n ) << ", ";
         }
         std::cout << std::endl;
 
@@ -1855,13 +1876,10 @@ public:
         ChebyshevExpansion  ( bispecID )
         //cheby_pointer( &chebyC )
     {
-        std::cout << "test0";
 
         exp_ord     = bispecID.exp_order();
         n_collocs   = bispecID.n_collocations();
         n_chebycffs = bispecID.n_chebycoeffs();
-
-        std::cout << "test";
 
         A_even      = new Real[ n_collocs * n_collocs ];
         A_odd       = new Real[ n_collocs * n_collocs ];
@@ -1869,8 +1887,6 @@ public:
         b_odd       = new Real[ get_mDim() * odd_fields_t.size() * n_collocs ];
         even_spec_t = new Real[ get_mDim() * even_fields_t.size() * n_collocs ];
         odd_spec_t  = new Real[ get_mDim() * odd_fields_t.size() * n_collocs ];
-
-        std::cout << "test2";
 
         // The index row runs over the even cheby_indices
         for( size_t row_ev = 0; row_ev < n_collocs; ++row_ev )
@@ -1882,8 +1898,6 @@ public:
             }
         }
 
-        std::cout << "test3";
-
         // The index row runs over the odd cheby_indices
         for( size_t row_odd = 0; row_odd < n_collocs; ++row_odd )
         {
@@ -1894,26 +1908,16 @@ public:
             }
         }
 
-        std::cout << "test4";
-
 
         arrange_fields_t( 0 );
 
-        std::cout << "test5";
-
         solveSpectralDerivatives( 0 );
-
-        std::cout << "test6";
 
         specC( 0, 1, 3 );
 
-        std::cout << "test7";
-
         computeFields( 1 );
 
-        std::cout << "test8";
-
-        /*std::cout << "The evolution equations stored in the vector," << std::endl
+        std::cout << "The evolution equations stored in the vector," << std::endl
             << std::endl;
 
         std::cout << "gconf_t: ";
@@ -1958,7 +1962,7 @@ public:
         }
         std::cout << std::endl << std::endl;
 
-        std::cout << std::endl;*/
+        std::cout << std::endl;
 
     }
 
@@ -1982,7 +1986,9 @@ int main()
         return -1;
     }
 
-    /*std::cout << chebyshevValues.orders() << " x " << chebyshevValues.expOrd() + 1
+    /*std::cout << "Values of the Chebyshev polynomials in ChebyshevCoefficients," << std::endl << std::endl;
+
+    std::cout << chebyshevValues.orders() << " x " << chebyshevValues.expOrd() + 1
         << " x " << chebyshevValues.colpoints() << std::endl;
 
     for( size_t der_order = 0; der_order < chebyshevValues.orders(); ++der_order )
@@ -1996,6 +2002,42 @@ int main()
                 std::cout << "(" << der_order << "," << cheby_index << "," << n << ") = "
                           << chebyshevValues(der_order,cheby_index,n) << std::endl;
             }
+        }
+    }*/
+
+    /*std::cout << "Values of the regularized first derivatives in  "
+              << "ChebyshevCoefficients," << std::endl << std::endl;
+
+    std::cout << chebyshevValues.orders() << " x " << chebyshevValues.expOrd() + 1
+        << " x " << chebyshevValues.colpoints() << std::endl;
+
+    for( size_t cheby_index = 0; cheby_index < chebyshevValues.expOrd() + 1;
+        ++cheby_index )
+    {
+        std::cout << std::endl;
+        for( size_t n = 0; n < chebyshevValues.colpoints(); ++n )
+        {
+            std::cout << "(" << cheby_index << "," << n << ") = "
+                        << chebyshevValues.reg_der_coeff[ n +
+                            cheby_index * chebyshevValues.colpoints() ] << std::endl;
+        }
+    }*/
+
+    /*std::cout << "Values of the regularized second derivatives in  "
+              << "ChebyshevCoefficients," << std::endl << std::endl;
+
+    std::cout << chebyshevValues.orders() << " x " << chebyshevValues.expOrd() + 1
+        << " x " << chebyshevValues.colpoints() << std::endl;
+
+    for( size_t cheby_index = 0; cheby_index < chebyshevValues.expOrd() + 1;
+        ++cheby_index )
+    {
+        std::cout << std::endl;
+        for( size_t n = 0; n < chebyshevValues.colpoints(); ++n )
+        {
+            std::cout << "(" << cheby_index << "," << n << ") = "
+                        << chebyshevValues.reg_derr_coeff[ n +
+                            cheby_index * chebyshevValues.colpoints() ] << std::endl;
         }
     }*/
 
@@ -2096,7 +2138,7 @@ int main()
 
     BispecEvolve bispecEvolution( ID, chebyshevValues, params );
 
-    std::cout <<
+    /*std::cout <<
         "The time derivatives of the even fields arranged in the vector b,"
             << std::endl << std::endl;
     for( size_t field = 0; field < bispecEvolution.n_evenflds(); ++field )
@@ -2110,7 +2152,7 @@ int main()
                       << std::endl;
         }
         std::cout << std::endl;
-    }
+    }*/
 
     /*std::cout <<
         "The time derivatives of the spectral coefficients on the initial hypersurface,"
@@ -2128,7 +2170,7 @@ int main()
     }
     for( size_t field = 0; field < bispecEvolution.n_oddflds(); ++field )
     {
-        std::cout << "These are the derivatives of the even spectral coefficients of "
+        std::cout << "These are the derivatives of the odd spectral coefficients of "
             << "(field,cheby_index), " << std::endl << std::endl;
         for( size_t cheby_index = 0; cheby_index < bispecEvolution.n_chebys(); ++cheby_index )
         {
