@@ -611,8 +611,7 @@ public:
     follow.
   */
 class PrimaryFields
-    : //ChebyshevCoefficients,
-      ChebyshevExpansion
+    : ChebyshevExpansion
 {
 
 protected:
@@ -912,7 +911,7 @@ public:
                 n_collocs * 3 + n ] = sum;
         }
 
-        /*for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
+        for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
             Real sum = 0;
             for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
@@ -925,7 +924,7 @@ public:
                 n_collocs * 4 + n ] = sum;
         }
 
-        /*for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
+        for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
             Real sum = 0;
             for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
@@ -962,7 +961,7 @@ public:
             }
             values_reg_ders[ m * n_collocs * n_flds +
                 n_collocs * 7 + n ] = sum;
-        }*/
+        }
 
     }
 
@@ -1705,8 +1704,7 @@ public:
   */
 class BispecEvolve
     : virtual PrimaryFields,
-      DependentFields//,
-      //ChebyshevExpansion
+      DependentFields
 {
 
     Int m;
@@ -1722,16 +1720,10 @@ class BispecEvolve
     std::vector<FP> even_fields_t   = { EVEN_FIELDS_T };
     std::vector<FP> odd_fields_t    = { ODD_FIELDS_T };
 
-    Real *b_even;
-    Real *b_odd;
-    Real *A_even;
-    Real *A_odd;
-    //ChebyshevCoefficients* cheby_pointer;
-
-    /*Real evolutionMatrix( size_t cheby_index, size_t n )
-    {
-        return ee_matrix[ cheby_index * collocation_point + n ];
-    }*/
+    Real* b_even;
+    Real* b_odd;
+    Real* A_even;
+    Real* A_odd;
 
 public:
 
@@ -1740,6 +1732,9 @@ public:
     inline size_t n_colpoints() { return n_collocs; }
     inline size_t n_chebys()    { return n_chebycffs; }
 
+    //////////////////////////////////////////////////////////////////////////////////////
+    /////   Methods to access values
+    //////////////////////////////////////////////////////////////////////////////////////
 
     /** Method to access the vector b_even
       */
@@ -1777,6 +1772,10 @@ public:
             + n_collocs * field + n ];
     }
 
+    //////////////////////////////////////////////////////////////////////////////////////
+    /////   Methods to compute values
+    //////////////////////////////////////////////////////////////////////////////////////
+
     /** Method to fill the vectors b_even and b_odd
       */
 
@@ -1803,7 +1802,7 @@ public:
         }
     }
 
-    /** Method solve for the time derivatives of the spectral coefficients
+    /** Method to solve for the time derivatives of the spectral coefficients
       */
 
     inline void solveSpectralDerivatives( size_t m )
@@ -1823,13 +1822,6 @@ public:
                     + n_chebycffs * field + cheby_index ] +=
                             A_even[ cheby_index * n_collocs + n ]
                                 * even_evolution_eqs( m, field, n );
-                            /*(cheby_pointer -> evolutionMatrix( cheby_index, n ))
-                            * evolution_eqs( m, field, n );*/
-                            /*ChebyshevCoefficients::evolutionMatrix( cheby_index, n )
-                                * evolution_eqs( m, field, n );*/
-                            /*ChebyshevCoefficients::evolutionMatrix( cheby_index, n )
-                                * evolution_eqs( m, field, n );*/
-
                 }
             }
         }
@@ -1849,13 +1841,6 @@ public:
                     + n_chebycffs * field + cheby_index ] +=
                             A_odd[ cheby_index * n_collocs + n ]
                                 * odd_evolution_eqs( m, field, n );
-                            /*(cheby_pointer -> evolutionMatrix( cheby_index, n ))
-                            * evolution_eqs( m, field, n );*/
-                            /*ChebyshevCoefficients::evolutionMatrix( cheby_index, n )
-                                * evolution_eqs( m, field, n );*/
-                            /*ChebyshevCoefficients::evolutionMatrix( cheby_index, n )
-                                * evolution_eqs( m, field, n );*/
-
                 }
             }
         }
@@ -1866,54 +1851,32 @@ public:
 
     BispecEvolve(
         BispecInput&            bispecID,
-        //const std::string       fileName,
         ChebyshevCoefficients&  chebyC,
-        //ChebyshevExpansion&     chebyExp,
         Parameters&             params
     ) :
         PrimaryFields       ( bispecID, chebyC ),
-        DependentFields     ( bispecID, chebyC, params )//,//chebyC, chebyExp, params ),
-        //ChebyshevExpansion  ( bispecID )
-        //cheby_pointer( &chebyC )
+        DependentFields     ( bispecID, chebyC, params )
     {
 
         exp_ord     = bispecID.exp_order();
         n_collocs   = bispecID.n_collocations();
         n_chebycffs = bispecID.n_chebycoeffs();
 
-        A_even      = new Real[ n_collocs * n_collocs ];
-        A_odd       = new Real[ n_collocs * n_collocs ];
         b_even      = new Real[ get_mDim() * even_fields_t.size() * n_collocs ];
         b_odd       = new Real[ get_mDim() * odd_fields_t.size() * n_collocs ];
         even_spec_t = new Real[ get_mDim() * even_fields_t.size() * n_collocs ];
         odd_spec_t  = new Real[ get_mDim() * odd_fields_t.size() * n_collocs ];
 
-        // The index row runs over the even cheby_indices
-        for( size_t row_ev = 0; row_ev < n_collocs; ++row_ev )
-        {
-            for( size_t n = 0; n < n_collocs; ++n )
-            {
-                A_even[ row_ev * n_collocs + n ] =
-                    chebyC.ee_matrix_even[ row_ev * n_collocs + n ];
-            }
-        }
+        /// Access to the evolution matrices via pointers
 
-        // The index row runs over the odd cheby_indices
-        for( size_t row_odd = 0; row_odd < n_collocs; ++row_odd )
-        {
-            for( size_t n = 0; n < n_collocs; ++n )
-            {
-                A_odd[ row_odd * n_collocs + n ] =
-                    chebyC.ee_matrix_odd[ row_odd * n_collocs + n ];
-            }
-        }
-
+        A_even      = chebyC.ee_matrix_even;
+        A_odd       = chebyC.ee_matrix_odd;
 
         arrange_fields_t( 0 );
 
         solveSpectralDerivatives( 0 );
 
-        computeFields( 1 );
+        //computeFields( 1 );
 
         /*std::cout << "The evolution equations stored in the vector," << std::endl
             << std::endl;
