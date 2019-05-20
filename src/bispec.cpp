@@ -978,7 +978,7 @@ public:
     )
     {
         mLen        = 5;
-        mExtra      = 9;
+        mExtra      = 0;
         mDim        = mLen + mExtra;
         exp_ord     = bispecID.exp_order();
         n_collocs   = bispecID.n_collocations();
@@ -1020,8 +1020,8 @@ public:
             collocation points
           */
 
-        chebyValues = chebyC.coeff;
-        regDerCheby = chebyC.reg_der_coeff;
+        chebyValues  = chebyC.coeff;
+        regDerCheby  = chebyC.reg_der_coeff;
         regDerrCheby = chebyC.reg_derr_coeff;
 
         /*chebyValues  = new Real[ 4 * ( exp_ord + 1 ) * n_collocs ];
@@ -1886,8 +1886,11 @@ public:
                     for( size_t cheby_index; cheby_index < n_chebycffs; ++cheby_index )
                         // for each spectral coefficients
                     {
+                        spcoeffs[ ( n_all_flds * n_chebycffs ) * next_m
+                                        + n_chebycffs * field
+                                            + cheby_index ] =
                         ( this ->* method )(
-                            spcoeffs[ ( n_all_flds * n_chebycffs ) * next_m
+                            spcoeffs[ ( n_all_flds * n_chebycffs ) * m
                                         + n_chebycffs * field
                                             + cheby_index ], //value
 
@@ -1912,8 +1915,11 @@ public:
                     for( size_t cheby_index; cheby_index < n_chebycffs; ++cheby_index )
                         // for each spectral coefficients
                     {
+                        spcoeffs[ ( n_all_flds * n_chebycffs ) * next_m
+                                        + n_chebycffs * field
+                                            + cheby_index ] =
                         ( this ->* method )(
-                            spcoeffs[ ( n_all_flds * n_chebycffs ) * next_m
+                            spcoeffs[ ( n_all_flds * n_chebycffs ) * m
                                         + n_chebycffs * field
                                             + cheby_index ], //value
 
@@ -1956,27 +1962,71 @@ public:
         A_even      = chebyC.ee_matrix_even;
         A_odd       = chebyC.ee_matrix_odd;
 
-        // Perform the first step
+        // Open the file for text output (one text line per one time step)
+        FILE* outf = fopen( "output.dat", "w" );
 
-        arrange_fields_t( 0 );
-        solveSpectralDerivatives( 0 );
+        for( size_t m = 1; m <= mDim - 1; ++m )
+        {
 
-        evolveEvenFields( &EulerMethod, 0, 1, 0.5 );
-        evolveOddFields ( &EulerMethod, 0, 1, 0.5 );
+            size_t next_m = m + 1;
 
-        computeFields   ( 1 );
-        computeRegDers  ( 1 );
+            if( m == mDim - 1 )
+            {
+                size_t next_m = 0;
+            }
 
-        // Second step
+            // Perform the integration step
 
-        arrange_fields_t( 1 );
-        solveSpectralDerivatives( 1 );
+                arrange_fields_t( m );
+                solveSpectralDerivatives( m ); // integStep_Prepare ends
 
-        evolveEvenFields( &EulerMethod, 1, 2, 0.5 );
-        evolveOddFields ( &EulerMethod, 1, 2, 0.5 );
+                evolveEvenFields( &EulerMethod, m, next_m, 0.5 );
+                evolveOddFields ( &EulerMethod, m, next_m, 0.5 );
 
-        computeFields   ( 2 );
-        computeRegDers  ( 2 );
+                computeFields   ( next_m );
+                computeRegDers  ( next_m ); // Up to here, it could be integStep_Finalize
+
+            if( m == mDim - 1 )
+            {
+                m = 0;
+            }
+
+            // Over spectral coefficients of the even fields
+            for( const auto field : fields::even_flds )
+            {
+                for( size_t cheby_index = 0; cheby_index < n_chebycffs; ++cheby_index )
+                {
+                    if( cheby_index + field > 0 )
+                    { // Separate values using tabs
+                        fprintf( outf, "\t");
+                    }
+                    // here comes output of the coefficients
+                    fprintf( outf, "%g", spcoeffs[ ( n_all_flds * n_chebycffs ) * m
+                                                    + n_chebycffs * field
+                                                        + cheby_index ] );
+                }
+            }
+            // Over spectral coefficients of the odd fields
+            for( const auto field : fields::odd_flds )
+            {
+                for( size_t cheby_index = 0; cheby_index < n_chebycffs; ++cheby_index )
+                {
+                    if( cheby_index + field > 0 )
+                    { // Separate values using tabs
+                        fprintf( outf, "\t");
+                    }
+                    // here comes output of the coefficients
+                    fprintf( outf, "%g", spcoeffs[ ( n_all_flds * n_chebycffs ) * m
+                                                    + n_chebycffs * field
+                                                        + cheby_index ] );
+                }
+            }
+
+            fprintf( outf, "\n" ); // Marks end of line
+        }
+
+        // Close the output
+        fclose( outf );
 
         /*std::cout << "The evolution equations stored in the vector," << std::endl
             << std::endl;
