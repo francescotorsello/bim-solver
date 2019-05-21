@@ -43,7 +43,7 @@
 		<Unit filename="include/bispec/fields/DependentFields.h" />
 		<Unit filename="include/bispec/fields/GaugeVariables.h" />
 		<Unit filename="include/bispec/fields/PrimaryFields.h" />
-		<Unit filename="include/bispec/fields/macros.h" />
+		<Unit filename="include/bispec/fields/fields.h" />
 		<Unit filename="include/bispec/spectral-id/BispecInput.h" />
 		<Unit filename="include/bispec/spectral-id/ChebyshevCoefficients.h" />
 		<Unit filename="include/numMethods/dataTypes.h" />

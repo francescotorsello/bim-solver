@@ -16,7 +16,7 @@ class DependentFields
       BimetricModel
 {
 
-protected:
+public:
 
     /** Method to access the time step dimension
       */
@@ -88,8 +88,6 @@ protected:
     #include "../eom-BSSN/eomBSSNMatterComp.h"
     #include "../eom-BSSN/eomBSSNSourcesCompEul.h"
     #include "../eom-BSSN/eomBSSNEvolutionCompEul.h"
-
-public:
 
     DependentFields(
         BispecInput&            bispecID,

@@ -36,50 +36,54 @@
 
 using namespace std;
 
+//////////////////////////////////////////////////////////////////////////////////////////
+///// Include macros and namespace fields
+//////////////////////////////////////////////////////////////////////////////////////////
+
 #include "../include/bispec/fields/fields.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
-///// Include class ChebyshevCoefficients
+///// Include class ChebyshevCoefficients: load the values of the Chebyshev polynomials
 //////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../include/bispec/spectral-id/ChebyshevCoefficients.h"
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-///// Include class BispecInput
+///// Include class BispecInput: load the initial values of the spectral coefficients
 //////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../include/bispec/spectral-id/BispecInput.h"
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-///// Include class PrimaryFields
+///// Include class PrimaryFields: compute the fields which access the Chebyshev values
 //////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../include/bispec/fields/PrimaryFields.h"
 
-
 //////////////////////////////////////////////////////////////////////////////////////////
-///// Include class GaugeVariables
-//////////////////////////////////////////////////////////////////////////////////////////
-
-#include "../include/bispec/fields/GaugeVariables.h"
-
-//////////////////////////////////////////////////////////////////////////////////////////
-/////  Include class DependentFields
+/////  Include class DependentFields: define the fields not accessing the Chebyshev values
 //////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../include/bispec/fields/DependentFields.h"
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-/////  Include class BispecEvolve
+/////  Include class BispecEvolve: evolve the spectral coefficients
 //////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../include/bispec/evolution/BispecEvolve.h"
 
+//////////////////////////////////////////////////////////////////////////////////////////
+///// Include class GaugeVariables: compute the lapses and shifts
+//////////////////////////////////////////////////////////////////////////////////////////
+
+#include "../include/bispec/fields/GaugeVariables.h"
+
 
 //////////////////////////////////////////////////////////////////////////////////////////
+/////  main() function of bispec
 //////////////////////////////////////////////////////////////////////////////////////////
 
 int main()
@@ -90,12 +94,14 @@ int main()
         precision and load them once here.
       */
 
-    ChebyshevCoefficients chebyshevValues( "../bim-solver/include/chebyshev-values/chebyshev-values.dat" );
+    ChebyshevCoefficients chebyshevValues(
+        "../bim-solver/include/bispec/chebyshev-values/chebyshev-values.dat" );
     if( ! chebyshevValues.isOK () ) {
         return -1;
     }
 
-    /*std::cout << "Values of the Chebyshev polynomials in ChebyshevCoefficients," << std::endl << std::endl;
+    /*std::cout << "Values of the Chebyshev polynomials in ChebyshevCoefficients,"
+        << std::endl << std::endl;
 
     std::cout << chebyshevValues.orders() << " x " << chebyshevValues.expOrd() + 1
         << " x " << chebyshevValues.colpoints() << std::endl;
@@ -152,7 +158,8 @@ int main()
 
     //cc.exportChebyCoeffs();
 
-    /*std::cout << "The following is the even evolution matrix," << std::endl << std::endl;
+    /*std::cout << "The following is the even evolution matrix,"
+        << std::endl << std::endl;
 
     for( size_t even_cheby_index = 0; even_cheby_index < chebyshevValues.chebys();
         ++even_cheby_index )
@@ -274,10 +281,12 @@ int main()
     {
         std::cout << "These are the derivatives of the even spectral coefficients of "
             << "(field,cheby_index), " << std::endl << std::endl;
-        for( size_t cheby_index = 0; cheby_index < bispecEvolution.n_chebys(); ++cheby_index )
+        for( size_t cheby_index = 0; cheby_index < bispecEvolution.n_chebys();
+                ++cheby_index )
         {
             std::cout << "(" << field << "," << cheby_index << ") = "
-                      << bispecEvolution.get_even_spec_t( 0, field, cheby_index ) << std::endl;
+                      << bispecEvolution.get_even_spec_t( 0, field, cheby_index )
+                        << std::endl;
         }
         std::cout << std::endl << std::endl;
     }
@@ -285,10 +294,12 @@ int main()
     {
         std::cout << "These are the derivatives of the odd spectral coefficients of "
             << "(field,cheby_index), " << std::endl << std::endl;
-        for( size_t cheby_index = 0; cheby_index < bispecEvolution.n_chebys(); ++cheby_index )
+        for( size_t cheby_index = 0; cheby_index < bispecEvolution.n_chebys();
+                ++cheby_index )
         {
             std::cout << "(" << field << "," << cheby_index << ") = "
-                      << bispecEvolution.get_odd_spec_t( 0, field, cheby_index ) << std::endl;
+                      << bispecEvolution.get_odd_spec_t( 0, field, cheby_index )
+                        << std::endl;
         }
         std::cout << std::endl;
     }*/

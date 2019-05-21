@@ -6,6 +6,38 @@
  */
 
 /**
+ *  The macros define methods to access the values of the fields.
+ */
+
+#define setfield( field ) \
+        inline Real field( Int m, Int n ) \
+        { \
+            return values_fields[ ( n_all_flds * n_collocs ) * m \
+            + n_collocs * fields::field + n ]; \
+        }
+
+#define setder( field ) \
+        inline Real field( Int m, Int n ) \
+        { \
+            return values_ders[ ( n_all_flds * n_collocs ) * m \
+            + n_collocs * fields::field + n ]; \
+        }
+
+#define setderr( field ) \
+        inline Real field( Int m, Int n ) \
+        { \
+            return values_derrs[ ( n_all_flds * n_collocs ) * m \
+            + n_collocs * fields::field + n ]; \
+        }
+
+#define setregder( field ) \
+        inline Real field( Int m, Int n ) \
+        { \
+            return values_reg_ders[ ( 8 * ( exp_ord + 1 ) ) * m \
+            + ( exp_ord + 1 ) * fields::field + n ]; \
+        }
+
+/**
  *  'PrimaryFields' defines the methods to access the values of the fields accessing the
  *  values of the Chebyshev polynomials, and their first and second radial derivatives.
  *
@@ -398,10 +430,10 @@ public:
         /// second derivatives at the collocation points at each time step
 
         values_colpoints = new Real[ n_collocs ];
-        values_fields    = new Real[ mDim * n_flds * n_collocs ];
-        values_ders      = new Real[ mDim * n_flds * n_collocs ];
-        values_reg_ders  = new Real[ mDim * 8      * n_collocs ];
-        values_derrs     = new Real[ mDim * n_flds * n_collocs ];
+        values_fields    = new Real[ mDim * n_all_flds * n_collocs ];
+        values_ders      = new Real[ mDim * n_all_flds * n_collocs ];
+        values_reg_ders  = new Real[ mDim * 8          * n_collocs ];
+        values_derrs     = new Real[ mDim * n_all_flds * n_collocs ];
         spcoeffs         = new Real[ mDim * n_all_flds * n_chebycffs ];
 
         /// Assign initial values to the spectral coefficients
@@ -429,41 +461,6 @@ public:
         chebyValues  = chebyC.coeff;
         regDerCheby  = chebyC.reg_der_coeff;
         regDerrCheby = chebyC.reg_derr_coeff;
-
-        /*chebyValues  = new Real[ 4 * ( exp_ord + 1 ) * n_collocs ];
-        regDerCheby  = new Real[ ( exp_ord + 1 ) * n_collocs ];
-        regDerrCheby = new Real[ ( exp_ord + 1 ) * n_collocs ];
-
-        for( size_t der_order = 0; der_order < 4; ++der_order )
-        {
-            for( size_t cheby_index = 0; cheby_index < ( exp_ord + 1 ); ++cheby_index )
-            {
-                for( size_t n = 0; n < n_collocs; ++n )
-                {
-                    chebyValues[ der_order * ( exp_ord + 1 ) * n_collocs
-                        + cheby_index * n_collocs + n ] =
-                            chebyC( der_order, cheby_index, n );
-                }
-            }
-        }
-
-        for( size_t cheby_index = 0; cheby_index < ( exp_ord + 1 ); ++cheby_index )
-        {
-            for( size_t n = 0; n < n_collocs; ++n )
-            {
-                regDerCheby[ cheby_index * n_collocs + n ] =
-                        chebyC.reg_ders_cheby( cheby_index, n );
-            }
-        }
-
-        for( size_t cheby_index = 0; cheby_index < ( exp_ord + 1 ); ++cheby_index )
-        {
-            for( size_t n = 0; n < n_collocs; ++n )
-            {
-                regDerrCheby[ cheby_index * n_collocs + n ] =
-                        chebyC.reg_derrs_cheby( cheby_index, n );
-            }
-        }*/
 
         computeFields( 0 );
         computeRegDers( 0 );

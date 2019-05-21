@@ -11,7 +11,7 @@
  */
 
 class BispecEvolve
-    : virtual PrimaryFields,
+    : virtual public PrimaryFields,
       DependentFields
 {
 
@@ -28,10 +28,10 @@ class BispecEvolve
     std::vector<FP> even_fields_t   = { EVEN_FIELDS_T };
     std::vector<FP> odd_fields_t    = { ODD_FIELDS_T };
 
-    Real* b_even;
-    Real* b_odd;
-    Real* A_even;
-    Real* A_odd;
+    Real *b_even;
+    Real *b_odd;
+    Real *A_even;
+    Real *A_odd;
 
 public:
 

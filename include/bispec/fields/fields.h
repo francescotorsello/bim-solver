@@ -12,12 +12,18 @@
  */
 
 #define EVOLVED_FIELDS  gconf, fconf, gtrK, ftrK, gA, fA, gB, fB, gA1, fA1, gL, fL, \
-                        gsig, fsig, gAsig, fAsig, pfD, pfS, pftau
+                        gsig, fsig, gAsig, fAsig, gAlp, fAlp, hAlp, pfD, pfS, pftau
 
 #define EVEN_FIELDS  gconf, fconf, gtrK, ftrK, gA, fA, gB, fB, gA1, fA1, \
                      gsig, fsig, gAsig, fAsig, pfD, pftau
 
-#define ODD_FIELDS  gL, fL, pfS
+#define ODD_FIELDS  gL, fL, gBet, fBet, hBet, p, pfS
+
+#define LAPSES      gAlp, fAlp, hAlp
+
+#define SHIFTS      gBEt, fBet, hBet
+
+#define ODD_FIELDS  gL, fL, gBet, fBet, hBet, p, pfS
 
 #define EVEN_FIELDS_T   gconf_t, fconf_t, gtrK_t, ftrK_t, gA_t, fA_t, gB_t, \
                         fB_t, gA1_t, fA1_t, gsig_t, fsig_t, gAsig_t, fAsig_t, gD_t, gtau_t
@@ -31,8 +37,8 @@
                     gderconfr_r, fderconfr_r
 
 #define EVEN_DERS   gconf_r, fconf_r, gtrK_r, ftrK_r, gA_r, fA_r, gB_r, fB_r, gA1_r, \
-                    fA1_r, gL_r, fL_r, gsig_r, fsig_r, gAsig_r, fAsig_r, pfD_r, pfS_r, \
-                    pftau_r
+                    fA1_r, gL_r, fL_r, gsig_r, fsig_r, gAsig_r, fAsig_r, gAlp_r, fAlp_r,\
+                    hALp_r, pfD_r, pftau_r
 
 #define ODD_DERS  gL_r, fL_r, pfS_r
 
@@ -70,40 +76,6 @@
                     gA1_rr, fA1_rr, gL_rr, fL_rr, gsig_rr, fsig_rr, gAsig_rr, fAsig_rr, \
                     gAlp_rr, fAlp_rr, hAlp_rr, gBet_rr, fBet_rr, hBet_rr, p_rr, \
                     pfD_rr, pfS_rr, pftau_rr
-
-
-/** Note that the macro 'setfield' below, at present, only works inside bispecEvolve.
-    It defines the functions that are included in the evolution equations exported by
-    Mathematica
-  */
-
-#define setfield( field ) \
-        inline Real field( Int m, Int n ) \
-        { \
-            return values_fields[ ( n_flds * n_collocs ) * m \
-            + n_collocs * fields::field + n ]; \
-        }
-
-#define setder( field ) \
-        inline Real field( Int m, Int n ) \
-        { \
-            return values_ders[ ( n_flds * n_collocs ) * m \
-            + n_collocs * fields::field + n ]; \
-        }
-
-#define setderr( field ) \
-        inline Real field( Int m, Int n ) \
-        { \
-            return values_derrs[ ( n_flds * n_collocs ) * m \
-            + n_collocs * fields::field + n ]; \
-        }
-
-#define setregder( field ) \
-        inline Real field( Int m, Int n ) \
-        { \
-            return values_reg_ders[ ( 8 * ( exp_ord + 1 ) ) * m \
-            + ( exp_ord + 1 ) * fields::field + n ]; \
-        }
 
 /** Namespace 'fields' contains the indexing of the fields and their derivatives,
     to be used in the other classes
