@@ -67,8 +67,6 @@ protected:
     size_t n_all_flds;
     size_t n_collocs;
     size_t n_chebycffs;
-    size_t n_lapses = 3;
-    size_t n_shifts = 3;
 
     Real *values_fields;
     Real *values_lapses;
@@ -213,10 +211,37 @@ public:
                 }
             }
         } // TODO: spectral_coeffs is a function. Why not calling the array directly?
-
         for( const auto field : fields::odd_flds )
         {
+            for( size_t n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+            {
+                values_fields[ m * n_collocs * n_flds + n_collocs * field + n ] = 0;
+
+                for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
+                {
+                    values_fields[ m * n_collocs * n_flds + n_collocs * field + n ]
+                        += spectral_coeffs( m, field, ( cheby_index - 1 ) / 2 )
+                            * chebyValues[ cheby_index * n_collocs + n ];
+                }
+            }
+        }
+        for( const auto field : fields::lapses )
+        {
             for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
+            {
+                values_fields[ m * n_collocs * n_flds + n_collocs * field + n ] = 0;
+
+                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
+                {
+                    values_fields[ m * n_collocs * n_flds + n_collocs * field + n ]
+                        += spectral_coeffs( m, field, cheby_index / 2 )
+                            * chebyValues[ n_collocs * cheby_index + n ];
+                }
+            }
+        }
+        for( const auto field : fields::shifts )
+        {
+            for( size_t n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
                 values_fields[ m * n_collocs * n_flds + n_collocs * field + n ] = 0;
 
@@ -229,82 +254,44 @@ public:
             }
         }
 
-        /// TODO: fix the fact that field in the following loop does not go
-        ///       from 0 to 2, as it should go to populate values_lapses.
-        ///       That's why lapse and shift look crazy.
-
-        for( const auto field : fields::lapses )
-        {
-            for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
-            {
-                values_lapses[ m * n_collocs * n_lapses + n_collocs * field + n ] = 0;
-
-                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
-                {
-                    values_lapses[ m * n_collocs * n_lapses + n_collocs * field + n ]
-                        += spectral_coeffs( m, field, cheby_index / 2 )
-                            * chebyValues[ n_collocs * cheby_index + n ];
-                }
-            }
-        }
-
-        for( const auto field : fields::shifts )
-        {
-            for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
-            {
-                values_shifts[ m * n_collocs * n_shifts + n_collocs * field + n ] = 0;
-
-                for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
-                {
-                    values_shifts[ m * n_collocs * n_shifts + n_collocs * field + n ]
-                        += spectral_coeffs( m, field, ( cheby_index - 1 ) / 2 )
-                            * chebyValues[ cheby_index * n_collocs + n ];
-                }
-            }
-        }
-
         /// Computation of the values of the first radial derivatives at the
         /// collocation points (CPs) on the initial hypersurface
-
         for( const auto der : fields::even_ders )
         {
-            for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
+            for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
-                values_ders[ m * n_collocs * n_flds + n_collocs * der + n ] = 0;
-
+                Real sum = 0;
                 for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
-                    values_ders[ m * n_collocs * n_flds + n_collocs * der + n ]
-                        += spectral_coeffs( m, der, cheby_index / 2 )
+                    sum += spectral_coeffs( m, der, cheby_index / 2 )
                             * chebyValues[ ( exp_ord + 1 ) * n_collocs
                                 + cheby_index * n_collocs + n ];
                 }
+                values_ders[ m * n_collocs * n_flds + n_collocs * der + n ] = sum;
             }
         }
         for( const auto der : fields::odd_ders )
         {
-            for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
+            for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
-                values_ders[ m * n_collocs * n_flds + n_collocs * der + n ] = 0;
-
+                Real sum = 0;
                 for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
-                    values_ders[ m * n_collocs * n_flds + n_collocs * der + n ]
-                        += spectral_coeffs( m, der, ( cheby_index - 1 ) / 2 )
+                    sum += spectral_coeffs( m, der, ( cheby_index - 1 ) / 2 )
                             * chebyValues[ ( exp_ord + 1 ) * n_collocs
                                 + cheby_index * n_collocs + n ];
                 }
+                values_ders[ m * n_collocs * n_flds + n_collocs * der + n ] = sum;
             }
         }
         for( const auto field : fields::lapses_r )
         {
             for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
             {
-                values_lapses_r[ m * n_collocs * n_lapses + n_collocs * field + n ] = 0;
-
+                values_fields[ m * n_collocs * n_flds + n_collocs * field + n ] = 0;
                 for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
-                    values_lapses_r[ m * n_collocs * n_lapses + n_collocs * field + n ]
+                    values_fields[ m * n_collocs * n_flds + n_collocs * field + n ]
                         += spectral_coeffs( m, field, cheby_index / 2 )
                             * chebyValues[ ( exp_ord + 1 ) * n_collocs
                                 + n_collocs * cheby_index + n ];
@@ -313,64 +300,58 @@ public:
         }
         for( const auto field : fields::shifts_r )
         {
-            for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
+            for( size_t n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
-                values_shifts_r[ m * n_collocs * n_shifts + n_collocs * field + n ] = 0;
-
+                Real sum = 0;
                 for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
-                    values_shifts_r[ m * n_collocs * n_shifts + n_collocs * field + n ]
-                        += spectral_coeffs( m, field, ( cheby_index - 1 ) / 2 )
+                    sum += spectral_coeffs( m, field, ( cheby_index - 1 ) / 2 )
                             * chebyValues[ ( exp_ord + 1 ) * n_collocs
                                 + cheby_index * n_collocs + n ];
                 }
+                values_fields[ m * n_collocs * n_flds + n_collocs * field + n ] = sum;
             }
         }
 
 
         /// Computation of the values of the second radial derivatives at the
         /// collocation points (CPs) on the initial hypersurface
-
         for( const auto derr : fields::even_derrs )
         {
-            for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
+            for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
-                values_derrs[ m * n_collocs * n_flds + n_collocs * derr + n ] = 0;
-
+                Real sum = 0;
                 for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
-                    values_derrs[ m * n_collocs * n_flds + n_collocs * derr + n ]
-                        += spectral_coeffs( m, derr, cheby_index / 2 )
+                    sum += spectral_coeffs( m, derr, cheby_index / 2 )
                             * chebyValues[ 2*( exp_ord + 1 ) * n_collocs
                                 + cheby_index * n_collocs + n ];
                 }
-
+                values_derrs[ m * n_collocs * n_flds + n_collocs * derr + n ] = sum;
             }
         }
         for( const auto derr : fields::odd_derrs )
         {
-            for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
+            for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
-                values_derrs[ m * n_collocs * n_flds + n_collocs * derr + n ] = 0;
-
+                Real sum = 0;
                 for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
-                    values_derrs[ m * n_collocs * n_flds + n_collocs * derr + n ]
-                        += spectral_coeffs( m, derr, ( cheby_index - 1 ) / 2 )
+                    sum += spectral_coeffs( m, derr, ( cheby_index - 1 ) / 2 )
                             * chebyValues[ 2*( exp_ord + 1 ) * n_collocs
                                 + cheby_index * n_collocs + n ];
                 }
+                values_derrs[ m * n_collocs * n_flds + n_collocs * derr + n ] = sum;
             }
         }
          for( const auto field : fields::lapses_rr )
         {
             for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
             {
-                values_lapses_rr[ m * n_collocs * n_lapses + n_collocs * field + n ] = 0;
-
+                values_fields[ m * n_collocs * n_flds + n_collocs * field + n ] = 0;
                 for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
-                    values_lapses_rr[ m * n_collocs * n_lapses + n_collocs * field + n ]
+                    values_fields[ m * n_collocs * n_flds + n_collocs * field + n ]
                         += spectral_coeffs( m, field, cheby_index / 2 )
                             * chebyValues[ 2*( exp_ord + 1 ) * n_collocs
                                 + n_collocs * cheby_index + n ];
@@ -379,17 +360,16 @@ public:
         }
         for( const auto field : fields::shifts_rr )
         {
-            for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
+            for( size_t n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
             {
-                values_shifts_rr[ m * n_collocs * n_shifts + n_collocs * field + n ] = 0;
-
+                Real sum = 0;
                 for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
                 {
-                    values_shifts_rr[ m * n_collocs * n_shifts + n_collocs * field + n ]
-                        += spectral_coeffs( m, field, ( cheby_index - 1 ) / 2 )
+                    sum += spectral_coeffs( m, field, ( cheby_index - 1 ) / 2 )
                             * chebyValues[ 2*( exp_ord + 1 ) * n_collocs
                                 + cheby_index * n_collocs + n ];
                 }
+                values_fields[ m * n_collocs * n_flds + n_collocs * field + n ] = sum;
             }
         }
 
@@ -419,106 +399,106 @@ public:
 
         for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
-            values_reg_ders[ m * n_collocs * n_flds + n_collocs * 0 + n ] = 0;
-
+            Real sum = 0;
             for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
-                values_reg_ders[ m * n_collocs * n_flds + n_collocs * 0 + n ]
-                    += spectral_coeffs( m, fields::gBet, ( cheby_index + 1 ) / 2 )
+                sum += spectral_coeffs( m, fields::gBet, ( cheby_index + 1 ) / 2 )
                         * regDerCheby[ n +
                             cheby_index * n_collocs ];
             }
+            values_reg_ders[ m * n_collocs * n_flds +
+                n_collocs * 0 + n ] = sum;
         }
 
         for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
-            values_reg_ders[ m * n_collocs * n_flds + n_collocs * 1 + n ] = 0;
-
+            Real sum = 0;
             for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
-                values_reg_ders[ m * n_collocs * n_flds + n_collocs * 1 + n ]
-                    += spectral_coeffs( m, fields::fBet, ( cheby_index + 1 ) / 2 )
+                sum += spectral_coeffs( m, fields::fBet, ( cheby_index + 1 ) / 2 )
                         * regDerCheby[ n +
                             cheby_index * n_collocs ];
             }
+            values_reg_ders[ m * n_collocs * n_flds +
+                n_collocs * 1 + n ] = sum;
         }
 
         for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
-            values_reg_ders[ m * n_collocs * n_flds + n_collocs * 2 + n ] = 0;
-
+            Real sum = 0;
             for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
-                values_reg_ders[ m * n_collocs * n_flds + n_collocs * 2 + n ]
-                    += spectral_coeffs( m, fields::gL, ( cheby_index + 1 ) / 2 )
+                sum += spectral_coeffs( m, fields::gL, ( cheby_index + 1 ) / 2 )
                         * regDerCheby[ n +
                             cheby_index * n_collocs ];
             }
+            values_reg_ders[ m * n_collocs * n_flds +
+                n_collocs * 2 + n ] = sum;
         }
 
         for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
-            values_reg_ders[ m * n_collocs * n_flds + n_collocs * 3 + n ] = 0;
-
+            Real sum = 0;
             for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
-                values_reg_ders[ m * n_collocs * n_flds + n_collocs * 3 + n ]
-                    += spectral_coeffs( m, fields::fL, ( cheby_index + 1 ) / 2 )
+                sum += spectral_coeffs( m, fields::fL, ( cheby_index + 1 ) / 2 )
                         * regDerCheby[ n +
                             cheby_index * n_collocs ];
             }
+            values_reg_ders[ m * n_collocs * n_flds +
+                n_collocs * 3 + n ] = sum;
         }
 
         for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
-            values_reg_ders[ m * n_collocs * n_flds + n_collocs * 4 + n ] = 0;
-
+            Real sum = 0;
             for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
-                values_reg_ders[ m * n_collocs * n_flds + n_collocs * 4 + n ]
-                    += spectral_coeffs( m, fields::gAlp, cheby_index / 2 )
+                sum += spectral_coeffs( m, fields::gAlp, cheby_index / 2 )
                         * regDerrCheby[ n +
                             cheby_index * n_collocs ];
             }
+            values_reg_ders[ m * n_collocs * n_flds +
+                n_collocs * 4 + n ] = sum;
         }
 
         for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
-            values_reg_ders[ m * n_collocs * n_flds + n_collocs * 5 + n ] = 0;
-
+            Real sum = 0;
             for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
-                values_reg_ders[ m * n_collocs * n_flds + n_collocs * 5 + n ]
-                    += spectral_coeffs( m, fields::fAlp, cheby_index / 2 )
+                sum += spectral_coeffs( m, fields::fAlp, cheby_index / 2 )
                         * regDerrCheby[ n +
                             cheby_index * n_collocs ];
             }
+            values_reg_ders[ m * n_collocs * n_flds +
+                n_collocs * 5 + n ] = sum;
         }
 
         for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
-            values_reg_ders[ m * n_collocs * n_flds + n_collocs * 6 + n ] = 0;
-
+            Real sum = 0;
             for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
-                values_reg_ders[ m * n_collocs * n_flds + n_collocs * 6 + n ]
-                    += spectral_coeffs( m, fields::gconf, cheby_index / 2 )
+                sum += spectral_coeffs( m, fields::gconf, cheby_index / 2 )
                         * regDerrCheby[ n +
                             cheby_index * n_collocs ];
             }
+            values_reg_ders[ m * n_collocs * n_flds +
+                n_collocs * 6 + n ] = sum;
         }
 
         for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
-            values_reg_ders[ m * n_collocs * n_flds + n_collocs * 7 + n ] = 0;
-
+            Real sum = 0;
             for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
-                values_reg_ders[ m * n_collocs * n_flds + n_collocs * 7 + n ]
-                    += spectral_coeffs( m, fields::fconf, cheby_index / 2 )
+                sum += spectral_coeffs( m, fields::fconf, cheby_index / 2 )
                         * regDerrCheby[ n +
                             cheby_index * n_collocs ];
             }
+            values_reg_ders[ m * n_collocs * n_flds +
+                n_collocs * 7 + n ] = sum;
         }
 
     }

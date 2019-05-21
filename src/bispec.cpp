@@ -197,13 +197,15 @@ int main()
         return -1;
     }
 
-    /*std::cout << "The following is the spectral initial data," << std::endl;
+    /*std::cout << "The following is the spectral initial data read by BispecInput"
+              << std::endl;
 
     std::cout << ID.n_allfields() << " x " << ID.n_chebycoeffs() << std::endl;
 
     for( size_t field = 0; field < ID.n_allfields(); ++field )
     {
-        std::cout << std::endl << "This is the field " << field << std::endl << std::endl;
+        std::cout << std::endl << "These are the spectral coefficients of the field "
+                  << field << std::endl << std::endl;
         for( size_t n = 0; n < ID.n_chebycoeffs(); ++n )
         {
             std::cout << "(" << field << "," << n << ") = "
@@ -241,7 +243,7 @@ int main()
     /** Define and compute the values of the fields at the collocation points
       */
 
-     //PrimaryFields defineFlds( ID, chebyshevValues );
+     PrimaryFields defineFlds( ID, chebyshevValues );
 
     /** Define and compute everything on the initial hypersurface. The constructor of
         dependentFields calls primaryFields' one.
@@ -252,7 +254,7 @@ int main()
     /** Evolve the spectral coefficients
       */
 
-    BispecEvolve bispecEvolution( ID, chebyshevValues, params );
+    //BispecEvolve bispecEvolution( ID, chebyshevValues, params );
 
     //
 
