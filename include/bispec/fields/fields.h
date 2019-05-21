@@ -1,6 +1,6 @@
 /**
  *  @file      macros.h
- *  @brief     Contains the macros defined in bispec.
+ *  @brief     Contains the definitions of the fields within the namespace 'fields'.
  *  @authors   Francesco Torsello
  *  @copyright GNU General Public License (GPLv3).
  */
@@ -104,3 +104,74 @@
             return values_reg_ders[ ( 8 * ( exp_ord + 1 ) ) * m \
             + ( exp_ord + 1 ) * fields::field + n ]; \
         }
+
+/** Namespace 'fields' contains the indexing of the fields and their derivatives,
+    to be used in the other classes
+  */
+namespace fields
+{
+    /*/// 'fldCheby' contains all the fields that need to be expanded in Chebyshev series
+    enum fldCheby { FIELDS };
+    static const fldCheby flds[] = { FIELDS }; // this is needed to be able to iterate over the enumeration ( taken from https://stackoverflow.com/questions/261963/how-can-i-iterate-over-an-enum )
+
+    /// 'derCheby' contains all the first radial derivatives that need to be expanded in Chebyshev series
+    enum derCheby { DERS };
+    static const derCheby ders[] = { DERS };
+
+    /// 'derrCheby' contains all the second radial derivatives that need to be expanded in Chebyshev series
+    enum derrCheby { DERRS };
+    static const derrCheby derrs[] = { DERRS };
+
+    /// 'gaugeVars' contains all the gauge variables
+    enum gaugeVars { GAUGE };
+    static const gaugeVars gauges[] = { GAUGE };
+
+    /// 'gaugeDers' contains the first radial derivatives of the gauge variables
+    enum gaugeDers { GAUGE_R };
+    static const gaugeDers gauges_r[] = { GAUGE_R };
+
+    /// 'gaugeDerrs' contains the second radial derivatives of the gauge variables
+    enum gaugeDerrs { GAUGE_RR };
+    static const gaugeDerrs gauges_rr[] = { GAUGE_RR };
+
+    /// 'valenciaVars' contains all the gauge variables
+    enum valenciaVars { VALENCIA };
+    static const valenciaVars valencia[] = { VALENCIA };
+
+    /// 'valenciaDers' contains the first radial derivatives of the gauge variables
+    enum valenciaDers { VALENCIA_R };
+    static const valenciaDers valencia_r[] = { VALENCIA_R };
+
+    /// 'valenciaDerrs' contains the second radial derivatives of the gauge variables
+    enum valenciaDerrs { VALENCIA_RR };
+    static const valenciaDerrs valencia_rr[] = { VALENCIA_RR };*/
+
+    /// TODO: instead of defining different enumerations, define different vectors over which you can run over.
+
+    /// 'allFields' contains all the gauge variables
+    enum allFields { ALL_FIELDS };
+    static const allFields all_flds[]       = { ALL_FIELDS };
+    static const allFields evolved_flds[]   = { EVOLVED_FIELDS };
+    static const allFields even_flds[]      = { EVEN_FIELDS };
+    static const allFields odd_flds[]       = { ODD_FIELDS };
+
+    /// 'allDers' contains the first radial derivatives of the gauge variables
+    enum allDers { ALL_DERS };
+    static const allDers all_ders[]  = { ALL_DERS };
+    static const allDers even_ders[] = { EVEN_DERS };
+    static const allDers odd_ders[]  = { ODD_DERS };
+
+    /// 'regDers' contains the regularizing radial derivatives
+    enum regDers { REG_DERS };
+    static const regDers reg_ders[] = { REG_DERS };
+
+    /// 'allDerrs' contains the second radial derivatives of the gauge variables
+    enum allDerrs { ALL_DERRS };
+    static const allDerrs all_derrs[]   = { ALL_DERRS };
+    static const allDerrs even_derrs[]  = { EVEN_DERRS };
+    static const allDerrs odd_derrs[]   = { ODD_DERRS };
+
+    /// perhaps the vector below is useless
+    //static const std::vector<Int> bispecInput_fields = { FIELDS };
+
+}
