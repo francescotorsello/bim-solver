@@ -32,11 +32,20 @@
 			<Add option="-Wall" />
 		</Compiler>
 		<Unit filename="include/bimetricModel.h" />
-		<Unit filename="include/eom-BSSN/eomBSSNEvolutionCompEul.h" />
-		<Unit filename="include/eom-BSSN/eomBSSNKDGaugeComp.h" />
-		<Unit filename="include/eom-BSSN/eomBSSNMatterComp.h" />
-		<Unit filename="include/eom-BSSN/eomBSSNRicciComp.h" />
-		<Unit filename="include/eom-BSSN/eomBSSNSourcesCompEul.h" />
+		<Unit filename="include/bispec/eom-BSSN/eomBSSNConstraintsEul.h" />
+		<Unit filename="include/bispec/eom-BSSN/eomBSSNEvolutionCompEul.h" />
+		<Unit filename="include/bispec/eom-BSSN/eomBSSNKDGaugeComp.h" />
+		<Unit filename="include/bispec/eom-BSSN/eomBSSNMatterComp.h" />
+		<Unit filename="include/bispec/eom-BSSN/eomBSSNRicciComp.h" />
+		<Unit filename="include/bispec/eom-BSSN/eomBSSNSourcesCompEul.h" />
+		<Unit filename="include/bispec/evolution/BispecEvolve.h" />
+		<Unit filename="include/bispec/fields/DependentFields.h" />
+		<Unit filename="include/bispec/fields/GaugeVariables.h" />
+		<Unit filename="include/bispec/fields/PrimaryFields.h" />
+		<Unit filename="include/bispec/fields/macros.h" />
+		<Unit filename="include/bispec/spectral-id/BispecInput.h" />
+		<Unit filename="include/bispec/spectral-id/ChebyshevCoefficients" />
+		<Unit filename="include/bispec/spectral-id/ChebyshevCoefficients.h" />
 		<Unit filename="include/numMethods/dataTypes.h" />
 		<Unit filename="include/sys/paramsHolder.h" />
 		<Unit filename="include/sys/slog.h" />
