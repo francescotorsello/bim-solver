@@ -33,8 +33,8 @@
 #define setregder( field ) \
         inline Real field( Int m, Int n ) \
         { \
-            return values_reg_ders[ ( 8 * ( exp_ord + 1 ) ) * m \
-            + ( exp_ord + 1 ) * fields::field + n ]; \
+            return values_reg_ders[ ( n_reg_ders * n_collocs ) * m \
+            + n_collocs * fields::field + n ]; \
         }
 
 /**
@@ -69,6 +69,9 @@ protected:
     size_t n_chebycffs;
     size_t n_lapses = 3;
     size_t n_shifts = 3;
+    size_t n_reg_ders = 8;
+
+    Int ini_cheby;
 
     Real *values_fields;
     Real *values_lapses;
@@ -203,11 +206,11 @@ public:
         {
             for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
             {
-                values_fields[ m * n_collocs * n_flds + n_collocs * field + n ] = 0;
+                values_fields[ m * n_collocs * n_all_flds + n_collocs * field + n ] = 0;
 
-                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
+                for( size_t cheby_index = 0; cheby_index < exp_ord; cheby_index += 2 )
                 {
-                    values_fields[ m * n_collocs * n_flds + n_collocs * field + n ]
+                    values_fields[ m * n_collocs * n_all_flds + n_collocs * field + n ]
                         += spectral_coeffs( m, field, cheby_index / 2 )
                             * chebyValues[ n_collocs * cheby_index + n ];
                 }
@@ -218,30 +221,26 @@ public:
         {
             for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
             {
-                values_fields[ m * n_collocs * n_flds + n_collocs * field + n ] = 0;
+                values_fields[ m * n_collocs * n_all_flds + n_collocs * field + n ] = 0;
 
-                for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
+                for( size_t cheby_index = 1; cheby_index < exp_ord; cheby_index += 2 )
                 {
-                    values_fields[ m * n_collocs * n_flds + n_collocs * field + n ]
+                    values_fields[ m * n_collocs * n_all_flds + n_collocs * field + n ]
                         += spectral_coeffs( m, field, ( cheby_index - 1 ) / 2 )
                             * chebyValues[ cheby_index * n_collocs + n ];
                 }
             }
         }
 
-        /// TODO: fix the fact that field in the following loop does not go
-        ///       from 0 to 2, as it should go to populate values_lapses.
-        ///       That's why lapse and shift look crazy.
-
         for( const auto field : fields::lapses )
         {
             for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
             {
-                values_lapses[ m * n_collocs * n_lapses + n_collocs * field + n ] = 0;
+                values_fields[ m * n_collocs * n_all_flds + n_collocs * field + n ] = 0;
 
-                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
+                for( size_t cheby_index = 0; cheby_index < exp_ord; cheby_index += 2 )
                 {
-                    values_lapses[ m * n_collocs * n_lapses + n_collocs * field + n ]
+                    values_fields[ m * n_collocs * n_all_flds + n_collocs * field + n ]
                         += spectral_coeffs( m, field, cheby_index / 2 )
                             * chebyValues[ n_collocs * cheby_index + n ];
                 }
@@ -252,11 +251,11 @@ public:
         {
             for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
             {
-                values_shifts[ m * n_collocs * n_shifts + n_collocs * field + n ] = 0;
+                values_fields[ m * n_collocs * n_all_flds + n_collocs * field + n ] = 0;
 
-                for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
+                for( size_t cheby_index = 1; cheby_index < exp_ord; cheby_index += 2 )
                 {
-                    values_shifts[ m * n_collocs * n_shifts + n_collocs * field + n ]
+                    values_fields[ m * n_collocs * n_all_flds + n_collocs * field + n ]
                         += spectral_coeffs( m, field, ( cheby_index - 1 ) / 2 )
                             * chebyValues[ cheby_index * n_collocs + n ];
                 }
@@ -270,11 +269,11 @@ public:
         {
             for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
             {
-                values_ders[ m * n_collocs * n_flds + n_collocs * der + n ] = 0;
+                values_ders[ m * n_collocs * n_all_flds + n_collocs * der + n ] = 0;
 
-                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
+                for( size_t cheby_index = 0; cheby_index < exp_ord; cheby_index += 2 )
                 {
-                    values_ders[ m * n_collocs * n_flds + n_collocs * der + n ]
+                    values_ders[ m * n_collocs * n_all_flds + n_collocs * der + n ]
                         += spectral_coeffs( m, der, cheby_index / 2 )
                             * chebyValues[ ( exp_ord + 1 ) * n_collocs
                                 + cheby_index * n_collocs + n ];
@@ -285,11 +284,11 @@ public:
         {
             for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
             {
-                values_ders[ m * n_collocs * n_flds + n_collocs * der + n ] = 0;
+                values_ders[ m * n_collocs * n_all_flds + n_collocs * der + n ] = 0;
 
-                for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
+                for( size_t cheby_index = 1; cheby_index < exp_ord; cheby_index += 2 )
                 {
-                    values_ders[ m * n_collocs * n_flds + n_collocs * der + n ]
+                    values_ders[ m * n_collocs * n_all_flds + n_collocs * der + n ]
                         += spectral_coeffs( m, der, ( cheby_index - 1 ) / 2 )
                             * chebyValues[ ( exp_ord + 1 ) * n_collocs
                                 + cheby_index * n_collocs + n ];
@@ -300,11 +299,11 @@ public:
         {
             for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
             {
-                values_lapses_r[ m * n_collocs * n_lapses + n_collocs * field + n ] = 0;
+                values_ders[ m * n_collocs * n_all_flds + n_collocs * field + n ] = 0;
 
-                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
+                for( size_t cheby_index = 0; cheby_index < exp_ord; cheby_index += 2 )
                 {
-                    values_lapses_r[ m * n_collocs * n_lapses + n_collocs * field + n ]
+                    values_ders[ m * n_collocs * n_all_flds + n_collocs * field + n ]
                         += spectral_coeffs( m, field, cheby_index / 2 )
                             * chebyValues[ ( exp_ord + 1 ) * n_collocs
                                 + n_collocs * cheby_index + n ];
@@ -315,11 +314,11 @@ public:
         {
             for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
             {
-                values_shifts_r[ m * n_collocs * n_shifts + n_collocs * field + n ] = 0;
+                values_ders[ m * n_collocs * n_all_flds + n_collocs * field + n ] = 0;
 
-                for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
+                for( size_t cheby_index = 1; cheby_index < exp_ord; cheby_index += 2 )
                 {
-                    values_shifts_r[ m * n_collocs * n_shifts + n_collocs * field + n ]
+                    values_ders[ m * n_collocs * n_all_flds + n_collocs * field + n ]
                         += spectral_coeffs( m, field, ( cheby_index - 1 ) / 2 )
                             * chebyValues[ ( exp_ord + 1 ) * n_collocs
                                 + cheby_index * n_collocs + n ];
@@ -335,11 +334,11 @@ public:
         {
             for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
             {
-                values_derrs[ m * n_collocs * n_flds + n_collocs * derr + n ] = 0;
+                values_derrs[ m * n_collocs * n_all_flds + n_collocs * derr + n ] = 0;
 
-                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
+                for( size_t cheby_index = 0; cheby_index < exp_ord; cheby_index += 2 )
                 {
-                    values_derrs[ m * n_collocs * n_flds + n_collocs * derr + n ]
+                    values_derrs[ m * n_collocs * n_all_flds + n_collocs * derr + n ]
                         += spectral_coeffs( m, derr, cheby_index / 2 )
                             * chebyValues[ 2*( exp_ord + 1 ) * n_collocs
                                 + cheby_index * n_collocs + n ];
@@ -351,11 +350,11 @@ public:
         {
             for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
             {
-                values_derrs[ m * n_collocs * n_flds + n_collocs * derr + n ] = 0;
+                values_derrs[ m * n_collocs * n_all_flds + n_collocs * derr + n ] = 0;
 
-                for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
+                for( size_t cheby_index = 1; cheby_index < exp_ord; cheby_index += 2 )
                 {
-                    values_derrs[ m * n_collocs * n_flds + n_collocs * derr + n ]
+                    values_derrs[ m * n_collocs * n_all_flds + n_collocs * derr + n ]
                         += spectral_coeffs( m, derr, ( cheby_index - 1 ) / 2 )
                             * chebyValues[ 2*( exp_ord + 1 ) * n_collocs
                                 + cheby_index * n_collocs + n ];
@@ -366,11 +365,11 @@ public:
         {
             for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
             {
-                values_lapses_rr[ m * n_collocs * n_lapses + n_collocs * field + n ] = 0;
+                values_derrs[ m * n_collocs * n_all_flds + n_collocs * field + n ] = 0;
 
-                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
+                for( size_t cheby_index = 0; cheby_index < exp_ord; cheby_index += 2 )
                 {
-                    values_lapses_rr[ m * n_collocs * n_lapses + n_collocs * field + n ]
+                    values_derrs[ m * n_collocs * n_all_flds + n_collocs * field + n ]
                         += spectral_coeffs( m, field, cheby_index / 2 )
                             * chebyValues[ 2*( exp_ord + 1 ) * n_collocs
                                 + n_collocs * cheby_index + n ];
@@ -381,11 +380,11 @@ public:
         {
             for( size_t n = 0; n < n_collocs; ++n ) // loop over the collocation points
             {
-                values_shifts_rr[ m * n_collocs * n_shifts + n_collocs * field + n ] = 0;
+                values_ders[ m * n_collocs * n_all_flds + n_collocs * field + n ] = 0;
 
-                for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
+                for( size_t cheby_index = 1; cheby_index < exp_ord; cheby_index += 2 )
                 {
-                    values_shifts_rr[ m * n_collocs * n_shifts + n_collocs * field + n ]
+                    values_derrs[ m * n_collocs * n_all_flds + n_collocs * field + n ]
                         += spectral_coeffs( m, field, ( cheby_index - 1 ) / 2 )
                             * chebyValues[ 2*( exp_ord + 1 ) * n_collocs
                                 + cheby_index * n_collocs + n ];
@@ -400,30 +399,94 @@ public:
 
     inline void computeRegDers( size_t m )
     {
-        /*for( const auto regder : fields::reg_ders )
+        for( const auto regder : fields::reg_ders ) // for each regularized derivative
+            // regder goes from 0 to 3
         {
-            for( n = 0; n < exp_ord + 1; ++n ) // loop over the collocation points
+            if( /*// If the field fields::flds_reg_ders[ regder ] is even,
+                std::find(
+                          std::begin(fields::even_flds),
+                          std::end  (fields::even_flds),
+                          fields::flds_reg_ders[ regder ]
+                          // fields::flds_reg_ders[ regder ] contains the fields
+                          // whose derivatives are regularized and in fields::reg_ders
+                          ) != std::end  (fields::even_flds)*/
+                fields::parity_fields_reg_ders[ regder ]
+               )
             {
-                Real sum = 0;
-                for( size_t cheby_index = 0; cheby_index < exp_ord + 1; ++cheby_index )
-                {
-                    sum += spectral_coeffs( m, derr, cheby_index )
-                            * chebyValues[ 2*( exp_ord + 1 ) * ( exp_ord + 1 )
-                                + cheby_index * ( exp_ord + 1 ) + n ];
-                }
-                values_derrs[ ( exp_ord + 1 ) * derr + n ] = sum;
+                // do this,
+                ini_cheby = 0;
+
+            } else { // otherwise (i.e., if it's odd) do this,
+
+                ini_cheby = 1;
             }
-        }*/
+
+            for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
+            {
+                values_reg_ders[ m * n_collocs * n_reg_ders
+                                 + n_collocs * regder + n ] = 0;
+
+                for( size_t cheby_index = ini_cheby; cheby_index < exp_ord;
+                    cheby_index += 2 )
+                {
+                    values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * regder + n ]
+
+                        += spectral_coeffs( m,
+                                            fields::flds_reg_ders[ regder ],
+                                            ( cheby_index - ini_cheby ) / 2
+                                          )
+
+                            * regDerCheby[ n_collocs * cheby_index + n ];
+
+                }
+            }
+        }
+
+        for( const auto regder : fields::reg_derrs ) // for each regularized derivative
+            // regder goes from 4 to 7
+        {
+            if(
+                fields::parity_fields_reg_ders[ regder ]
+               )
+            {
+                // do this,
+                ini_cheby = 0;
+
+            } else { // otherwise (i.e., if it's odd) do this,
+
+                ini_cheby = 1;
+            }
+
+            for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
+            {
+                values_reg_ders[ m * n_collocs * n_reg_ders
+                                 + n_collocs * regder + n ] = 0;
+
+                for( size_t cheby_index = ini_cheby; cheby_index < exp_ord;
+                    cheby_index += 2 )
+                {
+                    values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * regder + n ]
+
+                        += spectral_coeffs( m,
+                                            fields::flds_reg_ders[ regder ],
+                                            ( cheby_index - ini_cheby ) / 2
+                                          )
+
+                            * regDerrCheby[ n_collocs * cheby_index + n ];
+
+                }
+            }
+        }
 
         /// TODO:make a unique loop for all the computations in computeRegDers
 
-        for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
+        /*for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
-            values_reg_ders[ m * n_collocs * n_flds + n_collocs * 0 + n ] = 0;
+            values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * 0 + n ] = 0;
 
             for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
-                values_reg_ders[ m * n_collocs * n_flds + n_collocs * 0 + n ]
+                values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * 0 + n ]
                     += spectral_coeffs( m, fields::gBet, ( cheby_index + 1 ) / 2 )
                         * regDerCheby[ n +
                             cheby_index * n_collocs ];
@@ -432,11 +495,11 @@ public:
 
         for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
-            values_reg_ders[ m * n_collocs * n_flds + n_collocs * 1 + n ] = 0;
+            values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * 1 + n ] = 0;
 
             for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
-                values_reg_ders[ m * n_collocs * n_flds + n_collocs * 1 + n ]
+                values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * 1 + n ]
                     += spectral_coeffs( m, fields::fBet, ( cheby_index + 1 ) / 2 )
                         * regDerCheby[ n +
                             cheby_index * n_collocs ];
@@ -445,11 +508,11 @@ public:
 
         for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
-            values_reg_ders[ m * n_collocs * n_flds + n_collocs * 2 + n ] = 0;
+            values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * 2 + n ] = 0;
 
             for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
-                values_reg_ders[ m * n_collocs * n_flds + n_collocs * 2 + n ]
+                values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * 2 + n ]
                     += spectral_coeffs( m, fields::gL, ( cheby_index + 1 ) / 2 )
                         * regDerCheby[ n +
                             cheby_index * n_collocs ];
@@ -458,11 +521,11 @@ public:
 
         for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
-            values_reg_ders[ m * n_collocs * n_flds + n_collocs * 3 + n ] = 0;
+            values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * 3 + n ] = 0;
 
             for( size_t cheby_index = 1; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
-                values_reg_ders[ m * n_collocs * n_flds + n_collocs * 3 + n ]
+                values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * 3 + n ]
                     += spectral_coeffs( m, fields::fL, ( cheby_index + 1 ) / 2 )
                         * regDerCheby[ n +
                             cheby_index * n_collocs ];
@@ -471,11 +534,11 @@ public:
 
         for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
-            values_reg_ders[ m * n_collocs * n_flds + n_collocs * 4 + n ] = 0;
+            values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * 4 + n ] = 0;
 
             for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
-                values_reg_ders[ m * n_collocs * n_flds + n_collocs * 4 + n ]
+                values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * 4 + n ]
                     += spectral_coeffs( m, fields::gAlp, cheby_index / 2 )
                         * regDerrCheby[ n +
                             cheby_index * n_collocs ];
@@ -484,11 +547,11 @@ public:
 
         for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
-            values_reg_ders[ m * n_collocs * n_flds + n_collocs * 5 + n ] = 0;
+            values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * 5 + n ] = 0;
 
             for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
-                values_reg_ders[ m * n_collocs * n_flds + n_collocs * 5 + n ]
+                values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * 5 + n ]
                     += spectral_coeffs( m, fields::fAlp, cheby_index / 2 )
                         * regDerrCheby[ n +
                             cheby_index * n_collocs ];
@@ -497,11 +560,11 @@ public:
 
         for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
-            values_reg_ders[ m * n_collocs * n_flds + n_collocs * 6 + n ] = 0;
+            values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * 6 + n ] = 0;
 
             for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
-                values_reg_ders[ m * n_collocs * n_flds + n_collocs * 6 + n ]
+                values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * 6 + n ]
                     += spectral_coeffs( m, fields::gconf, cheby_index / 2 )
                         * regDerrCheby[ n +
                             cheby_index * n_collocs ];
@@ -510,16 +573,16 @@ public:
 
         for( n = 0; n < n_collocs; ++n ) // loop over the collocation points
         {
-            values_reg_ders[ m * n_collocs * n_flds + n_collocs * 7 + n ] = 0;
+            values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * 7 + n ] = 0;
 
             for( size_t cheby_index = 0; cheby_index < exp_ord + 1; cheby_index += 2 )
             {
-                values_reg_ders[ m * n_collocs * n_flds + n_collocs * 7 + n ]
+                values_reg_ders[ m * n_collocs * n_reg_ders + n_collocs * 7 + n ]
                     += spectral_coeffs( m, fields::fconf, cheby_index / 2 )
                         * regDerrCheby[ n +
                             cheby_index * n_collocs ];
             }
-        }
+        }*/
 
     }
 
@@ -552,23 +615,23 @@ public:
 
         spcoeffs         = new Real[ mDim * n_all_flds * n_chebycffs ];
 
-        values_fields    = new Real[ mDim * n_flds * n_collocs ];
-        values_lapses    = new Real[ mDim * 3      * n_collocs ];
-        values_shifts    = new Real[ mDim * 3      * n_collocs ];
+        values_fields    = new Real[ mDim * n_all_flds * n_collocs ];
+        //values_lapses    = new Real[ mDim * 3      * n_collocs ];
+        //values_shifts    = new Real[ mDim * 3      * n_collocs ];
 
-        values_ders      = new Real[ mDim * n_flds * n_collocs ];
-        values_lapses_r  = new Real[ mDim * 3      * n_collocs ];
-        values_shifts_r  = new Real[ mDim * 3      * n_collocs ];
+        values_ders      = new Real[ mDim * n_all_flds * n_collocs ];
+        //values_lapses_r  = new Real[ mDim * 3      * n_collocs ];
+        //values_shifts_r  = new Real[ mDim * 3      * n_collocs ];
 
-        values_derrs     = new Real[ mDim * n_flds * n_collocs ];
-        values_lapses_rr = new Real[ mDim * 3      * n_collocs ];
-        values_shifts_rr = new Real[ mDim * 3      * n_collocs ];
+        values_derrs     = new Real[ mDim * n_all_flds * n_collocs ];
+        //values_lapses_rr = new Real[ mDim * 3      * n_collocs ];
+        //values_shifts_rr = new Real[ mDim * 3      * n_collocs ];
 
-        values_reg_ders  = new Real[ mDim * 8      * n_collocs ];
+        values_reg_ders  = new Real[ mDim * n_reg_ders * n_collocs ];
 
         /// Assign initial values to the spectral coefficients
 
-        for( size_t field = 0; field < n_all_flds; ++field )
+        for( const auto field : fields::all_flds )
         {
             for( size_t cheby_index = 0; cheby_index < n_chebycffs; ++cheby_index )
             {
@@ -576,6 +639,29 @@ public:
                     bispecID( field, cheby_index );
             }
         }
+
+        /*std::cout << "The following is the spectral initial data in PrimaryFields"
+                    << std::endl;
+
+        std::cout << bispecID.n_allfields() << " x " << bispecID.n_chebycoeffs()
+                  << std::endl;
+
+        for( size_t field = 0; field < bispecID.n_allfields(); ++field )
+        {
+            std::cout << std::endl << "These are the spectral coefficients of the field "
+                      << field << std::endl << std::endl;
+            for( size_t cheby_index = 0; cheby_index < bispecID.n_chebycoeffs();
+                ++cheby_index )
+            {
+                std::cout << "(" << field << "," << cheby_index << ") = "
+                          << bispecID( field, cheby_index ) << ", "
+                          << spcoeffs[ n_chebycffs * field + cheby_index ] << ", "
+                          << spectral_coeffs( 0, field, cheby_index )
+                          << std::endl;
+            }
+
+        }
+        std::cout << std::endl;*/
 
         /// Assign values to the collocation points
 
@@ -602,19 +688,19 @@ public:
         /// on the initial hypersurface. They are compared against the values in
         /// Mathematica and they coincide (up to MachinePrecision).
 
-        std::cout << "The following are the values of the fields at the collocation "
+        /*std::cout << "The following are the values of the fields at the collocation "
                   << "points on the initial hypersurface (g-sector)," << std::endl;
 
         std::cout << std::endl;
 
-        std::cout << "Collocation points," << std::endl;
+        std::cout << "r," << std::endl;
         std::cout << std::endl;
         for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << r( 0, n ) << std::endl;
         }
         std::cout << std::endl;
-        std::cout << "Conformal factor," << std::endl;
+        std::cout << "gconf," << std::endl;
         std::cout << std::endl;
         for( size_t n = 0; n < n_collocs; ++n )
         {
@@ -711,6 +797,252 @@ public:
         {
             std::cout << pftau( 0, n ) << std::endl;
         }
+
+        std::cout << std::endl;
+        std::cout << "The following are the values of the first derivatives of the fields"
+                  << " at the collocation points on the initial hypersurface (g-sector),"
+                  << std::endl;
+
+        std::cout << std::endl;
+
+        std::cout << "gconf_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gconf_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gtrK_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gtrK_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gA_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gA_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gB_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gB_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gA1_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gA1_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gL_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gL_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gsig_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gsig_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gAsig_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gAsig_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gAlp_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gAlp_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gBet_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gBet_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "p_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << p_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pfD_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pfD_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pfS_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pfS_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pftau_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pftau_r( 0, n ) << std::endl;
+        }
+
+        std::cout << std::endl;
+        std::cout << "The following are the values of the second ders of the fields"
+                  << " at the collocation points on the initial hypersurface (g-sector),"
+                  << std::endl;
+
+        std::cout << std::endl;
+
+        std::cout << "gconf_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gconf_rr( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gtrK_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gtrK_rr( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gA_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gA_rr( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gB_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gB_rr( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gA1_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gA1_rr( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gL_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gL_rr( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gsig_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gsig_rr( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gAsig_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gAsig_rr( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gAlp_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gAlp_rr( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gBet_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gBet_rr( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "p_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << p_rr( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pfD_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pfD_rr( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pfS_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pfS_rr( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pftau_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pftau_rr( 0, n ) << std::endl;
+        }*/
+
+        std::cout << std::endl;
+        std::cout << "The following are the values of the regularized ders of the fields"
+                  << " at the collocation points on the initial hypersurface (g-sector),"
+                  << std::endl;
+
+        std::cout << std::endl;
+
+        std::cout << "gBetr_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gBetr_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gLr_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gLr_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gderAlpr_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gderAlpr_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gderconfr_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gderconfr_r( 0, n ) << std::endl;
+        }
+        std::cout << std::endl;
 
     }
 };

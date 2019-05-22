@@ -243,7 +243,7 @@ int main()
     /** Define and compute the values of the fields at the collocation points
       */
 
-     PrimaryFields defineFlds( ID, chebyshevValues );
+    PrimaryFields defineFlds( ID, chebyshevValues );
 
     /** Define and compute everything on the initial hypersurface. The constructor of
         dependentFields calls primaryFields' one.

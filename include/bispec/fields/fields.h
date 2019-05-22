@@ -68,8 +68,16 @@
 ///// Regularized derivatives
 //////////////////////////////////////////////////////////////////////////////////////////
 
-#define REG_DERS    gBetr_r, fBetr_r, gLr_r, fLr_r, gderAlpr_r, fderAlpr_r, \
-                    gderconfr_r, fderconfr_r
+#define ALL_REG_DERS            gBetr_r, fBetr_r, gLr_r, fLr_r, gderAlpr_r, fderAlpr_r, \
+                                gderconfr_r, fderconfr_r
+
+#define REG_DERS                gBetr_r, fBetr_r, gLr_r, fLr_r
+
+#define REG_DERRS               gderAlpr_r, fderAlpr_r, gderconfr_r, fderconfr_r
+
+#define FIELDS_REG_DERS         gBet, fBet, gL, fL, gAlp, fAlp, gconf, fconf
+
+#define PARITY_FIELDS_REG_DERS  false, false, false, false, true, true, true, true
                     //////////////////////////////////////////////////////////////////////////////////////////
 ///// Time derivatives of the fields
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -100,6 +108,10 @@ namespace fields
     static const allFields lapses   []   = { LAPSES };
     static const allFields shifts   []   = { SHIFTS };
 
+    //static const std::vector<allFields> foo = { EVEN_FIELDS };
+    //vector<allFields>::iterator itr;
+
+
     /// 'allDers' contains the first radial derivatives of the fields and gauge variables
 
     enum allDers { ALL_DERS };
@@ -122,8 +134,11 @@ namespace fields
 
     /// 'regDers' contains the regularized radial derivatives
 
-    enum regDers { REG_DERS };
+    enum regDers { ALL_REG_DERS };
 
-    static const regDers reg_ders   []   = { REG_DERS };
+    static const regDers   reg_ders     []   = { REG_DERS };
+    static const regDers   reg_derrs    []   = { REG_DERRS };
+    static const allFields flds_reg_ders[]   = { FIELDS_REG_DERS };
+    static const std::vector<bool> parity_fields_reg_ders   = { PARITY_FIELDS_REG_DERS };
 
 }
