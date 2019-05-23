@@ -73,18 +73,6 @@ protected:
 
     Int ini_cheby;
 
-    Real *values_fields;
-    Real *values_lapses;
-    Real *values_shifts;
-
-    Real *values_ders;
-    Real *values_lapses_r;
-    Real *values_shifts_r;
-
-    Real *values_derrs;
-    Real *values_lapses_rr;
-    Real *values_shifts_rr;
-
     Real *values_reg_ders;
 
     Real *values_colpoints;
@@ -100,6 +88,18 @@ protected:
     Real *spcoeffs;
 
 public:
+
+    Real *values_fields;
+    //Real *values_lapses;
+    //Real *values_shifts;
+
+    Real *values_ders;
+    //Real *values_lapses_r;
+    //Real *values_shifts_r;
+
+    Real *values_derrs;
+    //Real *values_lapses_rr;
+    //Real *values_shifts_rr;
 
     /// Method to access the spectral coefficients. Since we will make use of the
     /// integrator from bim-solver, we copy the structure of GF in gridDriver.
@@ -586,6 +586,380 @@ public:
 
     }
 
+    inline void dumpPrimaryFields( Int m )
+    {
+
+        std::cout << std::endl<< std::endl
+                  << "-------This is the method dumpPrimaryFields."
+                  << std::endl << std::endl << std::endl;
+
+        std::cout << std::endl << std::endl
+                  << "The following are the values of the primary fields at the "
+                  << "collocation points at time step " << m << "." << std::endl;
+
+        std::cout << std::endl;
+
+        std::cout << "r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gconf," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gconf( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gtrK," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gtrK( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gA," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gA( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gB," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gB( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gA1," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gA1( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gL," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gL( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gsig," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gsig( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gAsig," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gAsig( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gAlp," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gAlp( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gBet," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gBet( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "p," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << p( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pfD," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pfD( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pfS," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pfS( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pftau," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pftau( m, n ) << std::endl;
+        }
+
+        std::cout << std::endl;
+        std::cout << "The following are the values of the first derivatives of the fields"
+                  << " at the collocation points at time step " << m << "."
+                  << std::endl;
+
+        std::cout << std::endl;
+
+        std::cout << "gconf_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gconf_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gtrK_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gtrK_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gA_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gA_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gB_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gB_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gA1_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gA1_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gL_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gL_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gsig_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gsig_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gAsig_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gAsig_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gAlp_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gAlp_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gBet_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gBet_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "p_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << p_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pfD_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pfD_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pfS_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pfS_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pftau_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pftau_r( m, n ) << std::endl;
+        }
+
+        std::cout << std::endl;
+        std::cout << "The following are the values of the second ders of the fields"
+                  << " at the collocation points at time step " << m << "."
+                  << std::endl;
+
+        std::cout << std::endl;
+
+        std::cout << "gconf_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gconf_rr( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gtrK_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gtrK_rr( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gA_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gA_rr( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gB_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gB_rr( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gA1_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gA1_rr( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gL_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gL_rr( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gsig_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gsig_rr( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gAsig_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gAsig_rr( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gAlp_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gAlp_rr( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gBet_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gBet_rr( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "p_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << p_rr( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pfD_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pfD_rr( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pfS_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pfS_rr( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "pftau_rr," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << pftau_rr( m, n ) << std::endl;
+        }
+
+        std::cout << std::endl;
+        std::cout << "The following are the values of the regularized ders of the fields"
+                  << " at the collocation points at time step " << m << "."
+                  << std::endl;
+
+        std::cout << std::endl;
+
+        std::cout << "gBetr_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gBetr_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gLr_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gLr_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gderAlpr_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gderAlpr_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gderconfr_r," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gderconfr_r( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "gAlp," << std::endl;
+        std::cout << std::endl;
+        for( size_t n = 0; n < n_collocs; ++n )
+        {
+            std::cout << gAlp( m, n ) << std::endl;
+        }
+        std::cout << std::endl;
+
+        std::cout << std::endl << "-------End of the method dumpPrimaryFields."
+                  << std::endl << std::endl << std::endl;
+    }
 
     /** The constructor computes the values of the fields, the derivatives and the
         evolution equations on the initial hypersurface
@@ -683,366 +1057,6 @@ public:
 
         computeFields( 0 );
         computeRegDers( 0 );
-
-        /// The printouts below print the values of the fields at the collocation points
-        /// on the initial hypersurface. They are compared against the values in
-        /// Mathematica and they coincide (up to MachinePrecision).
-
-        /*std::cout << "The following are the values of the fields at the collocation "
-                  << "points on the initial hypersurface (g-sector)," << std::endl;
-
-        std::cout << std::endl;
-
-        std::cout << "r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gconf," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gconf( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gtrK," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gtrK( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gA," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gA( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gB," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gB( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gA1," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gA1( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gL," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gL( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gsig," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gsig( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gAsig," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gAsig( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gAlp," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gAlp( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gBet," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gBet( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "p," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << p( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "pfD," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << pfD( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "pfS," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << pfS( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "pftau," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << pftau( 0, n ) << std::endl;
-        }
-
-        std::cout << std::endl;
-        std::cout << "The following are the values of the first derivatives of the fields"
-                  << " at the collocation points on the initial hypersurface (g-sector),"
-                  << std::endl;
-
-        std::cout << std::endl;
-
-        std::cout << "gconf_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gconf_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gtrK_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gtrK_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gA_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gA_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gB_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gB_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gA1_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gA1_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gL_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gL_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gsig_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gsig_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gAsig_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gAsig_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gAlp_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gAlp_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gBet_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gBet_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "p_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << p_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "pfD_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << pfD_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "pfS_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << pfS_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "pftau_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << pftau_r( 0, n ) << std::endl;
-        }
-
-        std::cout << std::endl;
-        std::cout << "The following are the values of the second ders of the fields"
-                  << " at the collocation points on the initial hypersurface (g-sector),"
-                  << std::endl;
-
-        std::cout << std::endl;
-
-        std::cout << "gconf_rr," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gconf_rr( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gtrK_rr," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gtrK_rr( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gA_rr," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gA_rr( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gB_rr," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gB_rr( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gA1_rr," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gA1_rr( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gL_rr," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gL_rr( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gsig_rr," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gsig_rr( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gAsig_rr," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gAsig_rr( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gAlp_rr," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gAlp_rr( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gBet_rr," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gBet_rr( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "p_rr," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << p_rr( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "pfD_rr," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << pfD_rr( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "pfS_rr," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << pfS_rr( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "pftau_rr," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << pftau_rr( 0, n ) << std::endl;
-        }*/
-
-        std::cout << std::endl;
-        std::cout << "The following are the values of the regularized ders of the fields"
-                  << " at the collocation points on the initial hypersurface (g-sector),"
-                  << std::endl;
-
-        std::cout << std::endl;
-
-        std::cout << "gBetr_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gBetr_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gLr_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gLr_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gderAlpr_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gderAlpr_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "gderconfr_r," << std::endl;
-        std::cout << std::endl;
-        for( size_t n = 0; n < n_collocs; ++n )
-        {
-            std::cout << gderconfr_r( 0, n ) << std::endl;
-        }
-        std::cout << std::endl;
 
     }
 };

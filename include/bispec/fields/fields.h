@@ -139,6 +139,7 @@ namespace fields
     static const regDers   reg_ders     []   = { REG_DERS };
     static const regDers   reg_derrs    []   = { REG_DERRS };
     static const allFields flds_reg_ders[]   = { FIELDS_REG_DERS };
-    static const std::vector<bool> parity_fields_reg_ders   = { PARITY_FIELDS_REG_DERS };
+    static const std::vector<bool>
+                    parity_fields_reg_ders   = { PARITY_FIELDS_REG_DERS };
 
 }

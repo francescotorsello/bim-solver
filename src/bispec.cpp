@@ -243,7 +243,7 @@ int main()
     /** Define and compute the values of the fields at the collocation points
       */
 
-    PrimaryFields defineFlds( ID, chebyshevValues );
+    //PrimaryFields defineFlds( ID, chebyshevValues );
 
     /** Define and compute everything on the initial hypersurface. The constructor of
         dependentFields calls primaryFields' one.
@@ -254,11 +254,11 @@ int main()
     /** Evolve the spectral coefficients
       */
 
-    //BispecEvolve bispecEvolution( ID, chebyshevValues, params );
+    BispecEvolve bispecEvolver( ID, chebyshevValues, params );
 
-    //
+    GeodesicSlicing gaugeSetter( bispecEvolver );
 
-    //bispecEvolution.
+    bispecEvolver.develop( gaugeSetter );
 
     /*std::cout <<
         "The time derivatives of the even fields arranged in the vector b,"
@@ -274,9 +274,22 @@ int main()
                       << std::endl;
         }
         std::cout << std::endl;
-    }*/
+    }
+    for( size_t field = 0; field < bispecEvolution.n_oddflds(); ++field )
+    {
+        std::cout << "These are the derivatives of the odd spectral coefficients of "
+            << "(field,cheby_index), " << std::endl << std::endl;
+        for( size_t cheby_index = 0; cheby_index < bispecEvolution.n_chebys();
+                ++cheby_index )
+        {
+            std::cout << "(" << field << "," << cheby_index << ") = "
+                      << bispecEvolution.get_odd_spec_t( 0, field, cheby_index )
+                        << std::endl;
+        }
+        std::cout << std::endl;
+    }
 
-    /*std::cout <<
+    std::cout <<
         "The time derivatives of the spectral coefficients on the initial hypersurface,"
             << std::endl << std::endl;
     for( size_t field = 0; field < bispecEvolution.n_evenflds(); ++field )
@@ -294,7 +307,7 @@ int main()
     }
     for( size_t field = 0; field < bispecEvolution.n_oddflds(); ++field )
     {
-        std::cout << "These are the derivatives of the odd spectral coefficients of "
+        std::cout << "These are the derivatives of the even spectral coefficients of "
             << "(field,cheby_index), " << std::endl << std::endl;
         for( size_t cheby_index = 0; cheby_index < bispecEvolution.n_chebys();
                 ++cheby_index )
@@ -303,7 +316,7 @@ int main()
                       << bispecEvolution.get_odd_spec_t( 0, field, cheby_index )
                         << std::endl;
         }
-        std::cout << std::endl;
+        std::cout << std::endl << std::endl;
     }*/
 
     //////////////////////////////////////////////////////////////////////////////////////

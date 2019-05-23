@@ -89,23 +89,20 @@ public:
     #include "../eom-BSSN/eomBSSNSourcesCompEul.h"
     #include "../eom-BSSN/eomBSSNEvolutionCompEul.h"
 
-    DependentFields(
-        BispecInput&            bispecID,
-        ChebyshevCoefficients&  chebyC,
-        Parameters&             params
-    ) :
-        PrimaryFields( bispecID, chebyC ),
-        BimetricModel( params )
+    inline void dumpDependentFields ( Int m )
     {
+        std::cout << std::endl<< std::endl
+                  << "-------This is the method dumpDependentFields."
+                  << std::endl << std::endl << std::endl;
 
         /// The printouts below print the values of the dependent fields at the collocation points on the initial hypersurface.
 
-        std::cout << "The following are the values of the dependent fields on the collocation points on the initial hypersurface," << std::endl << std::endl;
+        std::cout << "The following are the values of the dependent fields at the collocation points at time step " << m << "." << std::endl << std::endl;
 
         std::cout << "The collocation points, "<< std::endl << std::endl;
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << r( 0, n ) << ", ";
+            std::cout << r( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
@@ -114,14 +111,14 @@ public:
         std::cout << "gRicci:   ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gRicci( 0, n ) << ", ";
+            std::cout << gRicci( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fRicci:   ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fRicci( 0, n ) << ", ";
+            std::cout << fRicci( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
@@ -130,63 +127,63 @@ public:
         std::cout << "R:   ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << R( 0, n ) << ", ";
+            std::cout << R( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "Lt:  ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << Lt( 0, n ) << ", ";
+            std::cout << Lt( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "Lt2: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << Lt2( 0, n ) << ", ";
+            std::cout << Lt2( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gA2: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gA2( 0, n ) << ", ";
+            std::cout << gA2( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gK1: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gK1( 0, n ) << ", ";
+            std::cout << gK1( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gK2: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gK2( 0, n ) << ", ";
+            std::cout << gK2( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fA2: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fA2( 0, n ) << ", ";
+            std::cout << fA2( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fK1: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fK1( 0, n ) << ", ";
+            std::cout << fK1( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fK2: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fK2( 0, n ) << ", ";
+            std::cout << fK2( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
@@ -195,105 +192,105 @@ public:
         std::cout << "pfv:   ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << pfv( 0, n ) << ", ";
+            std::cout << pfv( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "pfv_r: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << pfv_r( 0, n ) << ", ";
+            std::cout << pfv_r( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gD_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gD_t( 0, n ) << ", ";
+            std::cout << gD_t( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gS_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gS_t( 0, n ) << ", ";
+            std::cout << gS_t( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gtau_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gtau_t( 0, n ) << ", ";
+            std::cout << gtau_t( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gW: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gW( 0, n ) << ", ";
+            std::cout << gW( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "grhobar: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << grhobar( 0, n ) << ", ";
+            std::cout << grhobar( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "grho: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << grho( 0, n ) << ", ";
+            std::cout << grho( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gj: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gj( 0, n ) << ", ";
+            std::cout << gj( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gJ11: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gJ11( 0, n ) << ", ";
+            std::cout << gJ11( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gJ22: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gJ22( 0, n ) << ", ";
+            std::cout << gJ22( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "frho: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << frho( 0, n ) << ", ";
+            std::cout << frho( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fj: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fj( 0, n ) << ", ";
+            std::cout << fj( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fJ11: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fJ11( 0, n ) << ", ";
+            std::cout << fJ11( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fJ22: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fJ22( 0, n ) << ", ";
+            std::cout << fJ22( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;;
 
@@ -303,42 +300,42 @@ public:
         std::cout << "gJK: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gJK( 0, n ) << ", ";
+            std::cout << gJK( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gJA1: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gJA1( 0, n ) << ", ";
+            std::cout << gJA1( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "gJL: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gJL( 0, n ) << ", ";
+            std::cout << gJL( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fJK: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fJK( 0, n ) << ", ";
+            std::cout << fJK( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fJA1: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fJA1( 0, n ) << ", ";
+            std::cout << fJA1( m, n ) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "fJL: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fJL( 0, n ) << ", ";
+            std::cout << fJL( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
@@ -347,133 +344,133 @@ public:
         std::cout << "gconf_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gconf_t( 0, n ) << ", ";
+            std::cout << gconf_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gtrK_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gtrK_t( 0, n ) << ", ";
+            std::cout << gtrK_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gA_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gA_t( 0, n ) << ", ";
+            std::cout << gA_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gB_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gB_t( 0, n ) << ", ";
+            std::cout << gB_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gA1_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gA1_t( 0, n ) << ", ";
+            std::cout << gA1_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gL_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gL_t( 0, n ) << ", ";
+            std::cout << gL_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gsig_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gsig_t( 0, n ) << ", ";
+            std::cout << gsig_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gAsig_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gAsig_t( 0, n ) << ", ";
+            std::cout << gAsig_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "fconf_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fconf_t( 0, n ) << ", ";
+            std::cout << fconf_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "ftrK_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << ftrK_t( 0, n ) << ", ";
+            std::cout << ftrK_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "fA_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fA_t( 0, n ) << ", ";
+            std::cout << fA_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "fB_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fB_t( 0, n ) << ", ";
+            std::cout << fB_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "fA1_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fA1_t( 0, n ) << ", ";
+            std::cout << fA1_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "fL_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fL_t( 0, n ) << ", ";
+            std::cout << fL_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "fsig_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fsig_t( 0, n ) << ", ";
+            std::cout << fsig_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "fAsig_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << fAsig_t( 0, n ) << ", ";
+            std::cout << fAsig_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gD_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gD_t( 0, n ) << ", ";
+            std::cout << gD_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gS_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gS_t( 0, n ) << ", ";
+            std::cout << gS_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << "gtau_t: ";
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gtau_t( 0, n ) << ", ";
+            std::cout << gtau_t( m, n ) << ", ";
         }
         std::cout << std::endl << std::endl;
 
@@ -481,18 +478,33 @@ public:
 
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << (gBet(0,n) * (2 - 2 * r(0,n))) / (1 + TINY_Real
-                + r(0,n)) << ", ";
+            std::cout << (gBet(m,n) * (2 - 2 * r(m,n))) / (1 + TINY_Real
+                + r(m,n)) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         for( size_t n = 0; n < n_collocs; ++n )
         {
-            std::cout << gBet(0,n) << ", ";
+            std::cout << gBet(m,n) << ", ";
         }
         std::cout << std::endl << std::endl;
 
         std::cout << std::endl;
+
+        std::cout << std::endl << "-------End of the method dumpDependentFields."
+                  << std::endl << std::endl << std::endl;
+    }
+
+    DependentFields(
+        BispecInput&            bispecID,
+        ChebyshevCoefficients&  chebyC,
+        Parameters&             params
+    ) :
+        PrimaryFields( bispecID, chebyC ),
+        BimetricModel( params )
+    {
+
+        dumpDependentFields( 0 );
 
     }
 };

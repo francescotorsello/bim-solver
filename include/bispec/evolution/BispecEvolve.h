@@ -30,11 +30,12 @@ class BispecEvolve
 
     Real *b_even;
     Real *b_odd;
-    Real *A_even;
-    Real *A_odd;
+    const Real *A_even;
+    const Real *A_odd;
 
 public:
 
+    inline size_t get_n_all_flds()  { return n_all_flds; }
     inline size_t n_evenflds()  { return even_fields_t.size(); }
     inline size_t n_oddflds()   { return odd_fields_t.size(); }
     inline size_t n_colpoints() { return n_collocs; }
@@ -115,16 +116,16 @@ public:
 
     inline void solveSpectralDerivatives( size_t m )
     {
-        /// For each even field
+        // For each even field
         for( size_t field = 0; field < even_fields_t.size(); ++field )
-        { /// Solve the linear algebraic system, i.e.,
-            /// for each even Chebyshev index (row)
+        { // Solve the linear algebraic system, i.e.,
+            // for each even Chebyshev index (row)
             for( size_t cheby_index = 0; cheby_index < n_chebycffs; ++cheby_index )
             {
                 even_spec_t[ ( n_chebycffs * even_fields_t.size() ) * m
                     + n_chebycffs * field + cheby_index ] = 0;
-                /// For each collocation point (column)
-                for( size_t n = 0; n < exp_ord +1; ++n )
+                // For each collocation point (column)
+                for( size_t n = 0; n < n_collocs; ++n )
                 {
                     even_spec_t[ ( n_chebycffs * even_fields_t.size() ) * m
                     + n_chebycffs * field + cheby_index ] +=
@@ -134,16 +135,16 @@ public:
             }
         }
 
-        /// For each odd field
+        // For each odd field
         for( size_t field = 0; field < odd_fields_t.size(); ++field )
-        { /// Solve the linear algebraic system, i.e.,
-            /// for each odd Chebyshev index (row)
+        { // Solve the linear algebraic system, i.e.,
+            // for each odd Chebyshev index (row)
             for( size_t cheby_index = 0; cheby_index < n_chebycffs; ++cheby_index )
             {
                 odd_spec_t[ ( n_chebycffs * odd_fields_t.size() ) * m
                     + n_chebycffs * field + cheby_index ] = 0;
-                /// For each collocation point (column)
-                for( size_t n = 0; n < exp_ord +1; ++n )
+                // For each collocation point (column)
+                for( size_t n = 0; n < n_collocs; ++n )
                 {
                     odd_spec_t[ ( n_chebycffs * odd_fields_t.size() ) * m
                     + n_chebycffs * field + cheby_index ] +=
@@ -166,60 +167,71 @@ public:
     inline void evolveEvenFields( Real (BispecEvolve::*method)( Real, Real, Real ),
                                     size_t m, size_t next_m, Real delta_t )
     {
+        //cout << "Inside method evolveEvenFields." << endl << endl;
+        // counter select the field in the vector containing the derivatives
+        Real counter = 0;
         for( const auto field : fields::even_flds ) // for each even field
         {
-            for( size_t counter = 0; counter < even_fields_t.size(); ++counter  )
+            for( size_t n = 0; n < n_collocs; ++n ) // for each collocation point
             {
-                for( size_t n = 0; n < n_collocs; ++n ) // for each collocation point
-                {
-                    for( size_t cheby_index; cheby_index < n_chebycffs; ++cheby_index )
+                for( size_t cheby_index; cheby_index < n_chebycffs; ++cheby_index )
                         // for each spectral coefficients
-                    {
-                        spcoeffs[ ( n_all_flds * n_chebycffs ) * next_m
-                                        + n_chebycffs * field
-                                            + cheby_index ] =
-                        ( this ->* method )(
-                            spcoeffs[ ( n_all_flds * n_chebycffs ) * m
-                                        + n_chebycffs * field
-                                            + cheby_index ], //value
+                {
+                    spcoeffs[ ( n_all_flds * n_chebycffs ) * next_m
+                                    + n_chebycffs * field
+                                        + cheby_index ]
 
-                            get_even_spec_t( m, counter, cheby_index ), //derivative
+                    = ( this ->* method )(
 
-                            delta_t ); // time step
-                    }
+                        spcoeffs[ ( n_all_flds * n_chebycffs ) * m
+                                    + n_chebycffs * field
+                                        + cheby_index ], //value
+
+                        get_even_spec_t( m, counter, cheby_index ), //derivative
+
+                        delta_t ); // time step
+
+                    //cout << spcoeffs[ ( n_all_flds * n_chebycffs ) * next_m
+                      //              + n_chebycffs * field
+                      //                  + cheby_index ];
                 }
             }
+            ++counter;
         }
     }
 
     inline void evolveOddFields( Real (BispecEvolve::*method)( Real, Real, Real ),
                                     size_t m, size_t next_m, Real delta_t )
     {
+        // counter select the field in the vector containing the derivatives
+        Real counter = 0;
         for( const auto field : fields::odd_flds ) // for each odd field
         {
-            for( size_t counter = 0; counter < odd_fields_t.size(); ++counter  )
+            for( size_t n = 0; n < n_collocs; ++n ) // for each collocation point
             {
-                for( size_t n = 0; n < n_collocs; ++n ) // for each collocation point
+                for( size_t cheby_index; cheby_index < n_chebycffs; ++cheby_index )
+                    // for each spectral coefficients
                 {
-                    for( size_t cheby_index; cheby_index < n_chebycffs; ++cheby_index )
-                        // for each spectral coefficients
-                    {
-                        spcoeffs[ ( n_all_flds * n_chebycffs ) * next_m
-                                        + n_chebycffs * field
-                                            + cheby_index ] =
-                        ( this ->* method )(
-                            spcoeffs[ ( n_all_flds * n_chebycffs ) * m
-                                        + n_chebycffs * field
-                                            + cheby_index ], //value
+                    spcoeffs[ ( n_all_flds * n_chebycffs ) * next_m
+                                    + n_chebycffs * field
+                                        + cheby_index ]
 
-                            get_odd_spec_t( m, counter, cheby_index ), //derivative
+                    = ( this ->* method )(
 
-                            delta_t ); // time step
-                    }
+                        spcoeffs[ ( n_all_flds * n_chebycffs ) * m
+                                    + n_chebycffs * field
+                                        + cheby_index ], //value
+
+                        get_odd_spec_t( m, counter, cheby_index ), //derivative
+
+                        delta_t ); // time step
                 }
             }
+            ++counter;
         }
     }
+
+    void develop( class GaugeVariables& );
 
     //////////////////////////////////////////////////////////////////////////////////////
     /////   Constructor
@@ -251,75 +263,25 @@ public:
         A_even      = chebyC.ee_matrix_even;
         A_odd       = chebyC.ee_matrix_odd;
 
-        // Open the file for text output (one text line per one time step)
-        FILE* outf = fopen( "output.dat", "w" );
+        // Perform the first integration step (testing)
 
-        Real t = 0;
+        /*Real t = 0;
         Real delta_t = 0.5;
 
-        for( size_t m = 1; m <= mDim - 1 && t < 10; ++m, t += delta_t )
-        {
-            size_t next_m = m + 1;
+        arrange_fields_t( 0 );
+        solveSpectralDerivatives( 0 ); // integStep_Prepare ends
 
-            if( m == mDim - 1 )
-            {
-                size_t next_m = 0;
-            }
+        evolveEvenFields( &EulerMethod, 0, 1, delta_t );
+        evolveOddFields ( &EulerMethod, 0, 1, delta_t );
 
-            // Perform the integration step
+        computeFields   ( 1 );
+        computeRegDers  ( 1 );*/
 
-                arrange_fields_t( m );
-                solveSpectralDerivatives( m ); // integStep_Prepare ends
+        /*
+        std::cout << std::endl << "-------This is the constructor of BispecEvolve."
+                  << std::endl << std::endl << std::endl;
 
-                evolveEvenFields( &EulerMethod, m, next_m, delta_t );
-                evolveOddFields ( &EulerMethod, m, next_m, delta_t );
-
-                computeFields   ( next_m );
-                computeRegDers  ( next_m ); // Up to here, it could be integStep_Finalize
-
-            // Over spectral coefficients of the even fields
-            for( const auto field : fields::even_flds )
-            {
-                for( size_t cheby_index = 0; cheby_index < n_chebycffs; ++cheby_index )
-                {
-                    if( cheby_index + field > 0 )
-                    { // Separate values using tabs
-                        fprintf( outf, "\t");
-                    }
-                    // here comes output of the coefficients
-                    fprintf( outf, "%g", spcoeffs[ ( n_all_flds * n_chebycffs ) * m
-                                                    + n_chebycffs * field
-                                                        + cheby_index ] );
-                }
-            }
-            // Over spectral coefficients of the odd fields
-            for( const auto field : fields::odd_flds )
-            {
-                for( size_t cheby_index = 0; cheby_index < n_chebycffs; ++cheby_index )
-                {
-                    if( cheby_index + field > 0 )
-                    { // Separate values using tabs
-                        fprintf( outf, "\t");
-                    }
-                    // here comes output of the coefficients
-                    fprintf( outf, "%g", spcoeffs[ ( n_all_flds * n_chebycffs ) * m
-                                                    + n_chebycffs * field
-                                                        + cheby_index ] );
-                }
-            }
-
-            fprintf( outf, "\n" ); // Marks end of line
-
-            if( m == mDim - 1 )
-            {
-                m = 0;
-            }
-        }
-
-        // Close the output
-        fclose( outf );
-
-        /*std::cout << "The evolution equations stored in the vector," << std::endl
+        std::cout << "The evolution equations stored in the vectors," << std::endl
             << std::endl;
 
         std::cout << "gconf_t: ";
@@ -364,9 +326,9 @@ public:
         }
         std::cout << std::endl << std::endl;
 
-        std::cout << std::endl;*/
+        std::cout << std::endl;
 
-        /*Int m1 = 1;
+        Int m1 = 1;
 
         std::cout << "The following are the values of the fields at the collocation "
                   << "points on the initial hypersurface (g-sector)," << std::endl;
@@ -476,7 +438,10 @@ public:
         for( size_t n = 0; n < n_collocs; ++n )
         {
             std::cout << pftau( m1, n ) << std::endl;
-        }*/
+        }
+
+        std::cout << std::endl << "-------End of the constructor of BispecEvolve."
+                  << std::endl << std::endl << std::endl;*/
 
     }
 
