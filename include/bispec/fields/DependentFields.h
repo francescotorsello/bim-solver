@@ -504,7 +504,7 @@ public:
         BimetricModel( params )
     {
 
-        dumpDependentFields( 0 );
+        //dumpDependentFields( 0 );
 
     }
 };

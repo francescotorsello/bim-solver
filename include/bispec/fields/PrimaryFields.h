@@ -12,21 +12,21 @@
 #define setfield( field ) \
         inline Real field( Int m, Int n ) \
         { \
-            return values_fields[ ( n_flds * n_collocs ) * m \
+            return values_fields[ ( n_all_flds * n_collocs ) * m \
             + n_collocs * fields::field + n ]; \
         }
 
 #define setder( field ) \
         inline Real field( Int m, Int n ) \
         { \
-            return values_ders[ ( n_flds * n_collocs ) * m \
+            return values_ders[ ( n_all_flds * n_collocs ) * m \
             + n_collocs * fields::field + n ]; \
         }
 
 #define setderr( field ) \
         inline Real field( Int m, Int n ) \
         { \
-            return values_derrs[ ( n_flds * n_collocs ) * m \
+            return values_derrs[ ( n_all_flds * n_collocs ) * m \
             + n_collocs * fields::field + n ]; \
         }
 
