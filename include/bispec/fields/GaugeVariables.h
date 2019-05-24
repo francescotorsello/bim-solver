@@ -41,7 +41,7 @@ public:
 
     inline void applyGaugeCondition( Int m )
     {
-        std::cout << "Inside GeodesicSlicing" << std:: endl << std::endl;
+        //std::cout << "Inside GeodesicSlicing" << std:: endl << std::endl;
         for( Int n = 0; n < be.n_colpoints(); ++n )
         {
             be.values_fields[ ( be.get_n_all_flds() * be.n_colpoints() ) * m
@@ -56,9 +56,9 @@ public:
             be.values_fields[ ( be.get_n_all_flds() * be.n_colpoints() ) * m
                 + be.n_colpoints() * fields::fBet + n ] = 0;
 
-            std::cout << "gAlp(" << m << "," << n << ") = "
+            /*std::cout << "gAlp(" << m << "," << n << ") = "
                       << be.values_fields[ ( be.get_n_all_flds() * be.n_colpoints() ) * m
-                + be.n_colpoints() * fields::gAlp + n ] << std::endl;
+                + be.n_colpoints() * fields::gAlp + n ] << std::endl;*/
         }
     }
 
