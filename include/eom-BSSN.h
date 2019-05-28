@@ -8,7 +8,8 @@
 // The following files comprise EoM which are generated in Mathematica
 
 #include "eom-BSSN/eomGauge.h"
-#include "eom-BSSN/eomBSSNStdGaugeReg.h"
+//#include "eom-BSSN/eomBSSNStdGaugeReg.h"
+#include "eom-BSSN/eomBSSNAlcStdGaugeReg.h"
 #include "eom-BSSN/eomBSSNKDGaugeReg.h"
 #include "eom-BSSN/eomBSSNMatterReg.h"
 #include "eom-BSSN/eomBSSNBimetricSourcesReg.h"

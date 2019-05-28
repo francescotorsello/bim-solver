@@ -48,13 +48,15 @@ namespace fld
         gconf, gDconf, gtrK, gA, gDA, gB, gDB, gA1, gA2, gL, gsig, gAsig,
 
         /// The evolution RHS for `g`
-        gconf_t, gDconf_t, gtrK_t, gA_t, gDA_t, gB_t, gDB_t, gA1_t, gA2_t, gL_t, gsig_t, gAsig_t,
+        gconf_t, gDconf_t, gtrK_t, gA_t, gDA_t, gB_t, gDB_t, gA1_t, gA2_t, gL_t,
+        gsig_t, gAsig_t,
 
         /// Evolved fields in the `f`-sector
         fconf, fDconf, ftrK, fA, fDA, fB, fDB, fA1, fA2, fL, fsig, fAsig,
 
         /// The evolution RHS for `f`
-        fconf_t, fDconf_t, ftrK_t, fA_t, fDA_t, fB_t, fDB_t, fA1_t, fA2_t, fL_t, fsig_t, fAsig_t,
+        fconf_t, fDconf_t, ftrK_t, fA_t, fDA_t, fB_t, fDB_t, fA1_t, fA2_t, fL_t,
+        fsig_t, fAsig_t,
 
         /// The traces of the shifted extrinsic curvatures
         gtrA, ftrA,
@@ -75,7 +77,8 @@ namespace fld
 
         /// The regularizing fields and their radial derivatives
         gBetr, gDconfr, fDconfr, gDAlpr, fBetr, fDAlpr, gLr, fLr,
-        gBetr_r, gBetr_rr, gDconfr_r, fDconfr_r, gDAlpr_r, fBetr_r,        fBetr_rr, fDAlpr_r, gLr_r, fLr_r, gBr, gBr_r,
+        gBetr_r, gBetr_rr, gDconfr_r, fDconfr_r, gDAlpr_r, fBetr_r,
+        fBetr_rr, fDAlpr_r, gLr_r, fLr_r, gBr, gBr_r,
 
         /// State variables for the perfect fluid (PF)
         pfD, pfS, pftau, pfv,
@@ -639,15 +642,17 @@ class BimetricEvolve
 {
     enum Slicing        //!< Known slicing methods
     {
-        SLICE_CONSTG  = 0,  // Constant slice in g (f calculated)
-        SLICE_CONSTGF = 1,  // Constant slice in both g and f
-        SLICE_MS2     = 2,  // Maximal slicing, 2nd order FD
-        SLICE_MS4     = 3,  // Maximal slicing, 4th order FD
-        SLICE_MS2OPT  = 4,  // Maximal slicing, 2nd order FD, optimized algorithm
-        SLICE_SG      = 5,  // The standard gauge
-        SLICE_MS6     = 6,  // Maximal slicing, 6th order FD
-        SLICE_KD      = 7,  // The K driver parabolic gauge on the lapse (relaxing to maximal slicing) [B&S,p.111]
-        SLICE_MS4D    = 8,  // The drived maximal slicing [B&S,p.111]
+        SLICE_CONSTG    = 0,  // Constant slice in g (f calculated)
+        SLICE_CONSTGF   = 1,  // Constant slice in both g and f
+        SLICE_MS2       = 2,  // Maximal slicing, 2nd order FD
+        SLICE_MS4       = 3,  // Maximal slicing, 4th order FD
+        SLICE_MS2OPT    = 4,  // Maximal slicing, 2nd order FD, optimized algorithm
+        SLICE_SG        = 5,  // The standard gauge
+        SLICE_MS6       = 6,  // Maximal slicing, 6th order FD
+        SLICE_KD        = 7,  // The K driver parabolic gauge on the lapse
+                              // (relaxing to maximal slicing) [B&S,p.111]
+        SLICE_MS4D      = 8,  // The drived maximal slicing [B&S,p.111]
+        SLICE_MS4G      = 9,  // Maximal slicing + Gamma-driver
     };
 
     Int slicing;   //!< Select the slicing: maximal, Bona-Masso, ...
@@ -1320,7 +1325,7 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
         { "MS2OPT", SLICE_MS2OPT },  { "MS2",     SLICE_MS2     },
         { "MS4",    SLICE_MS4    },  { "SG",      SLICE_SG      },
         { "MS6",    SLICE_MS6    },  { "KD",      SLICE_KD      },
-        { "MS4D",   SLICE_MS4D    },
+        { "MS4D",   SLICE_MS4D   },  { "MS4G",    SLICE_MS4G    }
     };
     std::string name = params.get( "slicing.method", slicing, 0, knownSlicings );
 
@@ -1369,7 +1374,8 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
 
     if( slicing == SLICE_SG ){
 
-             slog << "The standard gauge (Bona-Masso & Gamma-driver):" << std::endl << std::endl
+             slog << "The standard gauge (Bona-Masso & Gamma-driver):"
+                  << std::endl << std::endl
                   << "    Gamma-driver dissipation = " << eta
                   << std::endl << std::endl;
 
@@ -1377,7 +1383,8 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
 
     if( slicing == SLICE_KD ){
 
-             slog << "The K-driver parabolic gauge on the lapse:" << std::endl << std::endl
+             slog << "The K-driver parabolic gauge on the lapse:"
+                  << std::endl << std::endl
                   << "    Effective diffusion constant e = " << Kdiff
                   << "    'Elastic' constant = " << Kelas
                   << std::endl << std::endl;
@@ -1391,9 +1398,16 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
                   << std::endl << std::endl;
 
         }
+    if( slicing == SLICE_MS4G ){
+
+             slog << "The maximal slicing (BVP) & Gamma-driver:"
+                  << std::endl << std::endl
+                  << "    Gamma-driver dissipation = " << eta
+                  << std::endl << std::endl;
+        }
 
     if ( mpiSize() > 1 &&
-        ( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS6 || slicing == SLICE_MS4D ) )
+        ( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS6 || slicing == SLICE_MS4D || slicing == SLICE_MS4G ) )
     {
         slog << "*** Error: Maximal slicing is not compatible with MPI." << std::endl;
         gridDriver->quit( -1 );
@@ -1409,7 +1423,13 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
 
     // Add our grid functions to the evolution
     //
-    if( slicing != SLICE_KD || slicing != SLICE_SG || slicing != SLICE_MS2 || slicing != SLICE_MS2OPT || slicing != SLICE_MS4 || slicing != SLICE_MS4D || slicing != SLICE_MS6 ) {
+    /*if( slicing != SLICE_KD || slicing != SLICE_SG || slicing != SLICE_MS2
+        || slicing != SLICE_MS2OPT || slicing != SLICE_MS4 || slicing != SLICE_MS4D
+        || slicing != SLICE_MS6 )*/
+    if( slicing == SLICE_KD || slicing == SLICE_SG || slicing == SLICE_MS2
+        || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS4D
+        || slicing == SLICE_MS6 )
+    {
         integ.keepConstant( { fld::q } );
     }  // GFs that are kept constant in time
     integ.keepEvolved( fld::bimEvolvedGF ); // GFs that are evolved by the integrator
@@ -1426,6 +1446,14 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
         const static std::vector<fld::EvolvedBy> evolvedGaugeGF = {
             { fld::gAlp,  fld::gAlp_t  },
             { fld::gDAlp, fld::gDAlp_t },
+            { fld::q,     fld::q_t     },
+            { fld::Bq,    fld::Bq_t    }
+        };
+        integ.keepEvolved( evolvedGaugeGF );
+    }
+    else if ( slicing == SLICE_MS4G )
+    {
+        const static std::vector<fld::EvolvedBy> evolvedGaugeGF = {
             { fld::q,     fld::q_t     },
             { fld::Bq,    fld::Bq_t    }
         };
@@ -1699,9 +1727,10 @@ void BimetricEvolve::determineGaugeFunctions( Int m ) /* this function is not us
     {
         case SLICE_MS2OPT: maximalSlice_2opt       ( m, sliceBC, 1 );  break;
         case SLICE_MS2:    maximalSlice_2          ( m, sliceBC, 1 );  break;
-        case SLICE_MS4:    maximalSlice_4_gDAlp    ( m, sliceBC, 1 );  break;
+        case SLICE_MS4:    maximalSlice_4          ( m, sliceBC, 1 );  break;
         case SLICE_MS6:    maximalSlice_6_gDAlp    ( m, sliceBC, 1 );  break;
         case SLICE_MS4D:   maximalSlice_drived_4   ( m, sliceBC, 1 );  break;
+        case SLICE_MS4G:   maximalSlice_4_gDAlp    ( m, sliceBC, 1 );  break;
     }
 
 #ifdef TWEAK_KDT
@@ -1990,6 +2019,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         case SLICE_MS4:    maximalSlice_4_gDAlp    ( m, nLen/2, 1 );  break;
         case SLICE_MS6:    maximalSlice_6_gDAlp    ( m, nLen/2, 1 );  break;
         case SLICE_MS4D:   maximalSlice_drived_4   ( m, nLen/2, 1 );  break;
+        case SLICE_MS4G:   maximalSlice_4_gDAlp    ( m, nLen/2, 1 );  break;
     }
 
     //if( m < mSmoothUpTo ){
@@ -3023,7 +3053,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
         }
 
-        if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS4D || slicing == SLICE_MS6 )
+        if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS4D || slicing == SLICE_MS6 || slicing == SLICE_MS4G )
         {
             q_t     (m,n) = eq_SG_gBet_t  (m,n);
             Bq_t    (m,n) = eq_SG_gBq_t   (m,n);
