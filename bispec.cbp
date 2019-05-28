@@ -40,6 +40,7 @@
 		<Unit filename="include/bispec/eom-BSSN/eomBSSNRicciComp.h" />
 		<Unit filename="include/bispec/eom-BSSN/eomBSSNSourcesCompEul.h" />
 		<Unit filename="include/bispec/evolution/BispecEvolve.h" />
+		<Unit filename="include/bispec/evolution/develop.h" />
 		<Unit filename="include/bispec/fields/DependentFields.h" />
 		<Unit filename="include/bispec/fields/GaugeVariables.h" />
 		<Unit filename="include/bispec/fields/PrimaryFields.h" />
