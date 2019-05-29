@@ -41,6 +41,9 @@ namespace fld
         fA, fB, fK, fKD, fDA, fDB, fSig,  //!< Evolved variables in the `f`-sector
         pfD, pfS, pftau,                  //!< State variables for the PF
 
+        gAc, gBc, gconf,           //!< CrossCheck variables
+        gAc_t, gBc_t, gconf_t,
+
         p,                         //!< Separation between two metrics (relative shift)
         q,                         //!< Overall (geometric mean) shift
         gAlp, gDAlp, fAlp, fDAlp,  //!< Lapses and their log-derivatives
@@ -111,7 +114,8 @@ namespace fld
         { gDA, gDA_t },  { gDB, gDB_t },  { gSig, gSig_t },
         { fA,  fA_t  },  { fB,  fB_t  },  { fK,   fK_t   },  { fKD, fKD_t },
         { fDA, fDA_t },  { fDB, fDB_t },  { fSig, fSig_t },
-        { pfD, pfD_t },  { pfS, pfS_t },  { pftau, pftau_t }
+        { pfD, pfD_t },  { pfS, pfS_t },  { pftau, pftau_t },
+        { gAc,  gAc_t  },  { gBc,  gBc_t  },  { gconf,  gconf_t  }
     };
 
     /** The grid functions which will be written to the output.
@@ -180,6 +184,10 @@ namespace fld
         { pfS_t,    "pfS_t",    "\\partial_t \\hat S"             },
         { pftau_t,  "pftau_t",  "\\partial_t \\hat\\tau"          },
         { gDAlp,    "gDAlp",    "D_\\alpha"                       },
+    //
+        { gAc,      "gAc",      "A_c"                             },
+        { gBc,      "gBc",      "B_c"                             },
+        { gconf,    "gconf",    "\\phi"                           },
     //
         { sysStat,  "sysStat",  "\\bullet"                        }
     };
@@ -285,6 +293,8 @@ class BimetricEvolve
     emitField(gDB)     emitField(gDB_t)     emitField(fDB)     emitField(fDB_t)
     emitField(gSig)    emitField(gSig_t)    emitField(fSig)    emitField(fSig_t)
 
+    emitField(gAc)     emitField(gBc)       emitField(gconf)
+
     emitField(p)       emitField(p_g)       emitField(p_f)     emitField(p_t)
 
     emitField(q)
@@ -340,6 +350,21 @@ class BimetricEvolve
         Real gK2  ( Int m, Int n ) { return ( gK(m,n) - gKD(m,n) ) / 3; }
         Real fK1  ( Int m, Int n ) { return ( fK(m,n) + 2 * fKD(m,n) ) / 3; }
         Real fK2  ( Int m, Int n ) { return ( fK(m,n) - fKD(m,n) ) / 3; }
+
+        inline Real gAc_t ( Int m, Int n )
+        {
+            return - 4 * gAlp (m,n) * exp(-4 * gconf(m,n)) * gK1(m,n);
+        }
+
+        inline Real gBc_t ( Int m, Int n )
+        {
+            return - 4 * gAlp (m,n) * exp(-4 * gconf(m,n)) * gK2(m,n);
+        }
+
+        inline Real gconf_t ( Int m, Int n )
+        {
+            return - ( gAlp(m,n) * gK(m,n) ) / 6;
+        }
     #else
         Real gK   ( Int m, Int n ) { return gK1(m,n) + 2 * gK2(m,n); }
         Real gK_r ( Int m, Int n ) { return gK1_r(m,n) + 2 * gK2_r(m,n); }
@@ -1122,6 +1147,12 @@ bool BimetricEvolve::integStep_Diagnostics( Int m, Int chkNaNs_nFrom, Int chkNaN
 /////////////////////////////////////////////////////////////////////////////////////////
 
 #include "maximalSlice.h"
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// CrossCheck (computes the cBSSN variables starting from the std ones)
+/////////////////////////////////////////////////////////////////////////////////////////
+
+#include "CrossCheck.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////
 /// The main entry point of `bim-solver`.
