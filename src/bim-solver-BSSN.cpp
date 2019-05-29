@@ -3216,10 +3216,10 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     }
 
-    for( Int n = nGhost + nLen; n < nTotal + 1; ++n )
+    /*for( Int n = nGhost + nLen; n < nTotal + 1; ++n )
     {
         extrapolate_R( fld::gAlp_t,  m, n );
-    }
+    }*/
 
     smoothenGF0 ( m, nGhost, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::gAlp_t, fld::tmp,  fld::gAlp_t,  1 );
     //smoothenGF0 ( m, 0, nLen + 2 *nGhost + 1, 32,  fld::gtrK_t,    fld::tmp,  fld::gtrK_t,    1 );
@@ -3238,6 +3238,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
     smoothenGF0 ( m, nGhost, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::gDB, fld::tmp,  fld::gDB,  -1 );
     //smoothenGF0 ( m, nGhost, nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::gBr, fld::tmp,  fld::gBr,  -1 );
     //smoothenGF ( m,  fld::gtrK,      fld::tmp,  fld::gtrK,      1 );
+    smoothenGF0 ( m, nGhost, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::q, fld::tmp,  fld::q,  -1 );
 
     /////////////////////////////////////////////////////////////////////////////////////
     /// - Smoothen the time derivatives inside the grid zone near the outer boundary
