@@ -70,7 +70,8 @@ Real BimetricEvolve::QQ( Int m, Int n )
     {
         if( isGR () )
         {
-            return (k_g * exp(4 * gconf(m,n)) * (eq_pf_gJ11(m,n) + 2 * eq_pf_gJ22(m,n)                   + eq_pf_grho(m,n)) * pow2(gA(m,n))) / 2. + exp(4 * gconf(m,n)) * (pow2 ( gK1(m,n)) + 2 * pow2(gK2(m,n))) * pow2(gA(m,n));
+            return (k_g * exp(4 * gconf(m,n)) * (eq_pf_gJ11(m,n) + 2 * eq_pf_gJ22(m,n)
+                + eq_pf_grho(m,n)) * pow2(gA(m,n))) / 2. + exp(4 * gconf(m,n)) * (pow2 ( gK1(m,n)) + 2 * pow2(gK2(m,n))) * pow2(gA(m,n));
 
         } else {
 

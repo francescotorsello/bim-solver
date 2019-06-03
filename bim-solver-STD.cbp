@@ -50,6 +50,7 @@
 		<Linker>
 			<Add option="-m64" />
 		</Linker>
+		<Unit filename="include/CrossCheck.h" />
 		<Unit filename="include/bimetricModel.h" />
 		<Unit filename="include/documentation.h" />
 		<Unit filename="include/eom-std.h" />

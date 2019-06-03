@@ -42,7 +42,9 @@ namespace fld
         pfD, pfS, pftau,                  //!< State variables for the PF
 
         gAc, gBc, gconf,           //!< CrossCheck variables
+        gAc_r, gBc_r, gconf_r,
         gAc_t, gBc_t, gconf_t,
+        gA_check, gB_check,
 
         p,                         //!< Separation between two metrics (relative shift)
         q,                         //!< Overall (geometric mean) shift
@@ -100,6 +102,7 @@ namespace fld
     {
         gA, gB, gK, gKD, gDA, gDB, gSig,
         fA, fB, fK, fKD, fDA, fDB, fSig,
+        gAc, gBc, gconf,
         q, gAlp, fAlp, gDAlp, //fDAlp,
         p,
         pfD, pfS, pftau
@@ -188,6 +191,11 @@ namespace fld
         { gAc,      "gAc",      "A_c"                             },
         { gBc,      "gBc",      "B_c"                             },
         { gconf,    "gconf",    "\\phi"                           },
+        { gA_check, "gAcheck",  "A_{check}"                       },
+        { gB_check, "gBcheck",  "B_{check}"                       },
+        { gAc_t,    "gAc_t",    "\\partial_t A_c"                 },
+        { gBc_t,    "gBc_t",    "\\partial_t B_c"                 },
+        { gconf_t,  "gconf_t",  "\\partial_t \\phi"               },
     //
         { sysStat,  "sysStat",  "\\bullet"                        }
     };
@@ -294,6 +302,8 @@ class BimetricEvolve
     emitField(gSig)    emitField(gSig_t)    emitField(fSig)    emitField(fSig_t)
 
     emitField(gAc)     emitField(gBc)       emitField(gconf)
+    emitField(gAc_t)   emitField(gBc_t)     emitField(gconf_t)
+    emitField(gA_check)emitField(gB_check)
 
     emitField(p)       emitField(p_g)       emitField(p_f)     emitField(p_t)
 
@@ -328,6 +338,9 @@ class BimetricEvolve
     emitDerivative_r( gDA  )     emitDerivative_r( fDA  )
     emitDerivative_r( gDB  )     emitDerivative_r( fDB  )
 
+    emitDerivative_r(gAc)        emitDerivative_r(gBc)
+    emitDerivative_r(gconf)
+
     emitDerivative_r( p     )
     emitDerivative_r( q     )
     emitDerivative_r( gAlp  )    emitDerivative_r( fAlp  )
@@ -350,21 +363,6 @@ class BimetricEvolve
         Real gK2  ( Int m, Int n ) { return ( gK(m,n) - gKD(m,n) ) / 3; }
         Real fK1  ( Int m, Int n ) { return ( fK(m,n) + 2 * fKD(m,n) ) / 3; }
         Real fK2  ( Int m, Int n ) { return ( fK(m,n) - fKD(m,n) ) / 3; }
-
-        inline Real gAc_t ( Int m, Int n )
-        {
-            return - 4 * gAlp (m,n) * exp(-4 * gconf(m,n)) * gK1(m,n);
-        }
-
-        inline Real gBc_t ( Int m, Int n )
-        {
-            return - 4 * gAlp (m,n) * exp(-4 * gconf(m,n)) * gK2(m,n);
-        }
-
-        inline Real gconf_t ( Int m, Int n )
-        {
-            return - ( gAlp(m,n) * gK(m,n) ) / 6;
-        }
     #else
         Real gK   ( Int m, Int n ) { return gK1(m,n) + 2 * gK2(m,n); }
         Real gK_r ( Int m, Int n ) { return gK1_r(m,n) + 2 * gK2_r(m,n); }
@@ -440,6 +438,26 @@ class BimetricEvolve
 
     Real eq_fKD_t( Int m, Int n ) {
         return eq_base_fKD_t(m,n) + eq_invr_fKD_t(m,n) / r(m,n);
+    }
+
+    Real eq_gAc_t ( Int m, Int n )
+    {
+        return - 4 * gAlp (m,n) * exp( -4 * gconf(m,n) ) * gK1(m,n)
+                + 2 * gBet(m,n) * gA(m,n) * gAc_r(m,n) + 2 * pow2(gA(m,n)) * gBet_r(m,n);
+    }
+
+    Real eq_gBc_t ( Int m, Int n )
+    {
+        return - 4 * gAlp (m,n) * exp( -4 * gconf(m,n) ) * gK2(m,n)
+                + 2 * gBet(m,n) * gB(m,n) * gBc_r(m,n);
+    }
+
+    Real eq_gconf_t ( Int m, Int n )
+    {
+        return gAlp(m,n) * ( 4 * exp( -2 * gconf(m,n) ) *
+                                ( gK1(m,n) / ( gA(m,n) + TINY_Real )
+                                    + 2 * gK2(m,n) / ( gB(m,n) + TINY_Real ) )
+                                       - gK(m,n) ) / 6 + gBet(m,n) * gconf_r(m,n);
     }
 
     // Here defined for completeness (though never used):
@@ -745,6 +763,10 @@ void BimetricEvolve::applyLeftBoundaryCondition( Int m )
         gDB   (m,n) = -gDB   (m,nR);      fDB  (m,n) = -fDB  (m,nR);
         gSig  (m,n) = -gSig  (m,nR);      fSig (m,n) = -fSig (m,nR);
 
+        gAc   (m,n) = gAc    (m,nR);
+        gBc   (m,n) = gBc    (m,nR);
+        gconf (m,n) = gconf  (m,nR);
+
         pfD   (m,n) = pfD    (m,nR);
         pfS   (m,n) = -pfS   (m,nR);
         pftau (m,n) = pftau  (m,nR);
@@ -776,6 +798,10 @@ void BimetricEvolve::applyRightBoundaryCondition( Int m )
         extrapolate_R( fld::gDA,   m, n );      extrapolate_R( fld::fDA,   m, n );
         extrapolate_R( fld::gDB,   m, n );      extrapolate_R( fld::fDB,   m, n );
         extrapolate_R( fld::gSig,  m, n );      extrapolate_R( fld::fSig,  m, n );
+
+        extrapolate_R( fld::gAc,   m, n );
+        extrapolate_R( fld::gBc,   m, n );
+        extrapolate_R( fld::gconf, m, n );
 
         extrapolate_R( fld::pfD,   m, n );
         extrapolate_R( fld::pfS,   m, n );
@@ -976,6 +1002,9 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         gDA_r  (m,n) = GF_r( gDA,   m,n );    fDA_r  (m,n) = GF_r( fDA,   m,n );
         gDB_r  (m,n) = GF_r( gDB,   m,n );    fDB_r  (m,n) = GF_r( fDB,   m,n );
 
+        gAc_r  (m,n) = GF_r( gAc,    m,n );   gBc_r  (m,n) = GF_r( gBc,    m,n );
+        gconf_r(m,n) = GF_r( gconf,    m,n );
+
         p_r    (m,n) = GF_r( p,     m,n );    q_r    (m,n) = GF_r( q,     m,n );
         p_rr   (m,n) = GF_rr( p,    m,n );    q_rr   (m,n) = GF_rr( q,    m,n );
         eq_pr_r(m,n) = GF_r( eq_pr, m,n );    eq_qr_r(m,n) = GF_r( eq_qr, m,n );
@@ -1024,6 +1053,10 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         g_rho (m,n) = eq_g_rho (m,n);      f_rho (m,n) = eq_f_rho (m,n);
         g_JK  (m,n) = eq_g_JK  (m,n);      f_JK  (m,n) = eq_f_JK  (m,n);
         g_JKD (m,n) = eq_g_JKD (m,n);      f_JKD (m,n) = eq_f_JKD (m,n);
+
+        gA_check (m,n) = exp( 2 * gconf(m,n) ) * gAc(m,n);
+        gB_check (m,n) = exp( 2 * gconf(m,n) ) * gBc(m,n);
+
         #ifdef TWEAK_MK3
         g_JKD (m,n) = f_JKD (m,n) = 0;
         #endif
@@ -1050,11 +1083,16 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         pfS_t   (m,n) = eq_pf_S_t  (m,n);
         pftau_t (m,n) = eq_pf_tau_t(m,n);
 
+        gAc_t   (m,n) = eq_gAc_t   (m,n);
+        gBc_t   (m,n) = eq_gBc_t   (m,n);
+        gconf_t (m,n) = eq_gconf_t (m,n);
+
         if( slicing == SLICE_BM )
         {
             gAlp_t  (m,n) = eq_BM_gAlp_t  (m,n);
             gDAlp_t (m,n) = eq_BM_gDAlp_t (m,n);
         }
+
     }
 
     if( smooth >= 2 )
