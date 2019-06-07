@@ -102,7 +102,8 @@ Real BimetricEvolve::eq_fDB_t( Int m, Int n )
 Real BimetricEvolve::eq_gA1_t( Int m, Int n )
 {
     return gRicci(m,n) + gA1_convr(m,n) + k_g * gJA1(m,n) + exp(-4 * gconf(m,n))
-    /*0*/  * (gDers(m,n) + gAlp(m,n) * ((2 * gDconf(m,n) * gDers(m,n)) / (gDAlp(m,n) + TINY_Real) - (8
+    /*0*/  * (gDers(m,n) + gAlp(m,n) * ((2 * gDconf(m,n) * gDers(m,n)) / (gDAlp(m,n)
+            + TINY_Real) - (8
     /*3*/  * pow2(gDconf(m,n))) / (3. * pow2(gA(m,n))))) + exp(-4 * gconf(m,n)) * ((-2
     /*2*/  * gDAlpr_r(m,n)) / (3. * pow2(gA(m,n))) - (4 * gDconfr_r(m,n) * gAlp(m,n))
     /*1*/  / (3. * pow2(gA(m,n)))) * r(m,n) + gtrA_pff(m,n) / 3. + (gAlp(m,n) * (3
@@ -112,7 +113,8 @@ Real BimetricEvolve::eq_gA2_t( Int m, Int n )
 {
     return -gRicci(m,n) / 2. + gA2_convr(m,n) + k_g * gJA2(m,n) + exp(-4
     /*1*/  * gconf(m,n)) * (-gDers(m,n) / 2. + gAlp(m,n) * (-((gDconf(m,n) * gDers(m,n))
-    /*3*/  / (gDAlp(m,n) + TINY_Real)) + (4 * pow2(gDconf(m,n))) / (3. * pow2(gA(m,n))))) + exp(-4
+    /*3*/  / (gDAlp(m,n) + TINY_Real))
+            + (4 * pow2(gDconf(m,n))) / (3. * pow2(gA(m,n))))) + exp(-4
     /*1*/  * gconf(m,n)) * (gDAlpr_r(m,n) / (3. * pow2(gA(m,n))) + (2 * gDconfr_r(m,n)
     /*2*/  * gAlp(m,n)) / (3. * pow2(gA(m,n)))) * r(m,n) + gtrA_pff(m,n) / 3.
     /*0*/  + (gAlp(m,n) * (3 * gA2(m,n) - gtrA(m,n)) * (gtrA(m,n) + gtrK(m,n))) / 3.;
@@ -120,7 +122,8 @@ Real BimetricEvolve::eq_gA2_t( Int m, Int n )
 Real BimetricEvolve::eq_fA1_t( Int m, Int n )
 {
     return fRicci(m,n) + fA1_convr(m,n) + k_f * fJA1(m,n) + exp(-4 * fconf(m,n))
-    /*0*/  * (fDers(m,n) + fAlp(m,n) * ((2 * fDconf(m,n) * fDers(m,n)) / (fDAlp(m,n) + TINY_Real) - (8
+    /*0*/  * (fDers(m,n) + fAlp(m,n) * ((2 * fDconf(m,n) * fDers(m,n)) / (fDAlp(m,n)
+            + TINY_Real) - (8
     /*3*/  * pow2(fDconf(m,n))) / (3. * pow2(fA(m,n))))) + exp(-4 * fconf(m,n)) * ((-2
     /*2*/  * fDAlpr_r(m,n)) / (3. * pow2(fA(m,n))) - (4 * fDconfr_r(m,n) * fAlp(m,n))
     /*1*/  / (3. * pow2(fA(m,n)))) * r(m,n) + ftrA_pff(m,n) / 3. + (fAlp(m,n) * (3
@@ -130,7 +133,8 @@ Real BimetricEvolve::eq_fA2_t( Int m, Int n )
 {
     return -fRicci(m,n) / 2. + fA2_convr(m,n) + k_f * fJA2(m,n) + exp(-4
     /*1*/  * fconf(m,n)) * (-fDers(m,n) / 2. + fAlp(m,n) * (-((fDconf(m,n) * fDers(m,n))
-    /*3*/  / (fDAlp(m,n) + TINY_Real)) + (4 * pow2(fDconf(m,n))) / (3. * pow2(fA(m,n))))) + exp(-4
+    /*3*/  / (fDAlp(m,n) + TINY_Real))
+            + (4 * pow2(fDconf(m,n))) / (3. * pow2(fA(m,n))))) + exp(-4
     /*1*/  * fconf(m,n)) * (fDAlpr_r(m,n) / (3. * pow2(fA(m,n))) + (2 * fDconfr_r(m,n)
     /*2*/  * fAlp(m,n)) / (3. * pow2(fA(m,n)))) * r(m,n) + ftrA_pff(m,n) / 3.
     /*0*/  + (fAlp(m,n) * (3 * fA2(m,n) - ftrA(m,n)) * (ftrA(m,n) + ftrK(m,n))) / 3.;
@@ -178,9 +182,11 @@ Real BimetricEvolve::eq_gAsig_t( Int m, Int n )
     /*1*/  / Power(gA(m,n),4) - (gsig_gL_r(m,n) * pow2(gB(m,n))) / (2. * pow2(gA(m,n))))
     /*0*/  + (k_g * (gJA1(m,n) - gJA2(m,n)) + exp(-4 * gconf(m,n)) * ((3 * gDers(m,n))
     /*2*/  / 2. + gAlp(m,n) * ((-3 * (5 * gDB(m,n) + 11 * gDconf(m,n)) * gDers(m,n))
-    /*3*/  / (gDAlp(m,n) + TINY_Real) + (40 * gDB(m,n) * gDconf(m,n) + 7 * pow2(gDB(m,n)) + 44
+    /*3*/  / (gDAlp(m,n) + TINY_Real)
+            + (40 * gDB(m,n) * gDconf(m,n) + 7 * pow2(gDB(m,n)) + 44
     /*4*/  * pow2(gDconf(m,n))) / pow2(gA(m,n)) + (27 * pow2(gDers(m,n))
-    /*4*/  * pow2(gA(m,n))) / (4. * pow2(gDAlp(m,n)) + TINY_Real)))) / pow2(r(m,n)) + (exp(-4
+    /*4*/  * pow2(gA(m,n))) / (4. * pow2(gDAlp(m,n)) + TINY_Real)))) / pow2(r(m,n))
+           + (exp(-4
     /*2*/  * gconf(m,n)) * (-(gDAlpr_r(m,n) / pow2(gA(m,n))) + gAlp(m,n) * (gLr_r(m,n)
     /*3*/  + (2 * gsig_r(m,n) * pow2(gB(m,n))) / Power(gA(m,n),4) + (-2 * gDconfr_r(m,n)
     /*4*/  - 4 * gDB(m,n) * gsig(m,n) + gsig_r(m,n) - gL(m,n) * gsig(m,n)
@@ -194,9 +200,11 @@ Real BimetricEvolve::eq_fAsig_t( Int m, Int n )
     /*1*/  / Power(fA(m,n),4) - (fsig_fL_r(m,n) * pow2(fB(m,n))) / (2. * pow2(fA(m,n))))
     /*0*/  + (k_f * (fJA1(m,n) - fJA2(m,n)) + exp(-4 * fconf(m,n)) * ((3 * fDers(m,n))
     /*2*/  / 2. + fAlp(m,n) * ((-3 * (5 * fDB(m,n) + 11 * fDconf(m,n)) * fDers(m,n))
-    /*3*/  / (fDAlp(m,n) + TINY_Real) + (40 * fDB(m,n) * fDconf(m,n) + 7 * pow2(fDB(m,n)) + 44
+    /*3*/  / (fDAlp(m,n) + TINY_Real)
+            + (40 * fDB(m,n) * fDconf(m,n) + 7 * pow2(fDB(m,n)) + 44
     /*4*/  * pow2(fDconf(m,n))) / pow2(fA(m,n)) + (27 * pow2(fDers(m,n))
-    /*4*/  * pow2(fA(m,n))) / (4. * pow2(fDAlp(m,n)) + TINY_Real)))) / pow2(r(m,n)) + (exp(-4
+    /*4*/  * pow2(fA(m,n))) / (4. * pow2(fDAlp(m,n)) + TINY_Real)))) / pow2(r(m,n))
+            + (exp(-4
     /*2*/  * fconf(m,n)) * (-(fDAlpr_r(m,n) / pow2(fA(m,n))) + fAlp(m,n) * (fLr_r(m,n)
     /*3*/  + (2 * fsig_r(m,n) * pow2(fB(m,n))) / Power(fA(m,n),4) + (-2 * fDconfr_r(m,n)
     /*4*/  - 4 * fDB(m,n) * fsig(m,n) + fsig_r(m,n) - fL(m,n) * fsig(m,n)

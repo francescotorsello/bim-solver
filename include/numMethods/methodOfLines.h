@@ -140,6 +140,10 @@ MoLDescriptor RK4 = //!< Classical Runge-Kutta, 4th order
 // The adaptive step methods are in a separate file:
 //
 #include "embeddedMoL.h"
+
+// The diagonally implicit (DIRK) step methods are in a separate file:
+//
+#include "DIRK_MoL.h"
                                                                                    /*@}*/
 /////////////////////////////////////////////////////////////////////////////////////////
 

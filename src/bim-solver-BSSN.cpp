@@ -1247,13 +1247,13 @@ class BimetricEvolve
 
         GF(fld::ftrAv, m, n)    = ftrAv(m, n);
 
-        gDconfr(m,n) = (/*gconf(m,n) * */ gDconf(m,n)) / r(m,n); // TODO: check this
+        gDconfr(m,n) = gDconf(m,n) / r(m,n); // TODO: check this
 
         gLr    (m,n )= gL(m,n) / r(m,n);
 
         gBr    (m,n )= gB(m,n) * r(m,n);
 
-        fDconfr(m,n) = (/*fconf(m,n) * */ fDconf(m,n)) / r(m,n);
+        fDconfr(m,n) = fDconf(m,n) / r(m,n);
 
         fLr    (m,n) = fL(m,n) / r(m,n);
 
@@ -1583,47 +1583,47 @@ void BimetricEvolve::applyRightBoundaryCondition( Int m )
     if( false )//&& BV == BVC )
     {
 
-    for( Int n = nGhost + nLen; n < nTotal + 1; ++n )
-    {
-        t(m,n) = t(m,n-1);
+        for( Int n = nGhost + nLen; n < nTotal + 1; ++n )
+        {
+            t(m,n) = t(m,n-1);
 
-        gconf (m,n) = - log( r(m,n) ) + log( r(m,n) + 1 );
-        gDconf(m,n) = - 1 / ( r(m,n) * (r(m,n) + 1) );
+            gconf (m,n) = - log( r(m,n) ) + log( r(m,n) + 1 );
+            gDconf(m,n) = - 1 / ( r(m,n) * (r(m,n) + 1) );
 
-        gA    (m,n) = 1;
-        gB    (m,n) = 1;
-        gDA   (m,n) = 0;
-        gDB   (m,n) = 0;
-        gtrK  (m,n) = 0;
+            gA    (m,n) = 1;
+            gB    (m,n) = 1;
+            gDA   (m,n) = 0;
+            gDB   (m,n) = 0;
+            gtrK  (m,n) = 0;
 
-        gA1   (m,n) = 0;
-        gA2   (m,n) = 0;
+            gA1   (m,n) = 0;
+            gA2   (m,n) = 0;
 
-        gL    (m,n) = 0;
+            gL    (m,n) = 0;
 
-        gsig  (m,n) = 0;
-        gAsig (m,n) = 0;
+            gsig  (m,n) = 0;
+            gAsig (m,n) = 0;
 
-        #if _EVOLVE_DSIG
+            #if _EVOLVE_DSIG
 
-            extrapolate_R( fld::gDsig, m, n );
-            extrapolate_R( fld::fDsig, m, n );
+                extrapolate_R( fld::gDsig, m, n );
+                extrapolate_R( fld::fDsig, m, n );
 
-        #endif // _EVOLVE_DSIG
+            #endif // _EVOLVE_DSIG
 
-        pfD   (m,n) = 0;
-        pfS   (m,n) = 0;
-        pftau (m,n) = 0;
+            pfD   (m,n) = 0;
+            pfS   (m,n) = 0;
+            pftau (m,n) = 0;
 
-        gDconfr (m,n) = - 1 / ( r(m,n) * r(m,n) * (r(m,n) + 1) );
-        gDAlpr  (m,n) = gDAlp(m,n) / r(m,n);
-        gLr     (m,n) = 0;
+            gDconfr (m,n) = - 1 / ( r(m,n) * r(m,n) * (r(m,n) + 1) );
+            gDAlpr  (m,n) = gDAlp(m,n) / r(m,n);
+            gLr     (m,n) = 0;
 
         //calculateDerivedVariables( m, n ); // Calculate R, Lt, and pfv.
 
-        extrapolate_R( fld::pfv, m, n ); // Nevertheless, we extrapolate pfv!
+            extrapolate_R( fld::pfv, m, n ); // Nevertheless, we extrapolate pfv!
 
-    }
+        }
 
     //smoothenGF0( m, nLen + nGhost - 3, nLen + nGhost + 3, nGhost/2,  fld::gconf, \
             fld::tmp,  fld::gconf,      1 );
@@ -3312,7 +3312,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
                  fld::tmp,  fld::gAlp_t,  1 );
     //smoothenGF0 ( m, 0, nLen + 2 *nGhost + 1, 32,  fld::gtrK_t,    \
                    fld::tmp,  fld::gtrK_t,    1 );
-    smoothenGF0 ( m, 0, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 25,  fld::gtrK,
+    smoothenGF0 ( m, 0, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::gtrK,
                  fld::tmp,  fld::gtrK,  1 );
     smoothenGF0 ( m, 0, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::grhobar,
                  fld::tmp,  fld::grhobar,  1 );
@@ -3343,8 +3343,8 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
     //smoothenGF ( m,  fld::gtrK,      fld::tmp,  fld::gtrK,      1 );
     smoothenGF0 ( m, nGhost, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::q,
                  fld::tmp,  fld::q,  -1 );
-    /*smoothenGF0 ( m, nGhost, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::gAlp,
-                 fld::tmp,  fld::gAlp,  1 );*/
+    //smoothenGF0 ( m, nGhost, nGhost + nLen/*nLen + 2 *nGhost + 1*/, 15,  fld::gAlp,\
+                 fld::tmp,  fld::gAlp,  1 );
 
     /////////////////////////////////////////////////////////////////////////////////////
     /// - Smoothen the time derivatives inside the grid zone near the outer boundary

@@ -85,6 +85,7 @@
 		<Unit filename="include/grid/gridOutput.h" />
 		<Unit filename="include/grid/integrator.h" />
 		<Unit filename="include/numMethods.h" />
+		<Unit filename="include/numMethods/DIRK_MoL.h" />
 		<Unit filename="include/numMethods/SavitzkyGolayCoeff.h" />
 		<Unit filename="include/numMethods/bandSol.h" />
 		<Unit filename="include/numMethods/cubicSpline.h" />

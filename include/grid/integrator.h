@@ -641,6 +641,8 @@ public:
             case 11:  integrate_MoL( RK5DP_7M, /* adaptive = */ true  ); break;
             case 12:  integrate_MoL( RK5DP_7S, /* adaptive = */ false ); break;
             case 13:  integrate_MoL( RK5DP_7S, /* adaptive = */ true  ); break;
+
+            case 14:  integrate_MoL( DIRK3L ); break;
         }
 
         return true;
@@ -661,7 +663,8 @@ std::map<std::string,int> MoL::knownMethods =
     { "RK1",       6 },   { "RK2",        7 },
     { "RK3",       8 },   { "RK4",        9 },
     { "RK5DP_7M", 10 },   { "RK5DP_7MA", 11 },
-    { "RK5DP_7S", 12 },   { "RK5DP_7SA", 13 }
+    { "RK5DP_7S", 12 },   { "RK5DP_7SA", 13 },
+    { "DIRK3L",   14 }
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////

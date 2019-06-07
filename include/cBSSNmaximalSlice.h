@@ -35,8 +35,10 @@
                 * (eq_pf_gJ11(m,n) + 2 * eq_pf_gJ22(m,n) + eq_pf_grho(m,n))) / 2.
 */
 
-/// @todo fixme: Should be  k_g/2 in the above. Removing 1/2, however, speeds up the collapse.
-/// @todo fixme: Current implementation uses rho + J of the perfect fluid (should use bimetric).
+/// @todo fixme: Should be  k_g/2 in the above. Removing 1/2, however, speeds up the    \
+            collapse.
+/// @todo fixme: Current implementation uses rho + J of the perfect fluid (should use  \
+            bimetric).
 
 /** Finds the maximal slice using a second-order accurate finite difference scheme.
  *
