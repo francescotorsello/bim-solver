@@ -1,7 +1,7 @@
 /**
  *  @file      bandSol.h
  *  @brief     Solving a linear equation `A * x = b` for a band-diagonal matrix `A`.
- *  @authors   Mikica Kocic, Wilkinson & Reinsch, Press et al
+ *  @authors   Mikica Kocic, Wilkinson & Reinsch, Press et al, Francesco Torsello
  *  @copyright TODO
  */
 
@@ -232,6 +232,221 @@ void BandLUDecomposition::sanityCheck ()
          << "4.66912, -7.00737, -1.13382, -3.24088, 6.29092, 10.616, -13.5114"
          << std::endl << std::endl;
 }
+
+
+/// TODO: merge BandLUDeocmposition with LUDecomposition
+
+
+/** BandLUDecomposition could be incapsulated into the following LUDecomposition by
+ *  overloading the constructor.
+ *
+ */
+
+class LUDecomposition
+{
+    Int nn;        //!< The full matrix size.
+    MatReal L;     //!< The lower triangular matrix (stored compactly).
+    MatReal U;     //!< The upper triangular matrix (stored compactly).
+
+public:
+
+    LUDecomposition( MatReal_I& A );
+
+    /** Gets the lower triangular matrix.
+     */
+
+    void LUDecompose( MatReal_I& A )
+    {
+        for( Int i = 0; i < nn; ++i )
+        {
+            // Upper triangular
+            for( Int k = i; k < nn; ++k )
+            {
+                Real sum = 0;
+                for( Int j = 0; j < i; ++j )
+                {
+                    sum += L[i][j] * U[j][k];
+                }
+                U[i][k] = A[i][k] - sum;
+            }
+
+            // Lower triangular
+            for( Int k = i; k < nn; ++k )
+            {
+                if( i == k ) // Set the diagonal elements of L to 1
+                {
+                    L[i][i] = 1;
+
+                } else
+                {
+                    Real sum = 0;
+                    for( Int j = 0; j < i; ++j )
+                    {
+                        sum += L[k][j] * U[j][i];
+                    }
+                    L[k][i] = ( A[k][i] - sum ) / U[i][i];
+                }
+            }
+        }
+    }
+
+    /** Gets the lower triangular matrix.
+     */
+    MatReal& getL () {
+        return L;
+    }
+
+    /** Gets the upper triangular matrix.
+     */
+    MatReal& getU () {
+        return U;
+    }
+
+    /** Given a right-hand side vector `b[0..n-1]`, solves the band-diagonal
+     *  linear equation `A * x = b`.
+     */
+    void solve( VecReal_I& b, VecReal_O& x );
+
+    /** Performs a sanity check test with sample data.
+     */
+    static void sanityCheck ();
+
+    /** Returns the determinant of the matrix A.
+     */
+    Real det () const
+    {
+        Real dd = 1;
+        for( Int i = 0; i < nn; ++i ) {
+            dd *= U[i][i];
+        }
+        return dd;
+    }
+};
+
+/** The constructor computes the LU decomposition of a generic square matrix A.
+ */
+
+LUDecomposition::LUDecomposition(
+    MatReal_I& A   //!< The matrix to be LU decomposed
+)
+    : nn(A.nrows()), L(nn,nn,Real(0)), U(nn,nn,Real(0))
+{
+    LUDecompose( A );
+}
+
+/** Sanity check for LUDecomposition.
+ */
+void LUDecomposition::sanityCheck ()
+{
+    const Real A_values[] = {
+        -4, 0, -1, 2, -1, 5, 3, -4, -2, 2,
+        -3, 5, -5, -3, 3, 1, 2, 1, -2, 4,
+        2, 1, -1, 3, 4, 1, -1, 1, 1, -2,
+        3, 4, -3, 5, 4, 4, 3, 4, -2, 0,
+        -4, -4, 5, -5, -5, 4, -2, -5, -1, 0,
+        -2, -5, -2, -1, 3, -2, 1, 5, -1, 0,
+        0, 5, 0, -1, 5, 3, 5, -1, 3, -1,
+        1, -2, 4, 0, -5, 5, 3, -4, -4, -3,
+        0, 3, -3, -5, 3, 1, -1, -5, 3, 1,
+        0, -1, -1, -3, 3, 2, -2, -2, -1, 2
+    };
+
+    MatReal_I A( 10, 10, A_values );
+
+    LUDecomposition LU( A );
+
+    MatReal result(10,10,Real(0));
+    for ( Int i = 0; i < 10; ++i )
+    {
+        for (Int j = 0; j < 10; ++j )
+        {
+            result[i][j] = 0;
+            for (Int k = 0; k < 10; ++k )
+                result[i][j] += LU.L[i][k] * LU.U[k][j];
+        }
+    }
+
+    const Real b_values[] = { -1, -1, 10, 10, 6, 7, -2, -3, 6, 5 };
+
+    VecReal_I b( 10, b_values );
+    VecReal_O x( 10, Real(0) );
+
+    LU.solve( b, x );
+
+    std::cout << "L is: " << std::endl;
+    for( Int i = 0; i < 10; ++i )
+    {
+        std::cout << std::endl << std::endl;
+        for( Int j = 0; j < 10; ++j )
+        {
+            std::cout << LU.L[i][j] << ",\t";
+        }
+    }
+    std::cout << std::endl << std::endl << std::endl << "U is: " << std::endl;
+    for( Int i = 0; i < 10; ++i )
+    {
+        std::cout << std::endl << std::endl;
+        for( Int j = 0; j < 10; ++j )
+        {
+            std::cout << LU.U[i][j] << ",\t";
+        }
+    }
+    std::cout << std::endl << std::endl << std::endl << "A == L*U is: " << std::endl;
+    for( Int i = 0; i < 10; ++i )
+    {
+        std::cout << std::endl << std::endl;
+        for( Int j = 0; j < 10; ++j )
+        {
+            std::cout << A[i][j] << " == " << result[i][j] << ",\t";
+        }
+    }
+    std::cout << std::endl << std::endl << std::endl << "The determinant of A is: "
+        << std::endl << std::endl << std::endl;
+    std::cout << LU.det();
+    std::cout << std::endl << std::endl << std::endl << "A*x == b. x is: " << std::endl;
+    std::cout << std::endl << std::endl;
+    for( Int i = 0; i < 10; ++i )
+    {
+        std::cout << x[i] << ",\t";
+    }
+    std::cout << std::endl << std::endl;
+}
+
+/** Given a right-hand side vector `b[0..n-1]`, solves the linear system
+ *  linear equation `A * x = b`.
+ */
+void LUDecomposition::solve( VecReal_I& b, VecReal_O& x )
+{
+    // Save the input RHS vector into a temporary vector
+    VecReal temp( nn, Real(0) );
+    for( Int i = 0; i < nn; ++i )
+    {
+        temp[i] = b[i];
+    }
+
+    for( Int i = 1; i < nn; ++i )
+    {
+        for( Int j = i; j < nn; ++j )
+        {
+            temp[j] -= L[j][i-1] * temp[i-1];
+        }
+    }
+
+    for( Int i = nn - 1; i >= 0; --i )
+    {
+        x[i] = temp[i];
+    }
+
+    for( Int i = nn - 1; i >= 0; --i )
+    {
+        for( Int j = i + 1; j < nn; j++ )
+        {
+            x[i] -= U[i][j] * x[j];
+        }
+        x[i] = x[i] / U[i][i];
+    }
+}
+
                                                                                    /*@}*/
 /////////////////////////////////////////////////////////////////////////////////////////
 

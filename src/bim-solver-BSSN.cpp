@@ -3525,6 +3525,9 @@ bool BimetricEvolve::integStep_Diagnostics( Int m, Int chkNaNs_nFrom, Int chkNaN
 ///
 int main( int argc, char* argv[] )
 {
+
+    LUDecomposition::sanityCheck(); return 0;
+
     TrackUsedTime timer;
 
     /// - Read the run-time configuration parameters

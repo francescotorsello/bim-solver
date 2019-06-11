@@ -232,6 +232,7 @@ class MoL : GridUser
     std::vector<IntegFace*> eomList;       //!< Equations of motion that we evolve
     std::vector<Int> constantGF;           //!< Grid functions that are kept constant
     std::vector<fld::EvolvedBy> evolvedGF; //!< Grid functions that are integrated in time
+    Int n_evolved = evolvedGF.size();
 
     GridOutputWriter* output; //!< The integration output is directed here
 
@@ -245,6 +246,9 @@ class MoL : GridUser
     Real     dissip;          //!< Kreiss-Oliger dissipation coefficient.
     Real     dissip_delta_r;  //!< `dissip / delta_r`
     Real     cur_t;           //!< Current time
+    Real     tolerance;       //!< Tolerance required by the Newton method in DIRKs
+    char*    updateJacobian;  //!< String from config.ini setting the update of the
+                              //!< Jacobian in DIRKs
 
     AdaptiveStepsizeControl adpt;  //!< Dynamically adjusts delta_t
 
@@ -291,6 +295,21 @@ class MoL : GridUser
         }
 
         return norm;
+    }
+
+    /** Find the minimum of an array of length n_evolved
+    */
+    Real findMinimum( VecReal _array )
+    {
+        Real minimum = _array[0];
+        for ( Int i = 0; i < n_evolved; ++i )
+        {
+            if ( _array[i] <= minimum )
+            {
+                minimum = _array[i];
+            }
+        }
+        return minimum;
     }
 
    /** Returns an overall absolute error estimate between two time slices.
@@ -515,9 +534,35 @@ class MoL : GridUser
      */
     void MoL_AlphaSum( Int m1, Int m, Real alpha );
 
+    /** Compute the residual for the Newton iteration
+     */
+    VecReal residual( Int m, Int n );
+
+    /** Compute the LU decomposition of the Newton iteration matrix
+     */
+    void computeNewtonIterationMatrix();
+
+    /** Compute the stage value for a given DIRK method
+     */
+    void MoL_DIRK_computeStage( Int m, Int i,
+                                 const ButcherTable& BT,
+                                 LUDecomposition& LU,   // this should depend on n
+                                 VecReal& r,            // this should depend on m,n
+                                 VecReal& initialGuess, // this could be Euler
+                                 Real tol );
+
+    /** Compute the step value for a given DIRK method
+     */
+    void MoL_DIRK_computeStep( Int m1, Int m,
+                               const ButcherTable& BT,
+                               LUDecomposition& LU,
+                               VecReal& r,
+                               Real tolerance );
+
     /** Time evolution using the method of lines (MoL).
      */
     void integrate_MoL( const MoLDescriptor& MoL, bool adaptiveStepSize = false );
+    void integrate_MoL( const ButcherTable& BT, Real tol, bool adaptiveStepSize = false );
 
 public:
 
@@ -641,8 +686,6 @@ public:
             case 11:  integrate_MoL( RK5DP_7M, /* adaptive = */ true  ); break;
             case 12:  integrate_MoL( RK5DP_7S, /* adaptive = */ false ); break;
             case 13:  integrate_MoL( RK5DP_7S, /* adaptive = */ true  ); break;
-
-            case 14:  integrate_MoL( DIRK3L ); break;
         }
 
         return true;
@@ -668,7 +711,7 @@ std::map<std::string,int> MoL::knownMethods =
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
-// Definitions of MoL methods
+// Definitions of MoL explicit methods
 /////////////////////////////////////////////////////////////////////////////////////////
 
 void MoL::integStep_Euler( Int m1, Int m )
@@ -933,6 +976,157 @@ void MoL::integrate_MoL( const MoLDescriptor& MoL, bool adaptiveStepSize )
             }*/
         }
     }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Definitions of MoL DIRK methods
+//////////////////////////////////////////////////////////////////////////////////////////
+
+VecReal MoL::residual( Int m, Int n )
+{
+    //return 1;
+}
+
+void MoL::MoL_DIRK_computeStage( Int m, Int i,
+                                 const ButcherTable& BT,
+                                 LUDecomposition& LU,   // this should depend on n
+                                 VecReal& r,            // this should depend on m,n
+                                 VecReal& initialGuess, // this could be Euler
+                                 Real tol )
+{
+    VecReal dis( n_evolved, Real(10e+3) );
+    Real k = 0;
+
+    OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n ) // for each grid point
+    {
+        while( MoL::findMinimum( dis ) > tol ) // while the accuracy is not met
+        {
+            LU.solve( r, dis ); // solve the system for the displacements of the fields
+
+            for( auto e: evolvedGF ) {
+
+                //GF( e.f, m, n ) += dis; // displace them (ask Mikica if this is the best \
+                                            way to store the iterations, that is, \
+                                            overwriting)
+            }
+            k++; // TODO: define a vector to save the number of iterations for each  \
+                    stage, if needed
+        }
+    }
+
+    while( MoL::findMinimum( dis ) > tol )
+    {
+        LU.solve( r, dis );
+
+        /*OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
+        {
+            GF( fld::t, m1, n ) += alpha * GF( fld::t, m, n ); // Evolve time
+
+            for( auto e: evolvedGF ) {
+                GF( e.f, m1, n ) += alpha * GF( e.f, m, n );
+            }
+        }
+
+        for( Int i = 0; i < n_evolved; ++i )
+        {
+            [i] = initialGuess[i] + dis[i];
+        }*/
+    }
+
+}
+
+void MoL::MoL_DIRK_computeStep( Int m1, Int m,
+                                const ButcherTable& BT,
+                                LUDecomposition& LU,
+                                VecReal& r,
+                                Real tolerance )
+{
+    VecReal ini; // This is temporary. Needed to compile properly.
+    for( Int i = 0; i <= BT.s + 1; ++i )
+    {
+        /*if( updateJacobian == "stage" )
+        {
+            MoL::computeNewtonIterationMatrix();
+        }*/
+        MoL_DIRK_computeStage( m, i, BT, LU, r, ini, tolerance );
+    }
+
+}
+
+/** Overloading of integrate_MoL.
+ *  Any implicit Runge-Kutta method (IRK) requires a tolerance as input. This is required
+ *  by the (simplified) Newton iteration, performed at each stage. A 'stage' is an
+ *  intermediate step within the same time step, as for the explicit methods.
+ */
+void MoL::integrate_MoL( const ButcherTable& BT, Real tol, bool adaptiveStepSize )
+{
+    // Definitions of the Newton iteration matrix N to be LU decomposed
+    // and the residual vector r
+
+    MatReal N( n_evolved, n_evolved, Real(0) );
+    VecReal r( n_evolved, Real(0) );
+
+    LUDecomposition LU( N );
+
+    // Adaptive stepsize control
+
+    if ( adaptiveStepSize )
+    {
+        adpt.enable ();
+        adpt.showParameters ();
+    }
+
+    slog << "Employing Method of Lines, " << BT.name
+         << ", s = " << BT.s << std::endl << std::endl;
+
+    cur_t = t_0;    // The initial `t`
+    running = true; // Enable integration
+
+    for( Int n = 0; n < nTotal; ++n ) {
+        GF( fld::t, 0, n ) = t_0;
+    }
+
+    Int  mStep = 0; // The step counter
+
+    // The array mk[] contains redirections to grid rows (m's):
+    //   mk[0]                   points to Y^{m}   == Y^{(0)},
+    //   mk[1], ..., mk[Mol.s-1] point to the intermediate Y^{(1)}, ..., Y^{(s-1)},
+    //   mk[MoL.s]               points to Y^{m+1} == Y^{(s)}.
+    //
+    int mk[ 20 ]; // int mk[ MoL.s + 1 ]; // Note that s is at most 16
+    for( int i = 0; i <= BT.s + 1; ++i ) {
+        mk[i] = mLen + i;
+    }
+
+    while( running && abs(cur_t) < abs(t_1) )
+    {
+        for( Int m = 0; running && m < mLen && abs(cur_t) < abs(t_1); /* nothing */ )
+        {
+
+            /*if( updateJacobian == "step" )
+            {
+                MoL::computeNewtonIterationMatrix();
+            }*/
+
+            mk[0] = m; // Y^{(m)}
+            mk[BT.s] = m + 1 >= mLen ? 0 : m + 1; // Y^{(m+1)}
+
+            for( int i = 0; running && i < BT.s; ++i )
+            {
+                MoL_DIRK_computeStep( m + 1, m, BT, LU, r, tol );
+            }
+
+            //////////////////////////////////////////////////////////////////////////////
+
+            if( ( mStep++ % output->get_mSkip () ) == 0 ) {
+                integStep_Checkpoint( m );
+            }
+
+            cur_t = GF( fld::t, m, nGhost ); // Get `t` from the current slice
+            ++m; // Next time slice
+        }
+    }
+
 }
                                                                                    /*@}*/
 /////////////////////////////////////////////////////////////////////////////////////////
