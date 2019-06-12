@@ -544,12 +544,13 @@ class MoL : GridUser
 
     /** Compute the stage value for a given DIRK method
      */
-    void MoL_DIRK_computeStage( Int m, Int i,
-                                 const ButcherTable& BT,
-                                 LUDecomposition& LU,   // this should depend on n
-                                 VecReal& r,            // this should depend on m,n
-                                 VecReal& initialGuess, // this could be Euler
-                                 Real tol );
+    void MoL_DIRK_computeStage(
+                                 Int m,                     // time step to be computed
+                                 Int stage_i,               // stage to be computed
+                                 const ButcherTable& BT,    // the DIRK's Butcher table
+                                 LUDecomposition& Newton,   // this should depend on n
+                                 Real tol                   // Newton method's tolerance
+                               );
 
     /** Compute the step value for a given DIRK method
      */
@@ -979,76 +980,135 @@ void MoL::integrate_MoL( const MoLDescriptor& MoL, bool adaptiveStepSize )
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
 // Definitions of MoL DIRK methods
 //////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
 
-VecReal MoL::residual( Int m, Int n )
-{
-    //return 1;
-}
+/** References
+ *  [1] @cite Kennedy, Christopher A., Carpenter, Mark H.,
+ *            "Diagonally Implicit Runge-Kutta Methods for Ordinary Differential
+ *            Equations. A Review."
+ *            https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/20160005923.pdf
+ */
 
-void MoL::MoL_DIRK_computeStage( Int m, Int i,
-                                 const ButcherTable& BT,
-                                 LUDecomposition& LU,   // this should depend on n
-                                 VecReal& r,            // this should depend on m,n
-                                 VecReal& initialGuess, // this could be Euler
-                                 Real tol )
+void MoL::MoL_DIRK_computeStage(
+                                 Int m,                     // time step to be computed
+                                 Int stage_i,               // stage to be computed
+                                 const ButcherTable& BT,    // the DIRK's Butcher table
+                                 LUDecomposition& Newton,   // Newton iteration matrix
+                                 Real tol                   // Newton method's tolerance
+                               )
 {
     VecReal dis( n_evolved, Real(10e+3) );
-    Real k = 0;
+    VecReal res( n_evolved, Real(10e+3) );
 
     OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n ) // for each grid point
     {
+        VecReal X( n_evolved, Real(0) ); // A vector storing part of the residual vector
+
+        Int field_i = 0;
+        for( auto e: evolvedGF ) // for each field;
+        // note that evolvedGF must contain the evolved fields in the correct order
+        {
+            // set the field to the initial guess (here the explicit Euler method)
+            GF( e.f, m, n ) = GF( e.f, m - 1, n ) + delta_t * GF( e.f_t, m - 1, n );
+
+            //initialGuess[field_i]; // set the field to the initial guess
+
+            // Compute the sum in the residual [1, p.42, eq.(81)]
+            for( Int j = 0; j < stage_i - 1; ++j )
+            {
+                /// TODO: check this formula
+                X[field_i] += delta_t * BT.A[stage_i][j] * GF( e.f_t, m, n );
+            }
+            ++field_i;
+        }
+
+        //////////////////////////////////////////////////////////////////////////////////
+        // The quantities above do not depend on the Newton iteration step.
+        // Below is the implementation of the Newton iterative method.
+        //////////////////////////////////////////////////////////////////////////////////
+
+        /** The iteration works by overwriting the value of GF( e.f, m, n )
+         *  at each iteration.
+         */
         while( MoL::findMinimum( dis ) > tol ) // while the accuracy is not met
         {
-            LU.solve( r, dis ); // solve the system for the displacements of the fields
+            // Compute the components of the residual, one for each evolved field
+            field_i = 0;
+            for( auto e: evolvedGF )
+            {
+                /// TODO: check this formula (the values of the derivatives should  \
+                                              perhaps be rest at every iteration)
+                res[ field_i ] = -( GF( e.f, m, n ) - GF( e.f, m - 1, n ) ) + X[field_i]
+                                 + delta_t * BT.A[stage_i - 1][stage_i - 1]
+                                    * GF( e.f_t, m, n );
+                ++field_i;
+            }
 
+            // The Jacobian is not updated at every iteration of the Newton method.
+            // Hence, we can solve the system L * U * dis = res for dis.
+
+            // solve the system for the displacements of the fields
+            Newton.solve( res, dis );
+
+            // displace them (ask Mikica if this is the best way to store the iterations,
+            // that is, by overwriting the grid functions)
+            field_i = 0;
             for( auto e: evolvedGF ) {
 
-                //GF( e.f, m, n ) += dis; // displace them (ask Mikica if this is the best \
-                                            way to store the iterations, that is, \
-                                            overwriting)
-            }
-            k++; // TODO: define a vector to save the number of iterations for each  \
-                    stage, if needed
-        }
-    }
-
-    while( MoL::findMinimum( dis ) > tol )
-    {
-        LU.solve( r, dis );
-
-        /*OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
-        {
-            GF( fld::t, m1, n ) += alpha * GF( fld::t, m, n ); // Evolve time
-
-            for( auto e: evolvedGF ) {
-                GF( e.f, m1, n ) += alpha * GF( e.f, m, n );
+                GF( e.f, m, n ) += dis[field_i];
+                ++field_i;
             }
         }
-
-        for( Int i = 0; i < n_evolved; ++i )
-        {
-            [i] = initialGuess[i] + dis[i];
-        }*/
+        // after this while, the grid functions at ( m, n ) have updated values
     }
-
 }
 
-void MoL::MoL_DIRK_computeStep( Int m1, Int m,
-                                const ButcherTable& BT,
-                                LUDecomposition& LU,
+void MoL::MoL_DIRK_computeStep(
+                                Int m1,                     // time step to be computed
+                                Int m,                      // known time step
+                                const ButcherTable& BT,     // the DIRK's Butcher table
+                                LUDecomposition& LU,        // Newton iteration matrix
                                 VecReal& r,
-                                Real tolerance )
+                                Real tol                    // Newton method's tolerance
+                              )
 {
-    VecReal ini; // This is temporary. Needed to compile properly.
-    for( Int i = 0; i <= BT.s + 1; ++i )
+    VecReal initialGuess( n_evolved * (nLen + nGhost), Real(0) );
+
+    for( Int stage_i = 0; stage_i < BT.s; ++stage_i ) // for each stage
     {
         /*if( updateJacobian == "stage" )
         {
             MoL::computeNewtonIterationMatrix();
         }*/
-        MoL_DIRK_computeStage( m, i, BT, LU, r, ini, tolerance );
+
+        OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n ) // for each grid point
+        {
+            // set the initial guess (remove it from MoL_DIRK_computeStage)
+            Int field_i = 0;
+            for( auto e: evolvedGF )
+            {
+                if( stage_i == 0 )
+                {
+                    // Euler method using the previous time step
+                    initialGuess[ field_i ] = GF( e.f, m - 1, n )
+                                                + delta_t * GF( e.f_t, m - 1, n );
+                } else
+                {
+                    // Euler method using the previous iteration
+                    // (updated by MoL_DIRK_computeStage)
+                    initialGuess[ field_i ] = GF( e.f, m, n )
+                                                + delta_t * GF( e.f_t, m, n );
+                }
+                ++field_i;
+            }
+        }
+
+        MoL_DIRK_computeStage( m, stage_i, BT, LU, tol );
+
+
     }
 
 }

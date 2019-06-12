@@ -337,7 +337,43 @@ namespace fld
      */
     static const std::vector<EvolvedBy> bimEvolvedGF =
     {
-        { gconf,  gconf_t  },   { gDconf,  gDconf_t  },
+        { gconf,  gconf_t  },   { fconf,  fconf_t  },
+        { gDconf,  gDconf_t  }, { fDconf,  fDconf_t  },
+        { gtrK,  gtrK_t  },     { ftrK,  ftrK_t  },
+        { gA,  gA_t  },         { gB,  gB_t  },
+        { gDA,  gDA_t  },       { gDB,  gDB_t  },
+        { fA,  fA_t  },         { fB,  fB_t  },
+        { fDA,  fDA_t  },       { fDB,  fDB_t  },
+        { gA1, gA1_t },
+
+        #if OBSERVER==1
+
+        #else
+
+            { gA2, gA2_t },
+
+        #endif // OBSERVER
+
+
+        { fA1, fA1_t },
+
+        #if OBSERVER==1
+
+        #else
+
+            { fA2, fA2_t },
+
+        #endif // OBSERVER
+
+
+        { gL, gL_t },           { fL, fL_t },
+        { gsig, gsig_t },       { fsig, fsig_t },
+        { gAsig, gAsig_t },     { fAsig, fAsig_t },
+        { pfD, pfD_t }, { pfS, pfS_t }, { pftau, pftau_t }
+
+        //////////////////////////////////////////////////////////////////////////////////
+
+        /*{ gconf,  gconf_t  },   { gDconf,  gDconf_t  },
         { gtrK,  gtrK_t  },
         { gA,  gA_t  },         { gB,  gB_t  },
         { gDA,  gDA_t  },       { gDB,  gDB_t  },
@@ -375,7 +411,7 @@ namespace fld
            ,{ gDsig, gDsig_t }
            ,{ fDsig, fDsig_t }
 
-        #endif // _EVOLVE_DSIG
+        #endif // _EVOLVE_DSIG*/
 
     };
 
