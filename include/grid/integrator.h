@@ -1054,16 +1054,6 @@ void MoL::integrate_MoL(
 
     Int  mStep = 0; // The step counter
 
-    // The array mk[] contains redirections to grid rows (m's):
-    //   mk[0]                   points to Y^{m}   == Y^{(0)},
-    //   mk[1], ..., mk[Mol.s-1] point to the intermediate Y^{(1)}, ..., Y^{(s-1)},
-    //   mk[MoL.s]               points to Y^{m+1} == Y^{(s)}.
-    //
-    /*int mk[ 20 ]; // int mk[ MoL.s + 1 ]; // Note that s is at most 16
-    for( int i = 0; i <= BT.s + 1; ++i ) {
-        mk[i] = mLen + i;
-    }*/
-
     while( running && abs(cur_t) < abs(t_1) )
     {
         for( Int m = 0; running && m < mLen && abs(cur_t) < abs(t_1); /* nothing */ )
@@ -1074,9 +1064,6 @@ void MoL::integrate_MoL(
                 computeNewtonIterationMatrix( 3, BT, NewtonItMat );
                 Newton.LUDecompose( NewtonItMat );
             }
-
-            /*mk[0] = m; // Y^{(m)}
-            mk[BT.s] = m + 1 >= mLen ? 0 : m + 1; // Y^{(m+1)}*/
 
             DIRK_computeStep( m, BT, Newton, tol );
 
@@ -1150,7 +1137,8 @@ void MoL::DIRK_computeStep   (
 /** MoL_DIRK_computeStage computes an individual stage of a DIRK.
  *  It performs the Newton iteration, which stops once the error is smaller than the
  *  user-specified tolerance (in config.ini).
- *  TODO: tolerance and updateJacobian are not read from config.ini yet.
+ *  TODO: tolerance and updateJacobian are not read from config.ini yet. Also,
+ *        some formulas should be checked.
  */
 void MoL::DIRK_computeStage  (
                                 Int                 m,       // time step
@@ -1165,6 +1153,9 @@ void MoL::DIRK_computeStage  (
 
     OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n ) // for each grid point
     {
+        // Compute the right-hand sides of the evolution equations
+        //bim.integStep_CalcEvolutionRHS( m );
+
         VecReal X( n_evolved, Real(0) ); // A vector storing part of the residual vector
 
         Int field_i = 0;
@@ -1211,11 +1202,12 @@ void MoL::DIRK_computeStage  (
             // displace the fields (ask Mikica if this is the best way to store the
             // iterations; that is, by overwriting the grid functions)
             field_i = 0;
-            for( auto e: evolvedGF ) {
-
+            for( auto e: evolvedGF )
+            {
                 GF( e.f, m, n ) += dis[field_i];
                 ++field_i;
             }
+
         }
         // after this while loop, the grid functions at ( m, n ), iteration stage_i
         // have updated values
