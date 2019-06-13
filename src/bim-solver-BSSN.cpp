@@ -1034,6 +1034,8 @@ class BimetricEvolve
     Real eq_fsig_t      ( Int m, Int n );
     Real eq_fAsig_t     ( Int m, Int n );
 
+    MatReal Jacobian;
+
     #if _EVOLVE_DSIG
 
         Real eq_gDsig_t     ( Int m, Int n );
@@ -1345,6 +1347,15 @@ class BimetricEvolve
     /** Fix the state variables at the right boundary.
      */
     virtual void applyRightBoundaryCondition( Int m );
+
+    /** computeNewtonIterationMatrix computes the Newton iteration matrix.
+     */
+    virtual void computeNewtonIterationMatrix(
+            Int m, Int n, Int n_evolved,
+            Int stage_i,
+            const ButcherTable& BT,
+            MatReal& NewItMat
+        );
                                                                                    /*@}*/
     /////////////////////////////////////////////////////////////////////////////////////
     /** @defgroup g9 Public methods                                                    */
@@ -1364,7 +1375,9 @@ public:
 
 BimetricEvolve::BimetricEvolve( Parameters& params,
             UniformGrid& ug, GridOutputWriter& output, MoL& integ )
-    : BimetricModel( params ), GridUser( ug )
+    : BimetricModel( params ), GridUser( ug ),
+      Jacobian( fld::bimEvolvedGF.size(), fld::bimEvolvedGF.size(), Real(0) )
+      ///TODO: add evolved gauge variables to bimEvolvedGF
 {
     static std::map<std::string,int> knownSlicings =
     {
@@ -3095,6 +3108,11 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
     OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
     {
+        /// TODO: the assignment of the Jacobian should be encapsulated in a if statement.
+        ///       It should be done only if the user choose a DIRK method.
+
+        //#include "jacobian-BSSN/DIRK_Jacobian_cBSSN.h"
+
         // The time evolution right-hand side
         //
         p_t      (m,n) = isGR() ? 0 : eq_p_t(m,n);
@@ -3548,6 +3566,29 @@ bool BimetricEvolve::integStep_Diagnostics( Int m, Int chkNaNs_nFrom, Int chkNaN
         #endif // _DETECT_NAN
     }
     return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+/** computeNewtonIterationMatrix computes the Newton iteration matrix.
+ */
+void BimetricEvolve::computeNewtonIterationMatrix(
+        Int m, Int n, Int n_evolved,
+        Int stage_i,
+        const ButcherTable& BT,
+        MatReal& NewItMat
+    )
+{
+    #include "jacobian-BSSN/DIRK_Jacobian_cBSSN.h"
+
+    for( Int i = 0; i < n_evolved; ++i )
+    {
+        for( Int j = 0; j < n_evolved; ++j )
+        {
+            NewItMat[i][j] = ( i == j ) ? 1 : 0
+                             - delta_t * BT.A[stage_i][stage_i] * Jacobian[i][j];
+        }
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
