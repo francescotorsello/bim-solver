@@ -234,11 +234,10 @@ class MoL : GridUser
     std::vector<fld::EvolvedBy> evolvedGF; //!< Grid functions that are integrated in time
     Int n_evolved = evolvedGF.size();
 
-    MatReal identity;
-
     GridOutputWriter* output; //!< The integration output is directed here
 
     std::string methodID;     //!< The integration method identifier
+    std::string updateJ_ID;   //!< The updateJacobian identifier
     Int      method;          //!< The method code (Euler, ICN, MoL, ...)
     time_hr  rt_start;        //!< The realtime when the integration started
     bool     running;         //!< Indicates if the integration should proceed
@@ -249,8 +248,28 @@ class MoL : GridUser
     Real     dissip_delta_r;  //!< `dissip / delta_r`
     Real     cur_t;           //!< Current time
     Real     tolerance;       //!< Tolerance required by the Newton method in DIRKs
-    char*    updateJacobian;  //!< String from config.ini setting the update of the
+    Int      updateJ;         //!< Parameter from config.ini setting the update of the
                               //!< Jacobian in DIRKs
+    Int      modulo;          //!< When the Jacobian is updated after n steps, modulo = n
+
+    /////////////////////////////////////////////////////////////////////////////////////
+    // The Jacobian of the evolution equations
+    /////////////////////////////////////////////////////////////////////////////////////
+
+    MatReal Jacobian;
+
+    enum UpdateJ         //!< Possibilities to update the Jacobian in DIRK
+    {
+        STEP             = 0,   // Update the Jacobian at every step
+        STAGE            = 1,   // Update the Jacobian at every stage
+        ITERATION        = 2,   // Update the Jacobian at every iteration
+        MULTIPLE_STEPS   = 3,   // Update the Jacobian after multiple steps
+    };
+
+    /////////////////////////////////////////////////////////////////////////////////////
+    //
+    /////////////////////////////////////////////////////////////////////////////////////
+
 
     AdaptiveStepsizeControl adpt;  //!< Dynamically adjusts delta_t
 
@@ -574,16 +593,19 @@ public:
      */
     MoL( Parameters& params, UniformGrid& ug, GridOutputWriter& out )
         : GridUser( ug ), output( &out ), adpt( params, ug ),
-          identity( n_evolved, n_evolved, Real(0) )
+          Jacobian( n_evolved, n_evolved, Real(0) )
     {
 
-        for( Int i = 0; i < n_evolved; ++i )
-        {
-            identity[i][i] = 1.;
-        }
+        //#include "jacobian-BSSN/DIRK_Jacobian_cBSSN.h"
 
         constantGF.reserve( 64 );
         evolvedGF.reserve( 128 );
+
+        static std::map<std::string,int> updateJacobian =
+        {
+            { "step",      STEP      },     { "stage",         STAGE          },
+            { "iteration", ITERATION },     { "multipleSteps", MULTIPLE_STEPS }
+        };
 
         constantGF.push_back( fld::r ); // Radial coordinate is kept constant by default
 
@@ -593,6 +615,12 @@ public:
         params.get( "integ.dissip",  dissip,   0.0 );
 
         methodID = params.get( "integ.method", method, 0, knownMethods );
+        updateJ_ID = params.get( "DIRK.updateJ", updateJ, STEP, updateJacobian );
+
+        if( updateJ = MULTIPLE_STEPS )
+        {
+            params.get( "DIRK.modulo",  modulo,   5 );
+        }
 
         // Fix the sign of delta_t
         //
@@ -724,7 +752,7 @@ std::map<std::string,int> MoL::knownMethods =
     { "RK3",       8 },   { "RK4",        9 },
     { "RK5DP_7M", 10 },   { "RK5DP_7MA", 11 },
     { "RK5DP_7S", 12 },   { "RK5DP_7SA", 13 },
-    { "DIRK3L",   14 }
+    { "ESDIRK32", 14 }
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -1059,7 +1087,12 @@ void MoL::integrate_MoL(
         for( Int m = 0; running && m < mLen && abs(cur_t) < abs(t_1); /* nothing */ )
         {
 
-            if( updateJacobian == "step" )
+            if( updateJ == STEP )
+            {
+                computeNewtonIterationMatrix( 3, BT, NewtonItMat );
+                Newton.LUDecompose( NewtonItMat );
+            }
+            else if( updateJ == MULTIPLE_STEPS && mStep % modulo == 0 )
             {
                 computeNewtonIterationMatrix( 3, BT, NewtonItMat );
                 Newton.LUDecompose( NewtonItMat );
@@ -1095,7 +1128,7 @@ void MoL::DIRK_computeStep   (
     for( Int stage_i = 0; stage_i < BT.s; ++stage_i ) // for each stage
     {
         // If the Jacobian has to be updated at every stage
-        if( updateJacobian == "stage" )
+        if( updateJ == STAGE )
         {
             // update it
             computeNewtonIterationMatrix( stage_i, BT, NewtonItMat );
@@ -1112,6 +1145,7 @@ void MoL::DIRK_computeStep   (
                 if( stage_i == 0 ) // if it is the first iteration
                 {
                     // Euler method using the previous time step
+                    /// TODO: pass m_previous
                     GF( e.f, m, n ) = GF( e.f, m - 1, n )
                                                 + delta_t * GF( e.f_t, m - 1, n );
                 } else // otherwise
@@ -1153,8 +1187,10 @@ void MoL::DIRK_computeStage  (
 
     OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n ) // for each grid point
     {
-        // Compute the right-hand sides of the evolution equations
-        //bim.integStep_CalcEvolutionRHS( m );
+        // Compute the right-hand sides of the evolution equations at this stage
+        for( auto eom: eomList ) {
+            eom->integStep_CalcEvolutionRHS( m );
+        }
 
         VecReal X( n_evolved, Real(0) ); // A vector storing part of the residual vector
 
@@ -1179,14 +1215,16 @@ void MoL::DIRK_computeStage  (
         /** The iteration works by overwriting the value of GF( e.f, m, n )
          *  at each iteration.
          */
-        while( MoL::findMinimum( dis ) > tol ) // while the desired accuracy isn't met yet
+        // while the desired accuracy isn't met yet, and the number of steps is less than
+        // a reasonable upper bound
+        Int iteration_counter = 0;
+        while( MoL::findMinimum( dis ) > tol && iteration_counter < 10e+3 )
         {
             // Compute the residuals for each field
             field_i = 0;
             for( auto e: evolvedGF )
             {
-                /// TODO: check this formula (the values of the derivatives should  \
-                                              perhaps be rest at every iteration)
+                /// TODO: check this formula
                 res[ field_i ] = -( GF( e.f, m, n ) - GF( e.f, m - 1, n ) ) + X[field_i]
                                  + delta_t * BT.A[stage_i - 1][stage_i - 1]
                                     * GF( e.f_t, m, n );
@@ -1208,6 +1246,8 @@ void MoL::DIRK_computeStage  (
                 ++field_i;
             }
 
+            ++iteration_counter;
+
         }
         // after this while loop, the grid functions at ( m, n ), iteration stage_i
         // have updated values
@@ -1226,7 +1266,8 @@ void MoL::computeNewtonIterationMatrix(
     {
         for( Int j = 0; j < n_evolved; ++j )
         {
-            NewItMat[i][j] = identity[i][j] - delta_t * BT.A[stage_i][stage_i];
+            NewItMat[i][j] = ( i == j ) ? 1 : 0
+                             - delta_t * BT.A[stage_i][stage_i];
                                 //* Jacobian[i][j]; // this is not defined yet
         }
     }
