@@ -255,7 +255,8 @@ class MoL : GridUser
                               //!< Jacobian in DIRKs
     Int      modulo;          //!< When the Jacobian is updated after n steps, modulo = n
     Int previous_m;
-    Int successive_m;
+    Int next_m;
+    VecReal** F;              //!< A vector storing the evolution equations at each stage
 
     /////////////////////////////////////////////////////////////////////////////////////
     // The Jacobian of the evolution equations
@@ -564,7 +565,8 @@ class MoL : GridUser
     /** Compute the stage value for a given DIRK method
      */
     void DIRK_computeStage   (
-                                Int m,                     // time step
+                                Int next_m,                // time step to be computed
+                                Int m,                     // known time step
                                 Int stage_i,               // stage to be computed
                                 const ButcherTable& BT,    // the DIRK's Butcher table
                                 LUDecomposition** Newtons  // Newton iteration matrix
@@ -573,10 +575,11 @@ class MoL : GridUser
     /** Compute the step value for a given DIRK method
      */
     void DIRK_computeStep    (
-                                Int m,                      // time step to be computed
-                                const ButcherTable& BT,     // the DIRK's Butcher table
+                                Int next_m,                // time step to be computed
+                                Int m,                     // known time step
+                                const ButcherTable& BT,    // the DIRK's Butcher table
                                 MatReal** NewtonItMats,
-                                LUDecomposition** Newtons   // Newton iteration matrix
+                                LUDecomposition** Newtons  // Newton iteration matrix
                              );
 
     /** Time evolution using the method of lines (MoL).
@@ -1069,10 +1072,21 @@ void MoL::integrate_MoL(
     // to all the Jacobian matrices at the grid points.
     MatReal** NewtonItMats = new MatReal*[ nLen ];
 
+    F = new VecReal*[ nLen * BT.s ];
+
     // Allocate the MatReal objects and return the pointer ('new' returns the pointer)
     for( Int n = nGhost; n < nLen + nGhost; ++n )
     {
         NewtonItMats[n] = new MatReal( n_evolved, n_evolved, Real(0) );
+    }
+
+    // Allocate the MatReal objects and return the pointer ('new' returns the pointer)
+    for( Int stage_i = 0; stage_i < BT.s; ++stage_i )
+    {
+        OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+        {
+            F[ nLen * stage_i + n ] = new VecReal( n_evolved, Real(0) );
+        }
     }
 
     /*
@@ -1112,142 +1126,97 @@ void MoL::integrate_MoL(
     running = true; // Enable integration
 
     // Setup and export the initial data
-    /*for( Int n = 0; n < nTotal; ++n )
+    for( Int n = 0; n < nTotal; ++n )
     {
         GF( fld::t, 0, n ) = t_0;
     }
     for( auto eom: eomList )
     {
         eom->integStep_CalcEvolutionRHS( 0 );
-        for( Int n = nGhost; n < nLen + nGhost; ++n )
-        {
-            eom->computeNewtonIterationMatrix( 0, n, n_evolved, 3, BT, *NewtonItMats[n] );
-            Newtons[n]->LUDecompose( *NewtonItMats[n] );
-        }
     }
-    integStep_Checkpoint( 0 );*/
+    integStep_Checkpoint( 0 );
 
     // Perform the time integration
 
     Int  mStep = 0; // The step counter
     while( running && abs(cur_t) < abs(t_1) )
     {
-        for( Int m = 0; running && m < mLen && abs(cur_t) < abs(t_1); /* nothing */ )
+        for( Int m = 0; running && m < mLen && abs(cur_t) < abs(t_1); ++m )
         {
 
-            // Set the value of previous_m
-            /*if( cur_t == t_0 || m != 1 )
+            // Set the value of next_m
+            if( m == mLen - 1 )
             {
-                previous_m = m - 1;
-
-            } else if ( m == 1 )
-            {
-                previous_m = mLen - 1;
-            }*/
-            /*if( cur_t == t_0 )
-            {
-                previous_m = m;
-
-            } else if ( m == 0 )
-            {
-                previous_m = mLen - 1;
+                next_m = 0;
 
             } else
             {
-                previous_m = m - 1;
-            }*/
-            if( cur_t == t_0 )
-            {
-                previous_m = m;
-
-            } else if ( m == 0 )
-            {
-                previous_m = mLen - 1;
-
-            } else
-            {
-                previous_m = m - 1;
+                next_m = m + 1;
             }
 
             // If the Jacobian needs to be updated at each time step
             if( updateJ == STEP )
             {
-                // Compute the evolution equations
-                if( cur_t == t_0 )
-                {
-                    for( auto eom: eomList )
-                    {
-                        eom->integStep_CalcEvolutionRHS( m );
-                    }
-                } else
-                // Find the initial guesses with Euler method
+                // Find the initial guesses at successive_steps with Euler method
                 //if( cur_t != t_0 )
+                OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
                 {
-                    OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+                    for( auto e: evolvedGF )
                     {
-                        for( auto e: evolvedGF )
-                        {
-                            GF( e.f, m, n ) = GF( e.f, previous_m, n )
-                                                + delta_t * GF( e.f_t, previous_m, n );
-                        }
-                    }
-                    for( auto eom: eomList )
-                    {
-                        eom->integStep_CalcEvolutionRHS( m );
+                        GF( e.f, next_m, n ) = GF( e.f, m, n )
+                                                + delta_t * GF( e.f_t, m, n );
                     }
                 }
+                for( auto eom: eomList )
+                {
+                    eom->integStep_CalcEvolutionRHS( next_m );
+                }
                 // At this point, both the initial guesses and the evolution equations
-                // at m are computed, hence,
+                // at next_m are computed, hence,
 
                 // Compute the Newton iteration matrices and LU decompose them
                 for( auto eom: eomList )
                 {
                     OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
                     {
-                        eom->computeNewtonIterationMatrix( m, n, n_evolved, 3, BT,
-                                                        *NewtonItMats[n] );
+                        eom->computeNewtonIterationMatrix( next_m, n, n_evolved, 3, BT,
+                                                            *NewtonItMats[n] );
                         Newtons[n]->LUDecompose( *NewtonItMats[n] );
                     }
                 }
             }
             // else, if the Jacobian needs to be updated after 'modulo' steps,
             // do the same as above, but only every m^th step
-            else if( updateJ == MULTIPLE_STEPS && ( mStep % modulo == 0 ) )
+            else if(
+                        updateJ == MULTIPLE_STEPS
+                        &&
+                        ( ( mStep == 0 ) || ( mStep % modulo == 0 ) )
+                   )
             {
-                // Compute the evolution equations
-                if( cur_t == t_0 )
-                {
-                    for( auto eom: eomList )
-                    {
-                        eom->integStep_CalcEvolutionRHS( m );
-                    }
-                } else
-                // Find the initial guesses with Euler method
+                // Find the initial guesses at successive_steps with Euler method
                 //if( cur_t != t_0 )
+                OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
                 {
-                    OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+                    for( auto e: evolvedGF )
                     {
-                        for( auto e: evolvedGF )
-                        {
-                            GF( e.f, m, n ) = GF( e.f, previous_m, n )
-                                                + delta_t * GF( e.f_t, previous_m, n );
-                        }
-                    }
-                    for( auto eom: eomList )
-                    {
-                        eom->integStep_CalcEvolutionRHS( m );
+                        GF( e.f, next_m, n ) = GF( e.f, m, n )
+                                                + delta_t * GF( e.f_t, m, n );
                     }
                 }
+                for( auto eom: eomList )
+                {
+                    eom->integStep_CalcEvolutionRHS( next_m );
+                }
                 // At this point, both the initial guesses and the evolution equations
-                // at m are computed, hence,
+                // at next_m are computed, hence,
 
                 // Compute the Newton iteration matrices and LU decompose them
                 for( auto eom: eomList )
                 {
                     OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
                     {
-                        eom->computeNewtonIterationMatrix( m, n, n_evolved, 3, BT,
-                                                        *NewtonItMats[n] );
+                        eom->computeNewtonIterationMatrix( next_m, n, n_evolved, 3, BT,
+                                                            *NewtonItMats[n] );
                         Newtons[n]->LUDecompose( *NewtonItMats[n] );
                     }
                 }
@@ -1257,17 +1226,17 @@ void MoL::integrate_MoL(
             // in these two cases. The initial guesses for the case STAGE are not
             // assigned yet.
 
-            DIRK_computeStep( m, BT, NewtonItMats, Newtons );
+            DIRK_computeStep( next_m, m, BT, NewtonItMats, Newtons );
 
             //////////////////////////////////////////////////////////////////////////////
 
             if( ( mStep++ % output->get_mSkip () ) == 0 )
             {
-                integStep_Checkpoint( m );
+                integStep_Checkpoint( next_m );
             }
 
-            cur_t = GF( fld::t, m, nGhost ); // Get `t` from the current slice
-            ++m; // Next time slice
+            cur_t = GF( fld::t, next_m, nGhost ); // Get `t` from the current slice
+            //++m; // Next time slice
         }
     }
 
@@ -1285,111 +1254,65 @@ void MoL::integrate_MoL(
  *  the stages within a time step, using MoL_DIRK_computeStage, defined below.
  */
 void MoL::DIRK_computeStep   (
-                                Int                 m,       // time step to be computed
+                                Int                 next_m,  // time step to be computed
+                                Int                 m,       // known time step
                                 const ButcherTable& BT,      // the DIRK's Butcher table
                                 MatReal** NewtonItMats,
                                 LUDecomposition**   Newtons  // Newton iteration matrices
                              )
 {
+    OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+    {
+        Int field_i = 0;
+        for( auto e : evolvedGF )
+        {
+            (*F[ n ])[ field_i ] = GF( e.f_t, next_m, n );
+            ++field_i;
+        }
+    }
 
     for( Int stage_i = 0; stage_i < BT.s; ++stage_i ) // for each stage
     {
-
-        /*OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n ) // for each grid point
-        {
-            // Set the initial guesses for this stage
-            for( auto e: evolvedGF ) // for each field
-            {
-                if( stage_i == 0 ) // if it is the first iteration
-                {
-                    // Euler method using the previous time step
-                    GF( e.f, m, n ) = GF( e.f, previous_m, n )
-                                                + delta_t * GF( e.f_t, previous_m, n );
-                    /*if( ISNAN( GF( e.f, m, n ) ) )
-                    {
-                        std::cerr << "*** Detected NaN for the initial guess for"
-                            << e.f << " NaN at t = " << t(m,n) << ", r = " << r(m,n)
-                            << ", stage = " << stage_i << std::endl;
-                        return false;
-                    }
-                } else // otherwise
-                {
-                    // Euler method using the previous iteration
-                    // (updated by MoL_DIRK_computeStage)
-                    GF( e.f, m, n ) = GF( e.f, m, n )
-                                      + BT.c[stage_i] * delta_t * GF( e.f_t, m, n );
-                    /*if( ISNAN( GF( e.f, m, n ) ) )
-                    {
-                        std::cerr << "*** Detected NaN for the initial guess for"
-                            << e.f << " NaN at t = " << t(m,n) << ", r = " << r(m,n)
-                            << ", stage = " << stage_i << std::endl;
-                        return false;
-                    }
-                }
-            }
-        }*/
-
-        // If the Jacobian has to be updated at every stage
-        /*if( updateJ == STAGE )
-        {
-            // update it
-            OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
-            {
-                for( auto eom: eomList )
-                {
-                    eom->integStep_CalcEvolutionRHS( m );
-                    eom->computeNewtonIterationMatrix( m, n, n_evolved, stage_i, BT,
-                                                        *NewtonItMats[n] );
-                }
-                // and LU decompose it
-                Newtons[n]->LUDecompose( *NewtonItMats[n] );
-            }
-        }*/
-
         // If the Jacobian needs to be updated at each stage
         if( updateJ == STAGE )
         {
-            // Compute the evolution equations
-            if( cur_t == t_0 )
-            {
-                for( auto eom: eomList )
-                {
-                    eom->integStep_CalcEvolutionRHS( m );
-                }
-            } else
-            // Find the initial guesses with Euler method
+            // Find the initial guesses at successive_steps with Euler method
             //if( cur_t != t_0 )
+            OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
             {
-                OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+                if( stage_i == 0 ) // if it is the first iteration
                 {
-                    if( stage_i == 0 ) // if it is the first iteration
+                    for( auto e: evolvedGF )
                     {
                         // Euler method using the previous time step
-                        GF( e.f, m, n ) = GF( e.f, previous_m, n )
-                                                + delta_t * GF( e.f_t, previous_m, n );
-                    } else // otherwise
+                        GF( e.f, next_m, n ) = GF( e.f, m, n )
+                                                + delta_t * GF( e.f_t, m, n );
+                    }
+                } else // otherwise
+                {
+                    for( auto e: evolvedGF )
                     {
                         // Euler method using the previous iteration
                         // (updated by MoL_DIRK_computeStage)
-                        GF( e.f, m, n ) = GF( e.f, m, n )
-                                      + BT.c[stage_i] * delta_t * GF( e.f_t, m, n );
+                        GF( e.f, next_m, n ) = GF( e.f, next_m, n )
+                                      + BT.c[stage_i] * delta_t * GF( e.f_t, next_m, n );
                     }
                 }
-                for( auto eom: eomList )
-                {
-                    eom->integStep_CalcEvolutionRHS( m );
-                }
+            }
+            for( auto eom: eomList )
+            {
+                eom->integStep_CalcEvolutionRHS( next_m );
             }
             // At this point, both the initial guesses and the evolution equations
-            // at m are computed, hence,
+            // at next_m are computed, hence,
 
             // Compute the Newton iteration matrices and LU decompose them
             for( auto eom: eomList )
             {
                 OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
                 {
-                    eom->computeNewtonIterationMatrix( m, n, n_evolved, 3, BT,
-                                                    *NewtonItMats[n] );
+                    eom->computeNewtonIterationMatrix( next_m, n, n_evolved, 3, BT,
+                                                        *NewtonItMats[n] );
                     Newtons[n]->LUDecompose( *NewtonItMats[n] );
                 }
             }
@@ -1398,34 +1321,14 @@ void MoL::DIRK_computeStep   (
         // the Newton iteration matrices are computed.
 
         // Evolve time
-        /*if( cur_t == t_0 )
-        {
-            OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
-            {
-                GF( fld::t, m, n ) = GF( fld::t, m - 1, n ) + BT.c[stage_i] * delta_t;
-            }
-        } else if ( m == 1 )
-        {
-            OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
-            {
-                GF( fld::t, m, n ) = GF( fld::t, mLen - 1, n ) + BT.c[stage_i] * delta_t;
-            }
-        } else
-        {
-
-            OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
-            {
-                GF( fld::t, m, n ) = GF( fld::t, m - 1, n ) + BT.c[stage_i] * delta_t;
-            }
-        }*/
         OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
         {
-            GF( fld::t, m, n ) = GF( fld::t, previous_m, n )
+            GF( fld::t, next_m, n ) = GF( fld::t, m, n )
                                     + BT.c[stage_i] * delta_t;
         }
 
         // Compute the stage value
-        DIRK_computeStage( m, stage_i, BT, Newtons );
+        DIRK_computeStage( next_m, m, stage_i, BT, Newtons );
 
     }
     // At this point, the final value of the grid functions at time step m and grid point
@@ -1440,12 +1343,15 @@ void MoL::DIRK_computeStep   (
  *        some formulas should be checked.
  */
 void MoL::DIRK_computeStage  (
-                                Int                 m,       // time step
+                                Int                 next_m,  // time step to be computed
+                                Int                 m,       // known time step
                                 Int                 stage_i, // stage to be computed
                                 const ButcherTable& BT,      // the DIRK's Butcher table
                                 LUDecomposition**   Newtons  // Newton iteration matrix
                              )
 {
+    VecReal X       ( n_evolved, Real(0) );     // A vector storing part of the
+                                                // residual vector
     VecReal dis     ( n_evolved, Real(10e+3) ); // The displacement vector
     VecReal norDis  ( n_evolved, Real(10e+3) ); // The normalized displacement vector
     VecReal res     ( n_evolved, Real(0) );     // The residual vector
@@ -1467,17 +1373,18 @@ void MoL::DIRK_computeStage  (
 
     OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n ) // for each grid point
     {
-        VecReal X( n_evolved, Real(0) ); // A vector storing part of the residual vector
-
         Int field_i = 0;
         for( auto e: evolvedGF ) // for each field
         // note that evolvedGF must contain the evolved fields in the correct order
         {
             // Compute the sum in the residual [1, p.42, eq.(81)]
-            for( Int j = 0; j < stage_i - 1; ++j )
+            for( Int j = 0; j <= stage_i - 1; ++j )
             {
                 /// TODO: check this formula
-                X[field_i] += delta_t * BT.A[stage_i][j] * GF( e.f_t, m, n );
+                /// this is wrong, since GF( e.f_t, next_m, n ) should depend on j
+                //X[field_i] += delta_t * BT.A[stage_i][j] * GF( e.f_t, next_m, n );
+                X[field_i] += delta_t * BT.A[stage_i][j]
+                                * (*F[ nLen * stage_i + n ])[ field_i ];
             }
             ++field_i;
         }
@@ -1497,7 +1404,8 @@ void MoL::DIRK_computeStage  (
                 norDis_norm > relError * toleranceRatio // displacement test
                 //resDis_norm > relError * toleranceRatio // residual test
                 &&
-                iteration_counter < 10e+2 ) // stop the iteration if too many steps
+                iteration_counter < 10e+2 // stop the iteration if too many steps
+             )
         {
 
             // Compute the residuals for each field
@@ -1505,9 +1413,9 @@ void MoL::DIRK_computeStage  (
             for( auto e: evolvedGF )
             {
                 /// TODO: check this formula
-                res[ field_i ] = -( GF( e.f, m, n ) - GF( e.f, m - 1, n ) ) + X[field_i]
+                res[ field_i ] = -( GF( e.f, next_m, n ) - GF( e.f, m, n ) ) + X[field_i]
                                  + delta_t * BT.A[stage_i - 1][stage_i - 1]
-                                    * GF( e.f_t, m, n );
+                                    * GF( e.f_t, next_m, n );
                 ++field_i;
             }
 
@@ -1522,7 +1430,7 @@ void MoL::DIRK_computeStage  (
             for( auto e: evolvedGF )
             {
                 norDis[ field_i ] = dis[ field_i ] /
-                                    ( abs( GF( e.f, m, n ) ) + absError / relError );
+                                    ( abs( GF( e.f, next_m, n ) ) + absError / relError );
                 norDis_norm += pow2( norDis[ field_i ] );
                 ++field_i;
             }
@@ -1531,7 +1439,7 @@ void MoL::DIRK_computeStage  (
             for( auto e: evolvedGF )
             {
                 norRes[ field_i ] = res[ field_i ] /
-                                    ( abs( GF( e.f, m, n ) ) + absError / relError );
+                                    ( abs( GF( e.f, next_m, n ) ) + absError / relError );
                 norRes_norm += pow2( norRes[ field_i ] );
                 ++field_i;
             }
@@ -1541,8 +1449,23 @@ void MoL::DIRK_computeStage  (
             field_i = 0;
             for( auto e: evolvedGF )
             {
-                GF( e.f, m, n ) += dis[field_i];
+                GF( e.f, next_m, n ) += dis[field_i];
                 ++field_i;
+            }
+            // Recompute the evolution equations with the new displaced fields
+            for( auto eom: eomList )
+            {
+                eom->integStep_CalcEvolutionRHS( next_m );
+            }
+
+            OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+            {
+                Int field_i = 0;
+                for( auto e : evolvedGF )
+                {
+                    (*F[ stage_i * nLen + n ])[ field_i ] = GF( e.f_t, next_m, n );
+                    ++field_i;
+                }
             }
 
             ++iteration_counter;

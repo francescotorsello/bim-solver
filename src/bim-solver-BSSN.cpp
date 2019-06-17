@@ -3226,12 +3226,12 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             u_t     (m,n) = eq_u_t  (m,n);
             v_t     (m,n) = eq_v_t  (m,n);
 
-            std::cout << "\n\n m = " << m;
+            /*std::cout << "\n\n m = " << m;
 
             std::cout << "\n\n u_t = " << u_t(m,n);
             std::cout << "\n\n v_t = " << v_t(m,n);
             std::cout << "\n\n eq_u_t = " << eq_u_t(m,n);
-            std::cout << "\n\n eq_v_t = " << eq_v_t(m,n);
+            std::cout << "\n\n eq_v_t = " << eq_v_t(m,n);*/
 
         #else
 
