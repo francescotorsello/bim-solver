@@ -601,7 +601,7 @@ public:
         static std::map<std::string,int> updateJacobian =
         {
             { "step",      STEP      },     { "stage",         STAGE          },
-            { "iteration", ITERATION },     { "multipleSteps", MULTIPLE_STEPS }
+            { "multipleSteps", MULTIPLE_STEPS }
         };
 
         constantGF.push_back( fld::r ); // Radial coordinate is kept constant by default
@@ -1080,7 +1080,7 @@ void MoL::integrate_MoL(
         NewtonItMats[n] = new MatReal( n_evolved, n_evolved, Real(0) );
     }
 
-    // Allocate the MatReal objects and return the pointer ('new' returns the pointer)
+    // Allocate the VecReal objects and return the pointer ('new' returns the pointer)
     for( Int stage_i = 0; stage_i < BT.s; ++stage_i )
     {
         OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
@@ -1188,9 +1188,9 @@ void MoL::integrate_MoL(
             // else, if the Jacobian needs to be updated after 'modulo' steps,
             // do the same as above, but only every m^th step
             else if(
-                        updateJ == MULTIPLE_STEPS
+                        ( updateJ == MULTIPLE_STEPS )
                         &&
-                        ( ( mStep == 0 ) || ( mStep % modulo == 0 ) )
+                        ( ( cur_t == t_0 ) || ( (mStep % modulo) == 0 ) )
                    )
             {
                 // Find the initial guesses at successive_steps with Euler method
@@ -1241,13 +1241,14 @@ void MoL::integrate_MoL(
     }
 
     // Cleanup the allocated memory
-    for( Int n = nGhost; n < nLen + nGhost; ++n )
+    /*for( Int n = nGhost; n < nLen + nGhost; ++n )
     {
         delete[] NewtonItMats[n];
         delete[] Newtons[n];
-    }
+    }*/
     delete[] NewtonItMats;
     delete[] Newtons;
+    delete[] F;
 }
 
 /** MoL_DIRK_computeStep updates the Jacobian at each stage, if required, and computes all
