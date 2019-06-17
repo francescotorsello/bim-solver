@@ -36,6 +36,10 @@
     #define _DETECT_NAN 1
 #endif // _DETECT_NAN
 
+#if _TEST_MODE == 1
+    #define CFDS_ORDER 2
+#endif // _TEST_MODE
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // Declare our grid functions (they must be in advance known to the grid-driver)
 
@@ -3222,6 +3226,13 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             u_t     (m,n) = eq_u_t  (m,n);
             v_t     (m,n) = eq_v_t  (m,n);
 
+            std::cout << "\n\n m = " << m;
+
+            std::cout << "\n\n u_t = " << u_t(m,n);
+            std::cout << "\n\n v_t = " << v_t(m,n);
+            std::cout << "\n\n eq_u_t = " << eq_u_t(m,n);
+            std::cout << "\n\n eq_v_t = " << eq_v_t(m,n);
+
         #else
 
             // The time evolution right-hand side
@@ -3712,6 +3723,7 @@ bool BimetricEvolve::integStep_Diagnostics( Int m, Int chkNaNs_nFrom, Int chkNaN
 /////////////////////////////////////////////////////////////////////////////////////////
 
 /** computeNewtonIterationMatrix computes the Newton iteration matrix.
+ *  TODO: this function can probably be optimized; for example it can run over the grid
  */
 void BimetricEvolve::computeNewtonIterationMatrix(
         Int m, Int n, Int n_evolved,

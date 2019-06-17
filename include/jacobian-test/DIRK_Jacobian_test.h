@@ -5,8 +5,8 @@
  *  @image html DIRK_Jacobian_test.png
  */
 
-Jacobian[1][1] = -v(m,n);
+Jacobian[0][0] = -v(m,n);
 
-Jacobian[1][2] = -u(m,n);
+Jacobian[0][1] = -u(m,n);
 
-Jacobian[2][1] = 1;
+Jacobian[1][0] = 1;
