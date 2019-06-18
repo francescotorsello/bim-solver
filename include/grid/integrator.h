@@ -1126,7 +1126,7 @@ void MoL::integrate_MoL(
 
     slog << "Employing Method of Lines, " << BT.name
          << ", s = " << BT.s << std::endl << std::endl
-         << "DIRK:" << std::endl << std::endl;
+         << "  DIRK:" << std::endl << std::endl;
 
     if( updateJ == STEP )
     {
@@ -1141,7 +1141,7 @@ void MoL::integrate_MoL(
     } else if( updateJ == STAGE ) {
 
         slog << "    Newton iteration matrix updated at every stage."
-             << std::endl;
+             << std::endl << std::endl;
     }
     slog << "    Relative error = " << relError
          << std::endl
