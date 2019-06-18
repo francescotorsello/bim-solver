@@ -571,28 +571,25 @@ class MoL : GridUser
 
     /** Compute the stage value for a given DIRK method
      */
-    void DIRK_computeStage   (
-                                Int next_m,                  // time step to be computed
-                                Int m,                       // known time step
-                                Int stage_i,                 // stage to be computed
-                                const ButcherTable& BT       // the DIRK's Butcher table
-                                //LUDecomposition** LU_Newtons // Newton iteration matrix
-                             );
+    void DIRK_computeStage(
+            Int next_m,                  // time step to be computed
+            Int m,                       // known time step
+            Int stage_i,                 // stage to be computed
+            const ButcherTable& BT       // the DIRK's Butcher table
+        );
 
     /** Compute the step value for a given DIRK method
      */
-    void DIRK_computeStep    (
-                                Int next_m,                  // time step to be computed
-                                Int m,                       // known time step
-                                const ButcherTable& BT       // the DIRK's Butcher table
-                                //MatReal** NewtonItMats,
-                                //LUDecomposition** LU_Newtons // Newton iteration matrix
-                             );
+    void DIRK_computeStep(
+            Int next_m,                  // time step to be computed
+            Int m,                       // known time step
+            const ButcherTable& BT       // the DIRK's Butcher table
+        );
 
     /** Time evolution using the method of lines (MoL).
      */
     void integrate_MoL( const MoLDescriptor& MoL, bool adaptiveStepSize = false );
-    void integrate_MoL( const ButcherTable& BT,   bool adaptiveStepSize = false );
+    void integrate_MoL( const ButcherTable&  BT,  bool adaptiveStepSize = false );
 
 public:
 
@@ -1068,9 +1065,9 @@ void MoL::integrate_MoL( const MoLDescriptor& MoL, bool adaptiveStepSize )
  *  MoL_DIRK_computeStep, defined below.
  */
 void MoL::integrate_MoL(
-                         const ButcherTable& BT,              // the DIRK's Butcher table
-                         bool                adaptiveStepSize
-                       )
+        const ButcherTable& BT,                 // the DIRK's Butcher table
+        bool                adaptiveStepSize
+    )
 {
     // Take the number of the evolved fields --- the Newton iteration matrix
     // has dimensions equal to this.
@@ -1189,14 +1186,21 @@ void MoL::integrate_MoL(
 /** MoL_DIRK_computeStep updates the Jacobian at each stage, if required, and computes all
  *  the stages within a time step, using MoL_DIRK_computeStage, defined below.
  */
-void MoL::DIRK_computeStep   (
-                                Int                 next_m,       // time step to compute
-                                Int                 m,            // known time step
-                                const ButcherTable& BT            // Butcher table
-                                //MatReal**           NewtonItMats, // NIMs
-                                //LUDecomposition**   LU_Newtons    // LU-decomposed NIMs
-                             )
+void MoL::DIRK_computeStep(
+        Int                 next_m,             // time step to compute
+        Int                 m,                  // known time step
+        const ButcherTable& BT                  // Butcher table
+    )
 {
+    /*
+        Note that if the Jacobian is updated after every step (or
+        after many steps), we can update it considering any
+        of the values on the diagonal of the Butcher table. If the
+        method is a SDIRK, then this choice doesn't affect the result.
+        Otherwise, it does. Nonetheless, one has to choose one of the
+        diagonal elements. Here we are using stage 3.
+    */
+
     // If the Jacobian needs to be updated at each time step
     /// TODO: this could (or should?) be a precompilator if
     if( updateJ == STEP )
@@ -1233,14 +1237,6 @@ void MoL::DIRK_computeStep   (
                 LU_Newtons[n] -> LUDecompose( *NewtonItMats[n] );
             }
         }
-        /*
-            Note that if the Jacobian is updated after every step (or
-            after many steps), we can update it considering any
-            of the values on the diagonal of the Butcher table. If the
-            method is a SDIRK, then this choice doesn't affect the result.
-            Otherwise, it does. Nonetheless, one has to choose one of the
-            diagonal elements.
-        */
     }
     // If the Jacobian needs to be updated after 'modulo' steps,
     // do the same as above, but only every m^th step
@@ -1361,13 +1357,12 @@ void MoL::DIRK_computeStep   (
  *  TODO: tolerance and updateJacobian are not read from config.ini yet. Also,
  *        some formulas should be checked.
  */
-void MoL::DIRK_computeStage  (
-                                Int                 next_m,     // time step to compute
-                                Int                 m,          // known time step
-                                Int                 stage_i,    // stage to compute
-                                const ButcherTable& BT          // Butcher table
-                                //LUDecomposition**   LU_Newtons  // LU-decomposed NIMs
-                             )
+void MoL::DIRK_computeStage(
+        Int                 next_m,             // time step to compute
+        Int                 m,                  // known time step
+        Int                 stage_i,            // stage to compute
+        const ButcherTable& BT                  // Butcher table
+    )
 {
     VecReal res     ( n_evolved, Real(0) );     // The residual vector
     VecReal norRes  ( n_evolved, Real(0) );     // The normalized residual vector
@@ -1402,7 +1397,7 @@ void MoL::DIRK_computeStage  (
         /** The iteration works by overwriting the value of GF( e.f, m, n )
          *  at each iteration.
          */
-        // while the desired accuracy isn't met yet, and the number of steps is less than
+        // While the desired accuracy isn't met yet, and the number of steps is less than
         // a reasonable upper bound
         Int iteration_counter = 0;
         while(
