@@ -247,6 +247,7 @@ class MoL : GridUser
     Real     dissip;          //!< Kreiss-Oliger dissipation coefficient.
     Real     dissip_delta_r;  //!< `dissip / delta_r`
     Real     cur_t;           //!< Current time
+    Int      mStep;           //!< The step counter
 
     /////////////////////////////////////////////////////////////////////////////////////
     // DIRK parameters
@@ -258,7 +259,7 @@ class MoL : GridUser
     Int      updateJ;         //!< Parameter from config.ini setting the update of the
                               //!< Jacobian in DIRKs
     Int      modulo;          //!< When the Jacobian is updated after m steps, modulo = m
-    Int next_m;               //!< Periodic variable storing the next time step
+    Int      next_m;          //!< Periodic variable storing the next time step
 
     MatReal** NewtonItMats;
     LUDecomposition** LU_Newtons;
@@ -574,8 +575,8 @@ class MoL : GridUser
                                 Int next_m,                  // time step to be computed
                                 Int m,                       // known time step
                                 Int stage_i,                 // stage to be computed
-                                const ButcherTable& BT,      // the DIRK's Butcher table
-                                LUDecomposition** LU_Newtons // Newton iteration matrix
+                                const ButcherTable& BT       // the DIRK's Butcher table
+                                //LUDecomposition** LU_Newtons // Newton iteration matrix
                              );
 
     /** Compute the step value for a given DIRK method
@@ -583,9 +584,9 @@ class MoL : GridUser
     void DIRK_computeStep    (
                                 Int next_m,                  // time step to be computed
                                 Int m,                       // known time step
-                                const ButcherTable& BT,      // the DIRK's Butcher table
-                                MatReal** NewtonItMats,
-                                LUDecomposition** LU_Newtons // Newton iteration matrix
+                                const ButcherTable& BT       // the DIRK's Butcher table
+                                //MatReal** NewtonItMats,
+                                //LUDecomposition** LU_Newtons // Newton iteration matrix
                              );
 
     /** Time evolution using the method of lines (MoL).
@@ -960,7 +961,7 @@ void MoL::integrate_MoL( const MoLDescriptor& MoL, bool adaptiveStepSize )
         mk[i] = mLen + i;
     }
 
-    Int  mStep = 0; // The step counter
+    mStep = 0; // The step counter
     while( running && abs(cur_t) < abs(t_1) )
     {
         for( Int m = 0; running && m < mLen && abs(cur_t) < abs(t_1); /* nothing */ )
@@ -1117,28 +1118,6 @@ void MoL::integrate_MoL(
         }
     }
 
-    /*OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
-    {
-        // For each IntegFace* pointer in eomList (in our case, only BimetricEvolve)
-        for( auto eom: eomList )
-        {
-            // Use this method of BimetricEvolve. This method computes the Newton
-            // iteration matrix, and stores them into the MatReal objects pointed
-            // by NewtonItMats[n]
-            eom -> computeNewtonIterationMatrix(
-                        0,                 // time step
-                        n,                 // grid point
-                        n_evolved,         // number of evolved fields
-                        3,                 // stage
-                        BT,                // Butcher table
-                        *NewtonItMats[n]   // matrices to store the Computed NIM
-                    );
-        }
-        // LUDecompose all the Newton iteration matrices in *NewtonItMats[n], and
-        // store them into LU_Newtons[n]
-        LU_Newtons[n] = new LUDecomposition( *NewtonItMats[n] );
-    }*/
-
     // Adaptive stepsize control
 
     if ( adaptiveStepSize )
@@ -1154,19 +1133,20 @@ void MoL::integrate_MoL(
     running = true; // Enable integration
 
     // Setup and export the initial data
+
     for( Int n = 0; n < nTotal; ++n )
     {
         GF( fld::t, 0, n ) = t_0;
     }
     for( auto eom: eomList )
     {
-        eom->integStep_CalcEvolutionRHS( 0 );
+        eom -> integStep_CalcEvolutionRHS( 0 );
     }
     integStep_Checkpoint( 0 );
 
     // Perform the time integration
 
-    Int  mStep = 0; // The step counter
+    mStep = 0; // The step counter
     while( running && abs(cur_t) < abs(t_1) )
     {
         for( Int m = 0; running && m < mLen && abs(cur_t) < abs(t_1); ++m )
@@ -1181,99 +1161,7 @@ void MoL::integrate_MoL(
                 next_m = m + 1;
             }
 
-            // If the Jacobian needs to be updated at each time step
-            /// TODO: this could (or should?) be a precompilator if
-            if( updateJ == STEP )
-            {
-                // Find the initial guesses at next_m with the Euler method
-                OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
-                {
-                    for( auto e: evolvedGF )
-                    {
-                        GF( e.f, next_m, n ) = GF( e.f, m, n )
-                                                + delta_t * GF( e.f_t, m, n );
-                    }
-                }
-                // For each IntegFace* pointer in eomList (presently, only BimetricEvolve)
-                for( auto eom: eomList )
-                {
-                    // Evaluate the evolution equations with the initial guesses
-                    eom -> integStep_CalcEvolutionRHS( next_m );
-                }
-                // At this point, both the initial guesses and the evolution equations
-                // at next_m are computed, hence,
-
-                // Compute the Newton iteration matrices at next_m
-                // For each IntegFace* pointer in eomList (presently, only BimetricEvolve)
-                for( auto eom: eomList )
-                {
-                    OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
-                    {
-                    // Use this method of BimetricEvolve. This method computes the Newton
-                    // iteration matrix, and stores them into the MatReal objects pointed
-                    // by NewtonItMats[n]
-                        eom -> computeNewtonIterationMatrix( next_m, n, n_evolved, 3, BT,
-                                                            *NewtonItMats[n] );
-                        LU_Newtons[n] -> LUDecompose( *NewtonItMats[n] );
-                    }
-                }
-                /*
-                    Note that if the Jacobian is updated after every step (or
-                    after many steps), we can update it considering any
-                    of the values on the diagonal of the Butcher table. If the
-                    method is a SDIRK, then this choice doesn't affect the result.
-                    Otherwise, it does. Nonetheless, one has to choose one of the
-                    diagonal elements.
-                */
-            }
-            // If the Jacobian needs to be updated after 'modulo' steps,
-            // do the same as above, but only every m^th step
-            if(
-                    ( updateJ == MULTIPLE_STEPS )
-                    &&
-                    ( /*( cur_t == t_0 ) || (*/ ( mStep % modulo ) == 0  )
-              )
-            {
-                // Find the initial guesses at next_m with the Euler method
-                OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
-                {
-                    for( auto e: evolvedGF )
-                    {
-                        GF( e.f, next_m, n ) = GF( e.f, m, n )
-                                                + delta_t * GF( e.f_t, m, n );
-                    }
-                }
-                // For each IntegFace* pointer in eomList (presently, only BimetricEvolve)
-                for( auto eom: eomList )
-                {
-                    // Evaluate the evolution equations with the initial guesses
-                    eom -> integStep_CalcEvolutionRHS( next_m );
-                }
-                // At this point, both the initial guesses and the evolution equations
-                // at next_m are computed, hence,
-
-                // Compute the Newton iteration matrices at next_m
-                // For each IntegFace* pointer in eomList (presently, only BimetricEvolve)
-                for( auto eom: eomList )
-                {
-                    OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
-                    {
-                    // Use this method of BimetricEvolve. This method computes the Newton
-                    // iteration matrix, and stores them into the MatReal objects pointed
-                    // by NewtonItMats[n]
-                        eom -> computeNewtonIterationMatrix( next_m, n, n_evolved, 3, BT,
-                                                            *NewtonItMats[n] );
-                        LU_Newtons[n] -> LUDecompose( *NewtonItMats[n] );
-                    }
-                }
-            }
-
-            // At this point, the initial guesses for the cases STEP and MULTIPLE_STEPS
-            // are assigned, hence one can proceed with the Newton iteration in
-            // in these two cases. The initial guesses for the case STAGE are not
-            // assigned yet.
-
-            DIRK_computeStep( next_m, m, BT, NewtonItMats, LU_Newtons );
+            DIRK_computeStep( next_m, m, BT );//, NewtonItMats, LU_Newtons );
 
             //////////////////////////////////////////////////////////////////////////////
 
@@ -1304,22 +1192,100 @@ void MoL::integrate_MoL(
 void MoL::DIRK_computeStep   (
                                 Int                 next_m,       // time step to compute
                                 Int                 m,            // known time step
-                                const ButcherTable& BT,           // Butcher table
-                                MatReal**           NewtonItMats, // NIMs
-                                LUDecomposition**   LU_Newtons    // LU-decomposed NIMs
+                                const ButcherTable& BT            // Butcher table
+                                //MatReal**           NewtonItMats, // NIMs
+                                //LUDecomposition**   LU_Newtons    // LU-decomposed NIMs
                              )
 {
-    // Store the n_evolved evolution equations at next_m, stage 0, i.e. beginning of step,
-    // in the nLen VecReal objects with n_evolved components
-    OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+    // If the Jacobian needs to be updated at each time step
+    /// TODO: this could (or should?) be a precompilator if
+    if( updateJ == STEP )
     {
-        Int field_i = 0;
-        for( auto e : evolvedGF )
+        // Find the initial guesses at next_m with the Euler method
+        OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
         {
-            (*F[ n ])[ field_i ] = GF( e.f_t, next_m, n );
-            ++field_i;
+            for( auto e: evolvedGF )
+            {
+                GF( e.f, next_m, n ) = GF( e.f, m, n )
+                                        + delta_t * GF( e.f_t, m, n );
+            }
+        }
+        // For each IntegFace* pointer in eomList (presently, only BimetricEvolve)
+        for( auto eom: eomList )
+        {
+            // Evaluate the evolution equations with the initial guesses
+            eom -> integStep_CalcEvolutionRHS( next_m );
+        }
+        // At this point, both the initial guesses and the evolution equations
+        // at next_m are computed, hence,
+
+        // Compute the Newton iteration matrices at next_m
+        // For each IntegFace* pointer in eomList (presently, only BimetricEvolve)
+        for( auto eom: eomList )
+        {
+            OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+            {
+            // Use this method of BimetricEvolve. This method computes the Newton
+            // iteration matrix, and stores them into the MatReal objects pointed
+            // by NewtonItMats[n]
+                eom -> computeNewtonIterationMatrix( next_m, n, n_evolved, 3, BT,
+                                                    *NewtonItMats[n] );
+                LU_Newtons[n] -> LUDecompose( *NewtonItMats[n] );
+            }
+        }
+        /*
+            Note that if the Jacobian is updated after every step (or
+            after many steps), we can update it considering any
+            of the values on the diagonal of the Butcher table. If the
+            method is a SDIRK, then this choice doesn't affect the result.
+            Otherwise, it does. Nonetheless, one has to choose one of the
+            diagonal elements.
+        */
+    }
+    // If the Jacobian needs to be updated after 'modulo' steps,
+    // do the same as above, but only every m^th step
+    else if( updateJ == MULTIPLE_STEPS )
+    {
+        // Find the initial guesses at next_m with the Euler method
+        OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+        {
+            for( auto e: evolvedGF )
+            {
+                GF( e.f, next_m, n ) = GF( e.f, m, n )
+                                        + delta_t * GF( e.f_t, m, n );
+            }
+        }
+        // For each IntegFace* pointer in eomList (presently, only BimetricEvolve)
+        for( auto eom: eomList )
+        {
+            // Evaluate the evolution equations with the initial guesses
+            eom -> integStep_CalcEvolutionRHS( next_m );
+        }
+        // At this point, both the initial guesses and the evolution equations
+        // at next_m are computed, hence,
+
+        if( ( mStep % modulo ) == 0 )
+        {
+            // Compute the Newton iteration matrices at next_m
+            // For each IntegFace* pointer in eomList (presently, only BimetricEvolve)
+            for( auto eom: eomList )
+            {
+                OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+                {
+                // Use this method of BimetricEvolve. This method computes the Newton
+                // iteration matrix, and stores them into the MatReal objects pointed
+                // by NewtonItMats[n]
+                    eom -> computeNewtonIterationMatrix( next_m, n, n_evolved, 3, BT,
+                                                        *NewtonItMats[n] );
+                    LU_Newtons[n] -> LUDecompose( *NewtonItMats[n] );
+                }
+            }
         }
     }
+    // At this point, the initial guesses for the cases STEP and MULTIPLE_STEPS
+    // are assigned, hence one can proceed with the Newton iteration in
+    // in these two cases. The initial guesses for the case STAGE are not
+    // assigned yet.
 
     // Loop over the stages within one time step
     for( Int stage_i = 0; stage_i < BT.s; ++stage_i ) // for each stage
@@ -1381,7 +1347,7 @@ void MoL::DIRK_computeStep   (
         }
 
         // Compute the stage value, i.e., perform the Newton iteration
-        DIRK_computeStage( next_m, m, stage_i, BT, LU_Newtons );
+        DIRK_computeStage( next_m, m, stage_i, BT );//, LU_Newtons );
 
     }
     // At this point, the final value of the grid functions at time step m and grid point
@@ -1399,8 +1365,8 @@ void MoL::DIRK_computeStage  (
                                 Int                 next_m,     // time step to compute
                                 Int                 m,          // known time step
                                 Int                 stage_i,    // stage to compute
-                                const ButcherTable& BT,         // Butcher table
-                                LUDecomposition**   LU_Newtons  // LU-decomposed NIMs
+                                const ButcherTable& BT          // Butcher table
+                                //LUDecomposition**   LU_Newtons  // LU-decomposed NIMs
                              )
 {
     VecReal res     ( n_evolved, Real(0) );     // The residual vector
