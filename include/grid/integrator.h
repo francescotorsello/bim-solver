@@ -1063,8 +1063,7 @@ void MoL::integrate_MoL( const MoLDescriptor& MoL, bool adaptiveStepSize )
  *  An implicit Runge-Kutta method (IRK) requires a different input than an explicit one.
  *  Hence, we overload integrate_MoL in order to accept the needed input.
  *  integrate_MoL allocates the needed memory, computes the needed quantity on the
- *  initial hypersurface, updates the Jacobian at each time step if required, and uses
- *  MoL_DIRK_computeStep, defined below.
+ *  initial hypersurface and calls MoL_DIRK_computeStep, defined below.
  */
 void MoL::integrate_MoL(
         const ButcherTable& BT,                 // the DIRK's Butcher table
@@ -1208,8 +1207,9 @@ void MoL::integrate_MoL(
     delete[] F;
 }
 
-/** MoL_DIRK_computeStep updates the Jacobian at each stage, if required, and computes all
- *  the stages within a time step, using MoL_DIRK_computeStage, defined below.
+/** MoL_DIRK_computeStep updates the Jacobian when required, computed the first guesses
+ *  and the evolution equations using the first guesses, evolves the time and computes all
+ *  the stages within a time step, calling MoL_DIRK_computeStage, defined below.
  */
 void MoL::DIRK_computeStep(
         Int                 next_m,             // time step to compute
@@ -1359,7 +1359,7 @@ void MoL::DIRK_computeStep(
         OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
         {
             GF( fld::t, next_m, n ) = GF( fld::t, m, n )
-                                    + BT.c[stage_i] * delta_t;
+                                        + BT.c[stage_i] * delta_t;
         }
 
         // Compute the stage value, i.e., perform the Newton iteration
@@ -1374,8 +1374,6 @@ void MoL::DIRK_computeStep(
 /** MoL_DIRK_computeStage computes an individual stage of a DIRK.
  *  It performs the Newton iteration, which stops once the error is smaller than the
  *  user-specified tolerance (in config.ini).
- *  TODO: tolerance and updateJacobian are not read from config.ini yet. Also,
- *        some formulas should be checked.
  */
 void MoL::DIRK_computeStage(
         Int                 stage_i,            // stage to compute
