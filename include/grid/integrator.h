@@ -261,9 +261,11 @@ class MoL : GridUser
     Int      modulo;          //!< When the Jacobian is updated after m steps, modulo = m
     Int      next_m;          //!< Periodic variable storing the next time step
 
-    MatReal** NewtonItMats;
-    LUDecomposition** LU_Newtons;
-    VecReal** F;              //!< A vector storing the evolution equations at each stage
+    MatReal** NewtonItMats;   //!< A pointer to a set of nLen square matrices of
+                              //!< dimension n_evolved
+    LUDecomposition** LU_Newtons;   //!< A pointer to a set of nLen LUDecomposition
+                                    //!< objects
+    VecReal** F;              //!< A pointer to a set of nLen vectors of length n_evolved
 
     enum UpdateJ              //!< Possibilities to update the Jacobian in DIRK
     {
@@ -572,9 +574,9 @@ class MoL : GridUser
     /** Compute the stage value for a given DIRK method
      */
     void DIRK_computeStage(
+            Int stage_i,                 // stage to be computed
             Int next_m,                  // time step to be computed
             Int m,                       // known time step
-            Int stage_i,                 // stage to be computed
             const ButcherTable& BT       // the DIRK's Butcher table
         );
 
@@ -1124,7 +1126,30 @@ void MoL::integrate_MoL(
     }
 
     slog << "Employing Method of Lines, " << BT.name
-         << ", s = " << BT.s << std::endl << std::endl;
+         << ", s = " << BT.s << std::endl << std::endl
+         << "DIRK:" << std::endl << std::endl;
+
+    if( updateJ == STEP )
+    {
+        slog << "    Newton iteration matrix updated at every step."
+             << std::endl << std::endl;
+
+    } else if( updateJ == MULTIPLE_STEPS ) {
+
+        slog << "    Newton iteration matrix updated every " << modulo << " steps."
+             << std::endl << std::endl;
+
+    } else if( updateJ == STAGE ) {
+
+        slog << "    Newton iteration matrix updated at every stage."
+             << std::endl;
+    }
+    slog << "    Relative error = " << relError
+         << std::endl
+         << "    Absolute error = " << absError
+         << std::endl
+         << "    Tolerance ratio = " << toleranceRatio
+         << std::endl << std::endl;
 
     cur_t = t_0;    // The initial `t`
     running = true; // Enable integration
@@ -1158,7 +1183,7 @@ void MoL::integrate_MoL(
                 next_m = m + 1;
             }
 
-            DIRK_computeStep( next_m, m, BT );//, NewtonItMats, LU_Newtons );
+            DIRK_computeStep( next_m, m, BT );
 
             //////////////////////////////////////////////////////////////////////////////
 
@@ -1338,7 +1363,7 @@ void MoL::DIRK_computeStep(
         }
 
         // Compute the stage value, i.e., perform the Newton iteration
-        DIRK_computeStage( next_m, m, stage_i, BT );//, LU_Newtons );
+        DIRK_computeStage( stage_i, next_m, m, BT );
 
     }
     // At this point, the final value of the grid functions at time step m and grid point
@@ -1353,9 +1378,9 @@ void MoL::DIRK_computeStep(
  *        some formulas should be checked.
  */
 void MoL::DIRK_computeStage(
+        Int                 stage_i,            // stage to compute
         Int                 next_m,             // time step to compute
         Int                 m,                  // known time step
-        Int                 stage_i,            // stage to compute
         const ButcherTable& BT                  // Butcher table
     )
 {
