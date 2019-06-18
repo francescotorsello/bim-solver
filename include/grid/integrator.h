@@ -1210,18 +1210,13 @@ void MoL::DIRK_computeStep(
         {
             for( auto e: evolvedGF )
             {
+                // Note that GF( e.f, m, n ) = GF( e.f, next_m, n ) of the previous
+                // iteration over m, hence it stores the last (hence best) iteration of
+                // Newton method. Same for GF( e.f_t, m, n ).
                 GF( e.f, next_m, n ) = GF( e.f, m, n )
                                         + delta_t * GF( e.f_t, m, n );
             }
         }
-        // For each IntegFace* pointer in eomList (presently, only BimetricEvolve)
-        for( auto eom: eomList )
-        {
-            // Evaluate the evolution equations with the initial guesses
-            eom -> integStep_CalcEvolutionRHS( next_m );
-        }
-        // At this point, both the initial guesses and the evolution equations
-        // at next_m are computed, hence,
 
         // Compute the Newton iteration matrices at next_m
         // For each IntegFace* pointer in eomList (presently, only BimetricEvolve)
@@ -1247,18 +1242,13 @@ void MoL::DIRK_computeStep(
         {
             for( auto e: evolvedGF )
             {
+                // Note that GF( e.f, m, n ) = GF( e.f, next_m, n ) of the previous
+                // iteration over m, hence it stores the last (hence best) iteration of
+                // Newton method. Same for GF( e.f_t, m, n ).
                 GF( e.f, next_m, n ) = GF( e.f, m, n )
                                         + delta_t * GF( e.f_t, m, n );
             }
         }
-        // For each IntegFace* pointer in eomList (presently, only BimetricEvolve)
-        for( auto eom: eomList )
-        {
-            // Evaluate the evolution equations with the initial guesses
-            eom -> integStep_CalcEvolutionRHS( next_m );
-        }
-        // At this point, both the initial guesses and the evolution equations
-        // at next_m are computed, hence,
 
         if( ( mStep % modulo ) == 0 )
         {
@@ -1278,27 +1268,29 @@ void MoL::DIRK_computeStep(
             }
         }
     }
-    // At this point, the initial guesses for the cases STEP and MULTIPLE_STEPS
-    // are assigned, hence one can proceed with the Newton iteration in
-    // in these two cases. The initial guesses for the case STAGE are not
+    // At this point, the initial guesses for the first stage  for the cases STEP and
+    // MULTIPLE_STEPS are assigned. The initial guesses for the case STAGE are not
     // assigned yet.
 
     // Loop over the stages within one time step
     for( Int stage_i = 0; stage_i < BT.s; ++stage_i ) // for each stage
     {
-
         // Find the initial guesses at stage_i with Euler method
         OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
         {
-            if( stage_i == 0 ) // if it is the first iteration
+            // If it is the first iteration, and its initial guess has not be computed
+            // yet, because the Jacobian is required to be updated at every stage,
+            if( stage_i == 0 && updateJ == STAGE )
             {
                 for( auto e: evolvedGF )
                 {
-                    // Euler method using the previous time step
+                    // Note that GF( e.f, m, n ) = GF( e.f, next_m, n ) of the previous
+                    // iteration over m, hence it stores the last (hence best) iteration
+                    // of Newton method. Same for GF( e.f_t, m, n ).
                     GF( e.f, next_m, n ) = GF( e.f, m, n )
                                             + delta_t * GF( e.f_t, m, n );
                 }
-            } else // otherwise
+            } else if( stage_i != 0 ) // else if it is not the first iteration
             {
                 for( auto e: evolvedGF )
                 {
@@ -1310,14 +1302,17 @@ void MoL::DIRK_computeStep(
                 }
             }
         }
+        // At this point, the initial guesses are known in all cases and stages.
+        // Hence, we can compute the evolution equations at next_m, needed in the first
+        // Newton iteration in DIRK_computeStage, when computing the residual vector
+        for( auto eom: eomList )
+        {
+            eom -> integStep_CalcEvolutionRHS( next_m );
+        }
 
         // If the Jacobian needs to be updated at each stage
         if( updateJ == STAGE )
         {
-            for( auto eom: eomList )
-            {
-                eom -> integStep_CalcEvolutionRHS( next_m );
-            }
             // At this point, both the initial guesses and the evolution equations
             // at next_m are computed, hence,
 
@@ -1388,6 +1383,14 @@ void MoL::DIRK_computeStage(
             }
             ++field_i;
         }
+        /*
+            Note that, in the loop above, in the first iteration stage_i = 0, the loop
+            does not do anything. This is correct, and the formula (81) in [1, p.42]
+            shares the same feature. This is because there are no previous stages to sum
+            over. When stage_i = 1, there is only one term, which will have an assigned
+            value. The value is assigned at the end of the Newton iteration. that is, at
+            the end of the following while loop.
+        */
 
         //////////////////////////////////////////////////////////////////////////////////
         // The quantities above do not depend on the Newton iteration step.
@@ -1412,13 +1415,15 @@ void MoL::DIRK_computeStage(
             for( auto e: evolvedGF )
             {
                 /// TODO: check this formula
-                res[ field_i ] = -( GF( e.f, next_m, n ) - GF( e.f, m, n ) ) + X[field_i]
-                                 + delta_t * BT.A[stage_i - 1][stage_i - 1]
-                                    * GF( e.f_t, next_m, n );
+                res[ field_i ] = -( GF( e.f, next_m, n ) - GF( e.f, m, n ) )
+                                    + X[field_i]
+                                    + delta_t * BT.A[stage_i - 1][stage_i - 1]
+                                        * GF( e.f_t, next_m, n );
                 ++field_i;
             }
 
-            // The Jacobian is not updated at every iteration of the Newton method.
+            // The Jacobian is not updated at every iteration of the Newton method
+            // (it could, though).
             // Hence, we can solve the system L * U * dis = res for dis.
 
             // solve the system for the displacements of the fields
@@ -1451,10 +1456,11 @@ void MoL::DIRK_computeStage(
                 GF( e.f, next_m, n ) += dis[field_i];
                 ++field_i;
             }
+
             // Recompute the evolution equations with the new displaced fields
             for( auto eom: eomList )
             {
-                eom->integStep_CalcEvolutionRHS( next_m );
+                eom -> integStep_CalcEvolutionRHS( next_m );
             }
 
             // Store the n_evolved evolution equations at next_m, stage stage_i,
@@ -1472,7 +1478,7 @@ void MoL::DIRK_computeStage(
             ++iteration_counter;
 
         }
-        // after this while loop, the grid functions at ( m, n ), iteration stage_i
+        // After this while loop, the grid functions at ( m, n ), iteration stage_i
         // have updated values
     }
 
