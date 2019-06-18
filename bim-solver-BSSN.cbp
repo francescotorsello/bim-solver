@@ -14,7 +14,6 @@
 				<Option compiler="gcc" />
 				<Option parameters="config.ini" />
 				<Compiler>
-					<Add option="-g" />
 					<Add option="-D_DEBUG" />
 				</Compiler>
 				<Linker>
@@ -80,6 +79,7 @@
 		<Unit filename="include/eom-BSSN/eomBSSNStdGaugeReg.h" />
 		<Unit filename="include/eom-BSSN/eomGauge.h" />
 		<Unit filename="include/eom-test/eomTest.h" />
+		<Unit filename="include/eom-test/eomTestFlame.h" />
 		<Unit filename="include/grid/gridDriver.h" />
 		<Unit filename="include/grid/gridFunctions.h" />
 		<Unit filename="include/grid/gridInitialData.h" />
@@ -89,6 +89,7 @@
 		<Unit filename="include/jacobian-BSSN/DIRK_Jacobian_cBSSN_Reg.h" />
 		<Unit filename="include/jacobian-BSSN/DIRK_Jacobian_cBSSN_RegRed.h" />
 		<Unit filename="include/jacobian-test/DIRK_Jacobian_test.h" />
+		<Unit filename="include/jacobian-test/DIRK_Jacobian_test_Flame.h" />
 		<Unit filename="include/numMethods.h" />
 		<Unit filename="include/numMethods/DIRK_MoL.h" />
 		<Unit filename="include/numMethods/SavitzkyGolayCoeff.h" />

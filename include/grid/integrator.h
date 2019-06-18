@@ -393,8 +393,10 @@ class MoL : GridUser
         slog << "Integrator:" << std::endl << std::endl
              << "    t_0 = " << t_0 << ",  t_1 = " << t_1 << ",  delta_t = " << delta_t
              << ",  method = " << methodID << " (#" << method << ")" << std::endl
-             << "    Kreiss-Oliger dissipation = " << dissip
-             << ", order = " << KO_ORDER << std::endl
+             #if !_TEST_MODE
+                << "    Kreiss-Oliger dissipation = " << dissip
+                << ", order = " << KO_ORDER << std::endl
+             #endif //_TEST_MODE
              << "    Expected output data size = "
              << round( ( sz < 1e3 ? sz : sz < 1e6 ? sz/1e3 : sz/1e6 ) * 10 ) / 10
              << ( sz < 1e3 ? "" : sz < 1e6 ? " kB" : " MB" )
@@ -1183,6 +1185,8 @@ void MoL::integrate_MoL(
             }
 
             DIRK_computeStep( next_m, m, BT );
+
+            integStep_End( next_m, m );
 
             //////////////////////////////////////////////////////////////////////////////
 

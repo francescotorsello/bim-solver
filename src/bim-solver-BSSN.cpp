@@ -56,6 +56,9 @@ namespace fld
 
             u, v, u_t, v_t,
 
+            mpiBoundary = v,       //!< The last grid function for which BC must be fixed.
+                                   //!< Used in MPI when calling defineGhostChunk.
+
         #else
 
             /// Evolved fields in the `g`-sector
@@ -304,9 +307,6 @@ namespace fld
                                    //!< Used in MPI when calling defineGhostChunk.
 
         #endif // _TEST_MODE
-
-        mpiBoundary = v,       //!< The last grid function for which BC must be fixed.
-                               //!< Used in MPI when calling defineGhostChunk.
 
         /// The error function for RKDP MoL integrator
         error,
@@ -2068,7 +2068,7 @@ void BimetricEvolve::determineGaugeFunctions( Int m )
 
 #if _TEST_MODE
 
-    #include "eom-test/eomTestFlame.h"
+    #include "eom-test/eomTest_StiffSystem.h"
 
 #else
 
@@ -3734,7 +3734,7 @@ void BimetricEvolve::computeNewtonIterationMatrix(
 {
     #if _TEST_MODE
 
-        #include "jacobian-test/DIRK_Jacobian_test_Flame.h"
+        #include "jacobian-test/DIRK_Jacobian_test_StiffSystem.h"
 
     #else
 
