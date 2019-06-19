@@ -1,7 +1,7 @@
 /** @file  DIRK_Jacobian_cBSSN_RegRed.h
  *  @author Francesco Torsello
  *  @brief The Jacobian of the regularized reduced cBSSN equations, needed by DIRK.
- *  @version 2019-06-18T14:56:13
+ *  @version 2019-06-19T08:15:16
  *  @image html DIRK_Jacobian_cBSSN_RegRed.png
  */
 
@@ -21,6 +21,9 @@ Jacobian[1][7]=
 	-((exp(-2 * gconf(m,n)) * gDconf(m,n) * gAlp(m,n)
     /*2*/  * p(m,n)) / (pow2(gA(m,n)) * Lt(m,n)));
 
+Jacobian[1][28]=
+	gDconf(m,n);
+
 Jacobian[2][2]=
 	(2 * exp(-2 * fconf(m,n)) * fDconf(m,n) 
     /*1*/  * fAlp(m,n) * p(m,n)) / (fA(m,n) * Lt(m,n));
@@ -37,6 +40,9 @@ Jacobian[2][6]=
 Jacobian[2][11]=
 	(exp(-2 * fconf(m,n)) * fDconf(m,n) * fAlp(m,n) 
     /*1*/  * p(m,n)) / (pow2(fA(m,n)) * Lt(m,n));
+
+Jacobian[2][28]=
+	fDconf(m,n);
 
 Jacobian[3][1]=
 	(-2 * exp(-2 * gconf(m,n)) * gDconf(m,n) 
@@ -80,6 +86,9 @@ Jacobian[3][9]=
 	-((exp(-2 * gconf(m,n)) * gDconf(m,n) * gAlp(m,n)
     /*2*/  * p(m,n)) / (gA(m,n) * Lt(m,n)));
 
+Jacobian[3][28]=
+	gDconf_r(m,n);
+
 Jacobian[4][2]=
 	(2 * exp(-2 * fconf(m,n)) * fDconf(m,n) 
     /*1*/  * fDAlp(m,n) * p(m,n)) / (fA(m,n) * Lt(m,n)) 
@@ -121,6 +130,9 @@ Jacobian[4][11]=
 Jacobian[4][13]=
 	(exp(-2 * fconf(m,n)) * fDconf(m,n) * fAlp(m,n) 
     /*1*/  * p(m,n)) / (fA(m,n) * Lt(m,n));
+
+Jacobian[4][28]=
+	fDconf_r(m,n);
 
 Jacobian[5][1]=
 	(exp(-4 * gconf(m,n)) * (4 * gDAlp_r(m,n) * r(m,n)
@@ -209,6 +221,9 @@ Jacobian[5][15]=
 
 Jacobian[5][16]=
 	4 * gA2(m,n) * gAlp(m,n);
+
+Jacobian[5][28]=
+	gtrK_r(m,n);
 
 Jacobian[6][1]=
 	k_f * (gAlp(m,n) * ((2 * exp(-2 * fconf(m,n) + 2 
@@ -303,6 +318,9 @@ Jacobian[6][17]=
 Jacobian[6][18]=
 	4 * fA2(m,n) * fAlp(m,n);
 
+Jacobian[6][28]=
+	ftrK_r(m,n);
+
 Jacobian[7][1]=
 	(-2 * exp(-2 * gconf(m,n)) * gDA(m,n) * gAlp(m,n)
     /*1*/  * p(m,n)) / Lt(m,n);
@@ -320,6 +338,9 @@ Jacobian[7][9]=
 
 Jacobian[7][15]=
 	-(gAlp(m,n) * gA(m,n));
+
+Jacobian[7][28]=
+	gDA(m,n) * gA(m,n);
 
 Jacobian[8][1]=
 	(-2 * exp(-2 * gconf(m,n)) * gAlp(m,n) * gB(m,n) 
@@ -348,6 +369,9 @@ Jacobian[8][10]=
 
 Jacobian[8][16]=
 	-(gAlp(m,n) * gB(m,n));
+
+Jacobian[8][28]=
+	(gB(m,n) * (1 + gDB(m,n) * r(m,n))) / r(m,n);
 
 Jacobian[9][1]=
 	(-2 * exp(-2 * gconf(m,n)) * gDA(m,n) * gDAlp(m,n)
@@ -389,6 +413,9 @@ Jacobian[9][9]=
 
 Jacobian[9][15]=
 	-gDAlp(m,n);
+
+Jacobian[9][28]=
+	gDA_r(m,n);
 
 Jacobian[10][1]=
 	(-2 * exp(-2 * gconf(m,n)) * gDAlp(m,n) * p(m,n) 
@@ -444,6 +471,9 @@ Jacobian[10][10]=
 Jacobian[10][16]=
 	-gDAlp(m,n);
 
+Jacobian[10][28]=
+	gDB_r(m,n) - 1 / pow2(r(m,n));
+
 Jacobian[11][2]=
 	(2 * exp(-2 * fconf(m,n)) * fDA(m,n) * fAlp(m,n) 
     /*1*/  * p(m,n)) / Lt(m,n);
@@ -463,6 +493,9 @@ Jacobian[11][13]=
 
 Jacobian[11][17]=
 	-(fAlp(m,n) * fA(m,n));
+
+Jacobian[11][28]=
+	fDA(m,n) * fA(m,n);
 
 Jacobian[12][2]=
 	(2 * exp(-4 * fconf(m,n) + 2 * gconf(m,n)) 
@@ -494,6 +527,10 @@ Jacobian[12][14]=
 Jacobian[12][18]=
 	-(exp(-2 * fconf(m,n) + 2 * gconf(m,n)) 
     /*1*/  * fAlp(m,n) * gB(m,n) * R(m,n));
+
+Jacobian[12][28]=
+	(exp(-2 * fconf(m,n) + 2 * gconf(m,n)) * gB(m,n) 
+    /*1*/  * (1 + fDB(m,n) * r(m,n)) * R(m,n)) / r(m,n);
 
 Jacobian[13][2]=
 	(2 * exp(-2 * fconf(m,n)) * fDA(m,n) * fDAlp(m,n)
@@ -534,6 +571,9 @@ Jacobian[13][13]=
 
 Jacobian[13][17]=
 	-fDAlp(m,n);
+
+Jacobian[13][28]=
+	fDA_r(m,n);
 
 Jacobian[14][2]=
 	(2 * exp(-2 * fconf(m,n)) * fDAlp(m,n) * p(m,n) 
@@ -587,6 +627,9 @@ Jacobian[14][14]=
 
 Jacobian[14][18]=
 	-fDAlp(m,n);
+
+Jacobian[14][28]=
+	fDB_r(m,n) - 1 / pow2(r(m,n));
 
 Jacobian[15][1]=
 	(-8 * exp(-4 * gconf(m,n)) * (-(gDAlp_r(m,n) 
@@ -716,6 +759,9 @@ Jacobian[15][21]=
 	(-2 * exp(-4 * gconf(m,n)) * gAlp(m,n) * (3 + 2 
     /*2*/  * gDB(m,n) * r(m,n))) / (3. * pow2(gA(m,n)));
 
+Jacobian[15][28]=
+	gA1_r(m,n);
+
 Jacobian[16][1]=
 	(4 * exp(-4 * gconf(m,n)) * (-(gDAlp_r(m,n) 
     /*3*/  * r(m,n)) + gDAlp(m,n) * (1 + gDA(m,n) * r(m,n) 
@@ -840,6 +886,9 @@ Jacobian[16][19]=
 Jacobian[16][21]=
 	(exp(-4 * gconf(m,n)) * gAlp(m,n) * (3 + 2 
     /*2*/  * gDB(m,n) * r(m,n))) / (3. * pow2(gA(m,n)));
+
+Jacobian[16][28]=
+	gA2_r(m,n);
 
 Jacobian[17][1]=
 	k_f * (gAlp(m,n) * ((4 * exp(-2 * fconf(m,n) + 2 
@@ -972,6 +1021,9 @@ Jacobian[17][22]=
 	(-2 * exp(-4 * fconf(m,n)) * fAlp(m,n) * (3 + 2 
     /*2*/  * fDB(m,n) * r(m,n))) / (3. * pow2(fA(m,n)));
 
+Jacobian[17][28]=
+	fA1_r(m,n);
+
 Jacobian[18][1]=
 	k_f * (gAlp(m,n) * ((-2 * exp(-2 * fconf(m,n) + 2
     /*4*/  * gconf(m,n)) * gA(m,n) * (P_2_0(R(m,n)) + b_0)) 
@@ -1102,6 +1154,9 @@ Jacobian[18][22]=
 	(exp(-4 * fconf(m,n)) * fAlp(m,n) * (3 + 2 
     /*2*/  * fDB(m,n) * r(m,n))) / (3. * pow2(fA(m,n)));
 
+Jacobian[18][28]=
+	fA2_r(m,n);
+
 Jacobian[19][1]=
 	k_g * gAlp(m,n) * (-8 * exp(4 * gconf(m,n)) 
     /*1*/  * gj(m,n) - (8 * exp(2 * fconf(m,n)) * fA(m,n) 
@@ -1176,6 +1231,9 @@ Jacobian[19][23]=
 	(4 * gAlp(m,n) * pow2(r(m,n)) * (gDA(m,n) 
     /*2*/  + gDB(m,n) + 6 * gDconf(m,n) + gsig(m,n) * r(m,n)))
     /*0*/  / (3. * pow2(gA(m,n)));
+
+Jacobian[19][28]=
+	gL_r(m,n) - 2 / (pow2(gB(m,n)) * pow2(r(m,n)));
 
 Jacobian[20][1]=
 	(-4 * k_f * exp(2 * gconf(m,n)) * fAlp(m,n) 
@@ -1258,6 +1316,11 @@ Jacobian[20][24]=
     /*2*/  + fDB(m,n) + 6 * fDconf(m,n) + fsig(m,n) * r(m,n)))
     /*0*/  / (3. * pow2(fA(m,n)));
 
+Jacobian[20][28]=
+	fL_r(m,n) - (2 * exp(4 * fconf(m,n) - 4 
+    /*2*/  * gconf(m,n))) / (pow2(gB(m,n)) * pow2(r(m,n)) 
+    /*1*/  * pow2(R(m,n)));
+
 Jacobian[21][1]=
 	gAlp(m,n) * p(m,n) * ((-4 * exp(-2 * gconf(m,n)) 
     /*2*/  * gA(m,n)) / (pow2(gB(m,n)) * pow3(r(m,n)) 
@@ -1294,6 +1357,10 @@ Jacobian[21][21]=
 
 Jacobian[21][23]=
 	(2 * gAlp(m,n) * pow2(gA(m,n))) / pow2(gB(m,n));
+
+Jacobian[21][28]=
+	gsig_r(m,n) + (2 * pow2(gA(m,n))) / (pow2(gB(m,n))
+    /*1*/  * pow3(r(m,n))) + (2 * gsig(m,n)) / r(m,n);
 
 Jacobian[22][2]=
 	fAlp(m,n) * p(m,n) * ((4 * exp(2 * fconf(m,n) - 4
@@ -1344,6 +1411,12 @@ Jacobian[22][24]=
     /*1*/  * fAlp(m,n) * pow2(fA(m,n))) / (pow2(gB(m,n)) 
     /*1*/  * pow2(R(m,n)));
 
+Jacobian[22][28]=
+	fsig_r(m,n) + (2 * exp(4 * fconf(m,n) - 4 
+    /*2*/  * gconf(m,n)) * pow2(fA(m,n))) / (pow2(gB(m,n)) 
+    /*1*/  * pow2(R(m,n)) * pow3(r(m,n))) + (2 * fsig(m,n)) 
+    /*0*/  / r(m,n);
+
 Jacobian[23][1]=
 	(-4 * exp(-4 * gconf(m,n)) * (-(gDAlp_r(m,n) 
     /*3*/  * r(m,n)) + gDAlp(m,n) * (1 + gDA(m,n) * r(m,n) 
@@ -1369,7 +1442,7 @@ Jacobian[23][1]=
     /*3*/  * r(m,n) - 4 * gDconf(m,n) * (1 + gDB(m,n) * r(m,n))
     /*3*/  + gDA(m,n) * (8 * gDB(m,n) * r(m,n) - 4 
     /*4*/  * gDconf(m,n) * r(m,n)) + r(m,n) * (4 
-    /*4*/  * gDconf_r(m,n) + gLD(gsig(m,n)) * pow2(gB(m,n)) 
+    /*4*/  * gDconf_r(m,n) + gsig_gL_r(m,n) * pow2(gB(m,n)) 
     /*4*/  * pow2(r(m,n)) + 8 * gDB(m,n) * gsig(m,n) * r(m,n) 
     /*4*/  - 2 * gsig_r(m,n) * r(m,n) + 2 * gL(m,n) * gsig(m,n)
     /*4*/  * pow2(gB(m,n)) * r(m,n)))) / (pow2(gA(m,n)) 
@@ -1418,7 +1491,7 @@ Jacobian[23][7]=
     /*3*/  * r(m,n) - 4 * gDconf(m,n) * (1 + gDB(m,n) * r(m,n))
     /*3*/  + gDA(m,n) * (8 * gDB(m,n) * r(m,n) - 4 
     /*4*/  * gDconf(m,n) * r(m,n)) + r(m,n) * (4 
-    /*4*/  * gDconf_r(m,n) + gLD(gsig(m,n)) * pow2(gB(m,n)) 
+    /*4*/  * gDconf_r(m,n) + gsig_gL_r(m,n) * pow2(gB(m,n)) 
     /*4*/  * pow2(r(m,n)) + 8 * gDB(m,n) * gsig(m,n) * r(m,n) 
     /*4*/  - 2 * gsig_r(m,n) * r(m,n) + 2 * gL(m,n) * gsig(m,n)
     /*4*/  * pow2(gB(m,n)) * r(m,n)))) / (pow3(gA(m,n)) 
@@ -1428,7 +1501,7 @@ Jacobian[23][7]=
 
 Jacobian[23][8]=
 	gAlp(m,n) * (-((exp(-4 * gconf(m,n)) * gB(m,n) 
-    /*3*/  * (2 * gL(m,n) * gsig(m,n) + gLD(gsig(m,n)) 
+    /*3*/  * (2 * gL(m,n) * gsig(m,n) + gsig_gL_r(m,n) 
     /*4*/  * r(m,n))) / (pow2(gA(m,n)) * r(m,n))) + (exp(-4 
     /*3*/  * gconf(m,n)) * gB(m,n) * (4 * gsig_r(m,n) 
     /*3*/  + gsig_rr(m,n) * r(m,n) + 2 * pow2(gsig(m,n)) 
@@ -1496,6 +1569,9 @@ Jacobian[23][23]=
     /*2*/  / (gA(m,n) * Lt(m,n) * r(m,n)) + (2 * exp(-2 
     /*4*/  * gconf(m,n))) / (gA(m,n) * r(m,n) * Lt(m,n))));
 
+Jacobian[23][28]=
+	gAsig_r(m,n) + (2 * gAsig(m,n)) / r(m,n);
+
 Jacobian[24][1]=
 	k_f * (gAlp(m,n) * ((2 * exp(-2 * fconf(m,n) + 2 
     /*4*/  * gconf(m,n)) * gA(m,n) * (P_2_0(R(m,n)) + b_0)) 
@@ -1537,7 +1613,7 @@ Jacobian[24][2]=
     /*4*/  * fconf(m,n)) * fDconf(m,n) * (1 + fDB(m,n) 
     /*4*/  * r(m,n)) + r(m,n) * (4 * exp(4 * fconf(m,n)) 
     /*4*/  * fDconf_r(m,n) + exp(4 * gconf(m,n)) 
-    /*4*/  * fLD(fsig(m,n)) * pow2(gB(m,n)) * pow2(r(m,n)) 
+    /*4*/  * fsig_fL_r(m,n) * pow2(gB(m,n)) * pow2(r(m,n)) 
     /*4*/  * pow2(R(m,n)) + 8 * exp(4 * fconf(m,n)) * fDB(m,n)
     /*4*/  * fsig(m,n) * r(m,n) - 2 * exp(4 * fconf(m,n)) 
     /*4*/  * fsig_r(m,n) * r(m,n) + 2 * exp(4 * gconf(m,n)) 
@@ -1601,7 +1677,7 @@ Jacobian[24][11]=
     /*4*/  * fconf(m,n)) * fDconf(m,n) * (1 + fDB(m,n) 
     /*4*/  * r(m,n)) + r(m,n) * (4 * exp(4 * fconf(m,n)) 
     /*4*/  * fDconf_r(m,n) + exp(4 * gconf(m,n)) 
-    /*4*/  * fLD(fsig(m,n)) * pow2(gB(m,n)) * pow2(r(m,n)) 
+    /*4*/  * fsig_fL_r(m,n) * pow2(gB(m,n)) * pow2(r(m,n)) 
     /*4*/  * pow2(R(m,n)) + 8 * exp(4 * fconf(m,n)) * fDB(m,n)
     /*4*/  * fsig(m,n) * r(m,n) - 2 * exp(4 * fconf(m,n)) 
     /*4*/  * fsig_r(m,n) * r(m,n) + 2 * exp(4 * gconf(m,n)) 
@@ -1614,7 +1690,7 @@ Jacobian[24][11]=
 Jacobian[24][12]=
 	fAlp(m,n) * (-((exp(-6 * fconf(m,n) + 2 
     /*4*/  * gconf(m,n)) * gB(m,n) * (2 * fL(m,n) * fsig(m,n) 
-    /*4*/  + fLD(fsig(m,n)) * r(m,n)) * R(m,n)) 
+    /*4*/  + fsig_fL_r(m,n) * r(m,n)) * R(m,n)) 
     /*2*/  / (pow2(fA(m,n)) * r(m,n))) + (exp(-6 * fconf(m,n) 
     /*3*/  + 2 * gconf(m,n)) * gB(m,n) * (4 * fsig_r(m,n) 
     /*3*/  + fsig_rr(m,n) * r(m,n) + 2 * pow2(fsig(m,n)) 
@@ -1667,6 +1743,9 @@ Jacobian[24][24]=
     /*3*/  * fconf(m,n)) * p(m,n)) / (fA(m,n) * r(m,n) 
     /*2*/  * Lt(m,n)));
 
+Jacobian[24][28]=
+	fAsig_r(m,n) + (2 * fAsig(m,n)) / r(m,n);
+
 Jacobian[25][1]=
 	(-2 * exp(-2 * gconf(m,n)) * gAlp(m,n) * p(m,n) 
     /*1*/  * (2 * pfD(m,n) + pfD_r(m,n) * r(m,n))) / (gA(m,n) 
@@ -1677,13 +1756,16 @@ Jacobian[25][7]=
     /*3*/  * pfD(m,n) + pfD_r(m,n) * r(m,n))) 
     /*1*/  / (pow2(gA(m,n)) * r(m,n) * Lt(m,n)));
 
-Jacobian[25][27]=
+Jacobian[25][25]=
 	gBet_r(m,n) + 2 * gBetr(m,n) - gDAlp(m,n) 
     /*0*/  * pfv(m,n) + gAlp(m,n) * (-pfv_r(m,n) - (2 
     /*2*/  * pfv(m,n)) / r(m,n) + p(m,n) * ((-2 * exp(-2 
     /*4*/  * gconf(m,n))) / (gA(m,n) * Lt(m,n) * r(m,n)) + (2 
     /*3*/  * exp(-2 * gconf(m,n))) / (gA(m,n) * r(m,n) 
     /*3*/  * Lt(m,n))));
+
+Jacobian[25][28]=
+	pfD_r(m,n) + (2 * pfD(m,n)) / r(m,n);
 
 Jacobian[26][1]=
 	(-2 * exp(-2 * gconf(m,n)) * gAlp(m,n) * p(m,n) 
@@ -1701,10 +1783,10 @@ Jacobian[26][7]=
 Jacobian[26][9]=
 	gAlp(m,n) * pfS(m,n) * pfv(m,n);
 
-Jacobian[26][27]=
+Jacobian[26][25]=
 	-gDAlp(m,n);
 
-Jacobian[26][28]=
+Jacobian[26][26]=
 	2 * gBet_r(m,n) + 2 * gBetr(m,n) - gDAlp(m,n) 
     /*0*/  * pfv(m,n) + gAlp(m,n) * ((-(pfv_r(m,n) * r(m,n)) 
     /*2*/  + pfv(m,n) * (-2 + gDA(m,n) * r(m,n) + 2 
@@ -1713,8 +1795,11 @@ Jacobian[26][28]=
     /*3*/  * r(m,n)) + (2 * exp(-2 * gconf(m,n))) / (gA(m,n) 
     /*3*/  * r(m,n) * Lt(m,n))));
 
-Jacobian[26][29]=
+Jacobian[26][27]=
 	-gDAlp(m,n);
+
+Jacobian[26][28]=
+	pfS_r(m,n) + (2 * pfS(m,n)) / r(m,n);
 
 Jacobian[27][1]=
 	(4 * exp(-4 * gconf(m,n)) * gDAlp(m,n) * pfS(m,n))
@@ -1730,17 +1815,33 @@ Jacobian[27][7]=
     /*2*/  + pftau_r(m,n) * r(m,n))) / (pow2(gA(m,n)) * r(m,n)
     /*1*/  * Lt(m,n));
 
-Jacobian[27][28]=
+Jacobian[27][26]=
 	gK1(m,n) * gAlp(m,n) * pfv(m,n) - (exp(-4 
     /*2*/  * gconf(m,n)) * gDAlp(m,n)) / pow2(gA(m,n));
 
-Jacobian[27][29]=
+Jacobian[27][27]=
 	gBet_r(m,n) + 2 * gBetr(m,n) - gDAlp(m,n) 
     /*0*/  * pfv(m,n) + gAlp(m,n) * (-pfv_r(m,n) - (2 
     /*2*/  * pfv(m,n)) / r(m,n) + p(m,n) * ((-2 * exp(-2 
     /*4*/  * gconf(m,n))) / (gA(m,n) * Lt(m,n) * r(m,n)) + (2 
     /*3*/  * exp(-2 * gconf(m,n))) / (gA(m,n) * r(m,n) 
     /*3*/  * Lt(m,n))));
+
+Jacobian[27][28]=
+	pftau_r(m,n) + (2 * pftau(m,n)) / r(m,n);
+
+Jacobian[28][28]=
+	gBet_r(m,n) - (exp(-2 * gconf(m,n)) * gAlp_r(m,n)
+    /*1*/  * p(m,n)) / (gA(m,n) * Lt(m,n)) + gAlp(m,n) 
+    /*0*/  * (-((exp(-2 * gconf(m,n)) * p_r(m,n)) / (gA(m,n) 
+    /*3*/  * Lt(m,n))) + p(m,n) * (((2 * exp(-2 * gconf(m,n)) 
+    /*4*/  * gconf_r(m,n)) / gA(m,n) + (exp(-2 * gconf(m,n)) 
+    /*4*/  * gA_r(m,n)) / pow2(gA(m,n))) / Lt(m,n) + (exp(-2 
+    /*4*/  * gconf(m,n)) * Lt_r(m,n)) / (gA(m,n) 
+    /*3*/  * pow2(Lt(m,n)))));
+
+Jacobian[28][29]=
+	0.75;
 
 Jacobian[29][1]=
 	k_g * pow3(gAlp(m,n)) * (-8 * exp(4 * gconf(m,n))
@@ -1769,28 +1870,29 @@ Jacobian[29][7]=
 	(-4 * k_g * exp(2 * fconf(m,n)) * fA(m,n) * p(m,n)
     /*1*/  * pow3(gAlp(m,n)) * P_2_1(R(m,n))) / pow3(gA(m,n))
     /*0*/  - (2 * pow2(gAlp(m,n)) * (-2 * gBet(m,n) 
-    /*2*/  + gDAD(gBet(m,n)) * pow2(r(m,n)) + 2 
-    /*2*/  * gDBD(gBet(m,n)) * pow2(r(m,n)) - 4 * gA1(m,n) 
+    /*2*/  + gBet_gDA_r(m,n) * pow2(r(m,n)) + 2 
+    /*2*/  * gBet_gDB_r(m,n) * pow2(r(m,n)) - 4 * gA1(m,n) 
     /*2*/  * gDAlp(m,n) * pow2(r(m,n)) + 4 * gA2(m,n) 
-    /*2*/  * gDAlp(m,n) * pow2(r(m,n)) + 4 * gBet_rr(m,n) 
-    /*2*/  * pow2(r(m,n)) + gShiD(gDA(m,n)) * pow2(r(m,n)) + 2
-    /*2*/  * gShiD(gDB(m,n)) * pow2(r(m,n)) + 2 * gBet_r(m,n)
-    /*2*/  * r(m,n))) / (3. * pow2(r(m,n)) * pow3(gA(m,n))) 
-    /*0*/  + pow3(gAlp(m,n)) * ((-8 * (gAsig(m,n) 
-    /*3*/  * pow2(r(m,n)) * (gDA(m,n) + gDB(m,n) + 6 
-    /*4*/  * gDconf(m,n) + gsig(m,n) * r(m,n)) - gtrA_r(m,n) 
-    /*3*/  - gtrK_r(m,n))) / (3. * pow3(gA(m,n))) + p(m,n) 
-    /*1*/  * ((2 * exp(-2 * gconf(m,n)) * (-2 + gDA_r(m,n) 
-    /*4*/  * pow2(r(m,n)) + 2 * gDB_r(m,n) * pow2(r(m,n)))) 
-    /*2*/  / (3. * Power(gA(m,n),4) * Lt(m,n) * pow2(r(m,n))) 
-    /*2*/  - (exp(-2 * gconf(m,n)) * (-2 + gDA_r(m,n) 
-    /*4*/  * pow2(r(m,n)) + 2 * gDB_r(m,n) * pow2(r(m,n)))) 
-    /*2*/  / (Power(gA(m,n),4) * pow2(r(m,n)) * Lt(m,n)) 
-    /*2*/  + (exp(-2 * gconf(m,n)) * (6 - 3 * gL_r(m,n) 
-    /*4*/  * pow2(gB(m,n)) * pow2(r(m,n)) - 2 * gL(m,n) 
-    /*4*/  * pow2(gB(m,n)) * r(m,n) * (2 + gDA(m,n) * r(m,n) 
-    /*5*/  + 2 * gDB(m,n) * r(m,n)))) / (3. * pow2(gA(m,n)) 
-    /*3*/  * pow2(gB(m,n)) * pow2(r(m,n)) * Lt(m,n))));
+    /*2*/  * gDAlp(m,n) * pow2(r(m,n)) + gDA_r(m,n) * gBet(m,n)
+    /*2*/  * pow2(r(m,n)) + 2 * gDB_r(m,n) * gBet(m,n) 
+    /*2*/  * pow2(r(m,n)) + 4 * gBet_rr(m,n) * pow2(r(m,n)) + 2
+    /*2*/  * gBet_r(m,n) * r(m,n))) / (3. * pow2(r(m,n)) 
+    /*1*/  * pow3(gA(m,n))) + pow3(gAlp(m,n)) * ((-8 
+    /*2*/  * (gAsig(m,n) * pow2(r(m,n)) * (gDA(m,n) + gDB(m,n)
+    /*4*/  + 6 * gDconf(m,n) + gsig(m,n) * r(m,n)) 
+    /*3*/  - gtrA_r(m,n) - gtrK_r(m,n))) / (3. * pow3(gA(m,n)))
+    /*1*/  + p(m,n) * ((2 * exp(-2 * gconf(m,n)) * (-2 
+    /*4*/  + gDA_r(m,n) * pow2(r(m,n)) + 2 * gDB_r(m,n) 
+    /*4*/  * pow2(r(m,n)))) / (3. * Power(gA(m,n),4) * Lt(m,n)
+    /*3*/  * pow2(r(m,n))) - (exp(-2 * gconf(m,n)) * (-2 
+    /*4*/  + gDA_r(m,n) * pow2(r(m,n)) + 2 * gDB_r(m,n) 
+    /*4*/  * pow2(r(m,n)))) / (Power(gA(m,n),4) * pow2(r(m,n))
+    /*3*/  * Lt(m,n)) + (exp(-2 * gconf(m,n)) * (6 - 3 
+    /*4*/  * gL_r(m,n) * pow2(gB(m,n)) * pow2(r(m,n)) - 2 
+    /*4*/  * gL(m,n) * pow2(gB(m,n)) * r(m,n) * (2 + gDA(m,n) 
+    /*5*/  * r(m,n) + 2 * gDB(m,n) * r(m,n)))) / (3. 
+    /*3*/  * pow2(gA(m,n)) * pow2(gB(m,n)) * pow2(r(m,n)) 
+    /*3*/  * Lt(m,n))));
 
 Jacobian[29][8]=
 	(4 * pow2(gAlp(m,n)) * (gBet(m,n) - gBet_r(m,n) 
@@ -1856,4 +1958,14 @@ Jacobian[29][23]=
 	(4 * pow2(r(m,n)) * pow3(gAlp(m,n)) * (gDA(m,n) 
     /*2*/  + gDB(m,n) + 6 * gDconf(m,n) + gsig(m,n) * r(m,n)))
     /*0*/  / (3. * pow2(gA(m,n)));
+
+Jacobian[29][28]=
+	Bq_r(m,n) + pow2(gAlp(m,n)) * ((gDA_r(m,n) + 2 
+    /*2*/  * gDB_r(m,n) - 2 / pow2(r(m,n))) / (3. 
+    /*2*/  * pow2(gA(m,n))) + (-6 + 2 * gL(m,n) * pow2(gB(m,n))
+    /*2*/  * r(m,n) * (2 + gDA(m,n) * r(m,n) + 2 * gDB(m,n) 
+    /*3*/  * r(m,n))) / (3. * pow2(gB(m,n)) * pow2(r(m,n))));
+
+Jacobian[29][29]=
+	-eta;
 

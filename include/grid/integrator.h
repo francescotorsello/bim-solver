@@ -276,7 +276,7 @@ class MoL : GridUser
     };
 
     /// TODO: combine DIRKs with the adaptive step size
-    /// ESDIRK32 is actually an embedded method. Now it is used as a non-embedded method,
+    /// ESDIRK32a is actually an embedded method. Now it is used as a non-embedded method,
     /// passing the last stage to the next step (note that the condition on L-stability
     /// depends on the stage passed to the next step).
 
@@ -621,14 +621,13 @@ public:
 
         methodID = params.get( "integ.method", method, 0, knownMethods );
 
-        if( methodID == "ESDIRK32" )
+        if( methodID == "ESDIRK32a" || methodID == "ESDIRK54a" )
         {
-            params.get( "DIRK.relError",  relError,   1e-3 );
-            params.get( "DIRK.absError",  absError,   1e-15 );
-            params.get( "DIRK.toleranceRatio",  toleranceRatio,   0.01 );
+            params.get( "DIRK.relativeError",  relError,       1e-3 );
+            params.get( "DIRK.absoluteError",  absError,       1e-15 );
+            params.get( "DIRK.toleranceRatio", toleranceRatio, 0.01 );
+            updateJ_ID = params.get( "DIRK.updateJ", updateJ, STEP, updateJacobian );
         }
-
-        updateJ_ID = params.get( "DIRK.updateJ", updateJ, STEP, updateJacobian );
 
         if( updateJ == MULTIPLE_STEPS )
         {
@@ -743,7 +742,8 @@ public:
             // Below here, DIRK
             //////////////////////////////////////////////////////////////////////////////
 
-            case 14:  integrate_MoL( ESDIRK32, /* adaptive = */ false ); break;
+            case 14:  integrate_MoL( ESDIRK32a, /* adaptive = */ false ); break;
+            case 15:  integrate_MoL( ESDIRK54a, /* adaptive = */ false ); break;
         }
 
         return true;
@@ -758,14 +758,14 @@ std::vector<MoL*> MoL::knownIntegrators;
 
 std::map<std::string,int> MoL::knownMethods =
 {
-    { "Euler",     0 },   { "avgICN2",    1 },
-    { "avgICN3",   2 },   { "avgICN4",    3 },
-    { "ICN2",      4 },   { "ICN3",       5 },
-    { "RK1",       6 },   { "RK2",        7 },
-    { "RK3",       8 },   { "RK4",        9 },
-    { "RK5DP_7M", 10 },   { "RK5DP_7MA", 11 },
-    { "RK5DP_7S", 12 },   { "RK5DP_7SA", 13 },
-    { "ESDIRK32", 14 }
+    { "Euler",      0 },   { "avgICN2",    1 },
+    { "avgICN3",    2 },   { "avgICN4",    3 },
+    { "ICN2",       4 },   { "ICN3",       5 },
+    { "RK1",        6 },   { "RK2",        7 },
+    { "RK3",        8 },   { "RK4",        9 },
+    { "RK5DP_7M",  10 },   { "RK5DP_7MA", 11 },
+    { "RK5DP_7S",  12 },   { "RK5DP_7SA", 13 },
+    { "ESDIRK32a", 14 },   { "ESDIRK54a", 15 }
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -1068,7 +1068,7 @@ void MoL::integrate_MoL( const MoLDescriptor& MoL, bool adaptiveStepSize )
  *  initial hypersurface and calls MoL_DIRK_computeStep, defined below.
  */
 void MoL::integrate_MoL(
-        const ButcherTable& BT,                 // the DIRK's Butcher table
+        const ButcherTable& BT,                 // the Butcher table
         bool                adaptiveStepSize
     )
 {
@@ -1083,7 +1083,7 @@ void MoL::integrate_MoL(
 
     // Allocate the MatReal objects (the Newton iteration matrices) and return a pointer
     // to them ('new' returns the pointer)
-    for( Int n = nGhost; n < nLen + nGhost; ++n )
+    OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
     {
         NewtonItMats[n] = new MatReal( n_evolved, n_evolved, Real(0) );
     }
@@ -1112,7 +1112,7 @@ void MoL::integrate_MoL(
     // pointer)
     for( Int stage_i = 0; stage_i < BT.s; ++stage_i )
     {
-        OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+        for( Int n = 0; n < nLen; ++n )
         {
             F[ nLen * stage_i + n ] = new VecReal( n_evolved, Real(0) );
         }
@@ -1135,16 +1135,19 @@ void MoL::integrate_MoL(
         slog << "    Newton iteration matrix updated at every step."
              << std::endl << std::endl;
 
-    } else if( updateJ == MULTIPLE_STEPS ) {
+    } else if( updateJ == MULTIPLE_STEPS )
+    {
 
         slog << "    Newton iteration matrix updated every " << modulo << " steps."
              << std::endl << std::endl;
 
-    } else if( updateJ == STAGE ) {
+    } else if( updateJ == STAGE )
+    {
 
         slog << "    Newton iteration matrix updated at every stage."
              << std::endl << std::endl;
     }
+
     slog << "    Relative error = " << relError
          << std::endl
          << "    Absolute error = " << absError
@@ -1157,7 +1160,7 @@ void MoL::integrate_MoL(
 
     // Setup and export the initial data
 
-    for( Int n = 0; n < nTotal; ++n )
+    OMP_parallel_for( Int n = 0; n < nTotal; ++n )
     {
         GF( fld::t, 0, n ) = t_0;
     }
@@ -1188,7 +1191,13 @@ void MoL::integrate_MoL(
 
             integStep_End( next_m, m );
 
-            //////////////////////////////////////////////////////////////////////////////
+            /////////////////////////////////////////////////////////////////////////////
+            //
+            if( adaptiveStepSize )
+            {
+                // placeholder for the adaptive stepsize control
+            }
+            /////////////////////////////////////////////////////////////////////////////
 
             if( ( mStep++ % output -> get_mSkip () ) == 0 )
             {
@@ -1406,7 +1415,7 @@ void MoL::DIRK_computeStage(
             for( Int j = 0; j <= stage_i - 1; ++j )
             {
                 X[field_i] += delta_t * BT.A[stage_i][j]
-                                * (*F[ nLen * stage_i + n ])[ field_i ];
+                                * (*F[ nLen * stage_i + ( n - nGhost ) ])[ field_i ];
             }
             ++field_i;
         }
@@ -1497,7 +1506,8 @@ void MoL::DIRK_computeStage(
                 Int field_i = 0;
                 for( auto e : evolvedGF )
                 {
-                    (*F[ stage_i * nLen + n ])[ field_i ] = GF( e.f_t, next_m, n );
+                    (*F[ stage_i * nLen + ( n - nGhost ) ])[ field_i ]
+                        = GF( e.f_t, next_m, n );
                     ++field_i;
                 }
             }
