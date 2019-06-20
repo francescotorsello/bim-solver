@@ -260,6 +260,7 @@ class MoL : GridUser
                               //!< Jacobian in DIRKs
     Int      modulo;          //!< When the Jacobian is updated after m steps, modulo = m
     Int      next_m;          //!< Periodic variable storing the next time step
+    Int      next_next_m;          //!< Periodic variable storing the next time step
 
     MatReal** NewtonItMats;   //!< A pointer to a set of nLen square matrices of
                               //!< dimension n_evolved
@@ -512,7 +513,7 @@ class MoL : GridUser
             for( auto f: constantGF ) {
                 GF( f, m1, n ) = GF( f, m, n );
             }
-        }
+        } /// Moved to integStep_Begin (DIRK wants this at the beginning)
 
         /// - Finalize the integration step (e.g., doing diagnostic and post
         ///   processing of EoM like calculating the constraint violations).
@@ -848,6 +849,7 @@ void MoL::integrate_AvgICN( int ICN_steps )
             {
                 Int m_2 = ( i + 1 >= ICN_steps ? mNext : m_1 + 1 );
 
+                /// Check this
                 integStep_Begin  ( m_1         );   if( ! running ) break;
                 integStep_AvgICN ( m_2, m_1, m );
                 integStep_End    ( m_2, m_1    );
@@ -1164,10 +1166,12 @@ void MoL::integrate_MoL(
     {
         GF( fld::t, 0, n ) = t_0;
     }
+    integStep_Begin( 0 );
     for( auto eom: eomList )
     {
         eom -> integStep_CalcEvolutionRHS( 0 );
     }
+    integStep_End( 1, 0 );
     integStep_Checkpoint( 0 );
 
     // Perform the time integration
@@ -1175,7 +1179,7 @@ void MoL::integrate_MoL(
     mStep = 0; // The step counter
     while( running && abs(cur_t) < abs(t_1) )
     {
-        for( Int m = 0; running && m < mLen && abs(cur_t) < abs(t_1); ++m )
+        for( Int m = 0; running && m < mLen; ++m )
         {
             // Set the periodic value of next_m
             if( m == mLen - 1 )
@@ -1187,9 +1191,19 @@ void MoL::integrate_MoL(
                 next_m = m + 1;
             }
 
+            // Set the periodic value of next_next_m
+            if( next_m == mLen - 1 )
+            {
+                next_next_m = 0;
+
+            } else
+            {
+                next_next_m = m + 1;
+            }
+
             DIRK_computeStep( next_m, m, BT );
 
-            //integStep_End( next_m, m );
+            integStep_End( next_m, m );
 
             /////////////////////////////////////////////////////////////////////////////
             //
@@ -1256,11 +1270,13 @@ void MoL::DIRK_computeStep(
             }
         }
 
+        integStep_Begin( next_m );
+
         // Compute the Newton iteration matrices at next_m
         // For each IntegFace* pointer in eomList (presently, only BimetricEvolve)
         for( auto eom: eomList )
         {
-            OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+            OMP_parallel_for( Int n = nGhost; n < nGhost + 1/*nLen + nGhost*/; ++n )
             {
             // Use this method of BimetricEvolve. This method computes the Newton
             // iteration matrix, and stores them into the MatReal objects pointed
@@ -1290,6 +1306,8 @@ void MoL::DIRK_computeStep(
 
         if( ( mStep % modulo ) == 0 )
         {
+            integStep_Begin( next_m );
+
             // Compute the Newton iteration matrices at next_m
             // For each IntegFace* pointer in eomList (presently, only BimetricEvolve)
             for( auto eom: eomList )
@@ -1313,6 +1331,7 @@ void MoL::DIRK_computeStep(
     // Loop over the stages within one time step
     for( Int stage_i = 0; stage_i < BT.s; ++stage_i ) // for each stage
     {
+
         // Find the initial guesses at stage_i with Euler method
         OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
         {
@@ -1340,6 +1359,9 @@ void MoL::DIRK_computeStep(
                 }
             }
         }
+
+        integStep_Begin( next_m );
+
         // At this point, the initial guesses are known in all cases and stages.
         // Hence, we can compute the evolution equations at next_m, needed in the first
         // Newton iteration in DIRK_computeStage, when computing the residual vector
