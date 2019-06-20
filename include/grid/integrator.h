@@ -1069,7 +1069,7 @@ void MoL::integrate_MoL( const MoLDescriptor& MoL, bool adaptiveStepSize )
  */
 void MoL::integrate_MoL(
         const ButcherTable& BT,                 // the Butcher table
-        bool                adaptiveStepSize
+        bool                adaptiveStepSize    // adaptive stepsize flag
     )
 {
     // Take the number of the evolved fields --- the Newton iteration matrix
