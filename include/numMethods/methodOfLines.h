@@ -8,6 +8,8 @@
 #ifndef _METHOD_OF_LINES_H_INCLUDED
 #define _METHOD_OF_LINES_H_INCLUDED
 
+#include "matrix.h"
+
 /////////////////////////////////////////////////////////////////////////////////////////
 /** @defgroup g11 Numerical Methods                                                    */
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -42,6 +44,15 @@ class IntegFace
     /** Fix the state variables at the right boundary.
      */
     virtual void applyRightBoundaryCondition( Int m ) = 0;
+
+    /** Compute iteration matrix.
+     */
+    virtual void computeNewtonIterationMatrix(
+        Int m, Int n, Int n_evolved,
+        Int stage_i,
+        const struct ButcherTable& BT,
+        MatReal& NewItMat
+    ) = 0;
 };
 
 /** @struct MoLDescriptor
@@ -140,6 +151,10 @@ MoLDescriptor RK4 = //!< Classical Runge-Kutta, 4th order
 // The adaptive step methods are in a separate file:
 //
 #include "embeddedMoL.h"
+
+// The diagonally implicit (DIRK) step methods are in a separate file:
+//
+#include "DIRK_MoL.h"
                                                                                    /*@}*/
 /////////////////////////////////////////////////////////////////////////////////////////
 

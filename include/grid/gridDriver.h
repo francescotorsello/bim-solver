@@ -535,7 +535,7 @@ void GridUser::smoothenGF( Int m, Int copy2gf, Int outgf, Int ingf, Int parity )
     for( Int n = nTo; n < nTotal; ++n )
     {
         extrapolate_R( outgf, m, n );  /// @todo should be a choice of extrapolation
-        //extrapolate_D( outgf, m, n );
+    //    extrapolate_D( outgf, m, n );
     }
 
     // Optionally copy the output to a new location
@@ -620,6 +620,14 @@ void GridUser::smoothenGF0( Int m, Int nCopyFrom, Int nCopyTo, Int sgRadius, Int
         }
     }
 }
+
+
+
+
+
+
+
+
                                                                                    /*@}*/
 /////////////////////////////////////////////////////////////////////////////////////////
 
