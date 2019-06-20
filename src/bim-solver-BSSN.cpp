@@ -21,7 +21,7 @@
 //#include "sys/nr3.h"
 
 #ifndef _TEST_MODE
-    #define _TEST_MODE 1
+    #define _TEST_MODE 0
 #endif // _TEST_MODE
 
 #ifndef OBSERVER
@@ -1317,8 +1317,9 @@ class BimetricEvolve
     /** Calculate the derived variables R, Lt, and pfv.
      *  @note TINY_Real is added to the denominator of pfv to avoid dividing by zero.
      */
-    void calculateDerivedVariables( Int m, Int n )
+    void calculateDerivedVariables( Int m, Int n ) // inside IntegStep_Prepare
     {
+        p(m,n)     = isGR() ? 0 : 1;
 
         R(m,n)     = isGR() ? 1 : (fB(m,n)*exp(2*fconf(m,n)))/(gB(m,n)*exp(2*gconf(m,n)));
 
@@ -1352,17 +1353,19 @@ class BimetricEvolve
 
         gDconfr(m,n) = gDconf(m,n) / r(m,n); // TODO: check this
 
-        gLr    (m,n )= gL(m,n) / r(m,n);
+        gLr    (m,n) = gL(m,n) / r(m,n);
 
-        gBr    (m,n )= gB(m,n) * r(m,n);
+        gBr    (m,n) = gB(m,n) * r(m,n);
 
         fDconfr(m,n) = fDconf(m,n) / r(m,n);
 
         fLr    (m,n) = fL(m,n) / r(m,n);
 
-        pr    (m,n) = p(m,n) / r(m,n);
+        pr     (m,n) = p(m,n) / r(m,n);
 
-        qr    (m,n) = q(m,n) / r(m,n);
+        qr     (m,n) = q(m,n) / r(m,n);
+
+        //std::cout << "\n\n" << q(m,n) << "\n\n";
 
     }
 
@@ -1442,187 +1445,198 @@ public:
 
 BimetricEvolve::BimetricEvolve( Parameters& params,
             UniformGrid& ug, GridOutputWriter& output, MoL& integ )
-    : BimetricModel( params ), GridUser( ug ),
-      Jacobian( fld::bimEvolvedGF.size(), fld::bimEvolvedGF.size(), Real(0) )
-      ///TODO: add evolved gauge variables to bimEvolvedGF
+    : BimetricModel( params ), GridUser( ug )
 {
     #if _TEST_MODE
 
-    // Cached from the integrator
-    //
-    delta_t = integ.dt ();
+        // Cached from the integrator
+        //
+        delta_t = integ.dt ();
 
-    // Sign up for the integration
-    //
-    integ.addToEvolution( this );
+        // Sign up for the integration
+        //
+        integ.addToEvolution( this );
 
-    integ.keepEvolved( fld::bimEvolvedGF ); // GFs that are evolved by the integrator
-
-    #else
-
-    static std::map<std::string,int> knownSlicings =
-    {
-        { "const",  SLICE_CONSTG },
-        { "constg", SLICE_CONSTG },  { "constgf", SLICE_CONSTGF },
-        { "MS2OPT", SLICE_MS2OPT },  { "MS2",     SLICE_MS2     },
-        { "MS4",    SLICE_MS4    },  { "SG",      SLICE_SG      },
-        { "MS6",    SLICE_MS6    },  { "KD",      SLICE_KD      },
-        { "MS4D",   SLICE_MS4D   },  { "MS4G",    SLICE_MS4G    }
-    };
-    std::string name = params.get( "slicing.method", slicing, 0, knownSlicings );
-
-    params.get( "slicing.lin2n",        lin2n,       nGhost              );
-    params.get( "slicing.cub2n",        cub2n,       5 * nGhost / 2 + 6  );
-    params.get( "slicing.smooth",       smooth,      0                   );
-    params.get( "slicing.dissipGauge",  eta,         0.0                 );
-    params.get( "slicing.diffGauge",    Kdiff,         0.6                 );
-    params.get( "slicing.elastGauge",   Kelas,         0.1                 );
-
-    params.get( "smoothing.nSmoothFrom",  nSmoothFrom, 5*nGhost   );
-    params.get( "smoothing.nSmoothUpTo",  nSmoothUpTo, output.get_nOut()   );
-    params.get( "smoothing.mSmoothUpTo",  mSmoothUpTo, 50000   );
-    /* get mSize out of the above */
-    params.get( "smoothing.sgRadius",     sgRadius,    10.0                );
-    //nSmoothUpTo = output.get_nOut();
-
-    #if _EVOLVE_DSIG
-
-    slog << "Equations:" << std::endl << std::endl
-         << "    Evolve gDsig, fDsig: " << "yes"
-         << std::endl << std::endl;
+        integ.keepEvolved( fld::bimEvolvedGF ); // GFs that are evolved by the integrator
 
     #else
 
-    slog << "Equations:" << std::endl << std::endl
-         << "    Evolve gDsig, fDsig: " << "no"
-         << std::endl << std::endl;
+        static std::map<std::string,int> knownSlicings =
+        {
+            { "const",  SLICE_CONSTG },
+            { "constg", SLICE_CONSTG },  { "constgf", SLICE_CONSTGF },
+            { "MS2OPT", SLICE_MS2OPT },  { "MS2",     SLICE_MS2     },
+            { "MS4",    SLICE_MS4    },  { "SG",      SLICE_SG      },
+            { "MS6",    SLICE_MS6    },  { "KD",      SLICE_KD      },
+            { "MS4D",   SLICE_MS4D   },  { "MS4G",    SLICE_MS4G    }
+        };
+        std::string name = params.get( "slicing.method", slicing, 0, knownSlicings );
 
-    #endif // _EVOLVE_DSIG
+        params.get( "slicing.lin2n",        lin2n,       nGhost              );
+        params.get( "slicing.cub2n",        cub2n,       5 * nGhost / 2 + 6  );
+        params.get( "slicing.smooth",       smooth,      0                   );
+        params.get( "slicing.dissipGauge",  eta,         0.0                 );
+        params.get( "slicing.diffGauge",    Kdiff,         0.6                 );
+        params.get( "slicing.elastGauge",   Kelas,         0.1                 );
 
-    slog << "Bimetric Solver:" << std::endl << std::endl
-         << "    slicing = " << name << " (#" << slicing << ")"
-         << ", lin2n = " << lin2n << ", cub2n = " << cub2n
-         << ", smooth = " << smooth
-         << std::endl << std::endl;
+        params.get( "smoothing.nSmoothFrom",  nSmoothFrom, 5*nGhost   );
+        params.get( "smoothing.nSmoothUpTo",  nSmoothUpTo, output.get_nOut()   );
+        params.get( "smoothing.mSmoothUpTo",  mSmoothUpTo, 50000   );
+        /* get mSize out of the above */
+        params.get( "smoothing.sgRadius",     sgRadius,    10.0                );
+        //nSmoothUpTo = output.get_nOut();
 
-    if (smooth >= 1)
-    {
-        slog << "Smoothing:" << std::endl << std::endl
-             << "    Smoothing from n = " << nSmoothFrom
-             << ", to n = " << nSmoothUpTo
-             << ", up to m = " << mSmoothUpTo << std::endl
-             << "    Savitzky-Golay radius = " << sgRadius
+        #if _EVOLVE_DSIG
+
+            slog << "Equations:" << std::endl << std::endl
+                 << "    Evolve gDsig, fDsig: " << "yes"
+                 << std::endl << std::endl;
+
+        #else
+
+            slog << "Equations:" << std::endl << std::endl
+                 << "    Evolve gDsig, fDsig: " << "no"
+                 << std::endl << std::endl;
+
+        #endif // _EVOLVE_DSIG
+
+        slog << "Bimetric Solver:" << std::endl << std::endl
+             << "    slicing = " << name << " (#" << slicing << ")"
+             << ", lin2n = " << lin2n << ", cub2n = " << cub2n
+             << ", smooth = " << smooth
              << std::endl << std::endl;
-    }
 
-    if( slicing == SLICE_SG ){
-
-             slog << "The standard gauge (Bona-Masso & Gamma-driver):"
-                  << std::endl << std::endl
-                  << "    Gamma-driver dissipation = " << eta
-                  << std::endl << std::endl;
-
+        if (smooth >= 1)
+        {
+            slog << "Smoothing:" << std::endl << std::endl
+                 << "    Smoothing from n = " << nSmoothFrom
+                 << ", to n = " << nSmoothUpTo
+                 << ", up to m = " << mSmoothUpTo << std::endl
+                 << "    Savitzky-Golay radius = " << sgRadius
+                 << std::endl << std::endl;
         }
 
-    if( slicing == SLICE_KD ){
+        if( slicing == SLICE_SG ){
 
-             slog << "The K-driver parabolic gauge on the lapse:"
-                  << std::endl << std::endl
-                  << "    Effective diffusion constant e = " << Kdiff
-                  << "    'Elastic' constant = " << Kelas
-                  << std::endl << std::endl;
+                 slog << "The standard gauge (Bona-Masso & Gamma-driver):"
+                      << std::endl << std::endl
+                      << "    Gamma-driver dissipation = " << eta
+                      << std::endl << std::endl;
 
+            }
+
+        if( slicing == SLICE_KD ){
+
+                 slog << "The K-driver parabolic gauge on the lapse:"
+                      << std::endl << std::endl
+                      << "    Effective diffusion constant e = " << Kdiff
+                      << "    'Elastic' constant = " << Kelas
+                      << std::endl << std::endl;
+
+            }
+
+        if( slicing == SLICE_MS4D ){
+
+                 slog << "The K-drived maximal slicing (BVP):" << std::endl << std::endl
+                      << "    'Elastic' constant = " << Kelas
+                      << std::endl << std::endl;
+
+            }
+        if( slicing == SLICE_MS4G ){
+
+                 slog << "The maximal slicing (BVP) & Gamma-driver:"
+                      << std::endl << std::endl
+                      << "    Gamma-driver dissipation = " << eta
+                      << std::endl << std::endl;
+            }
+
+        if ( mpiSize() > 1 &&
+            ( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4
+                || slicing == SLICE_MS6 || slicing == SLICE_MS4D ||
+                    slicing == SLICE_MS4G ) )
+        {
+            slog << "*** Error: Maximal slicing is not compatible with MPI." << std::endl;
+            gridDriver->quit( -1 );
         }
 
-    if( slicing == SLICE_MS4D ){
+        // Cached from the integrator
+        //
+        delta_t = integ.dt ();
 
-             slog << "The K-drived maximal slicing (BVP):" << std::endl << std::endl
-                  << "    'Elastic' constant = " << Kelas
-                  << std::endl << std::endl;
+        // Sign up for the integration
+        //
+        integ.addToEvolution( this );
 
+        // Add our grid functions to the evolution
+        //
+
+        integ.keepEvolved( fld::bimEvolvedGF ); // GFs that are evolved by the integrator
+
+        /*if( slicing != SLICE_KD || slicing != SLICE_SG || slicing != SLICE_MS2
+            || slicing != SLICE_MS2OPT || slicing != SLICE_MS4 || slicing != SLICE_MS4D
+            || slicing != SLICE_MS6 )*/
+        /*if( slicing == SLICE_KD || slicing == SLICE_SG || slicing == SLICE_MS2
+            || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS4D
+            || slicing == SLICE_MS6 )
+        {
+            integ.keepConstant( { fld::q } );
+        }*/  // GFs that are kept constant in time
+
+        std::vector<fld::EvolvedBy> evolvedGaugeGF;
+
+        if( isGR () || slicing == SLICE_CONSTGF ) {
+            integ.keepConstant( { fld::q, fld::fAlp, fld::fDAlp } );
         }
-    if( slicing == SLICE_MS4G ){
 
-             slog << "The maximal slicing (BVP) & Gamma-driver:"
-                  << std::endl << std::endl
-                  << "    Gamma-driver dissipation = " << eta
-                  << std::endl << std::endl;
+        if ( slicing == SLICE_CONSTG || slicing == SLICE_CONSTGF ) {
+            integ.keepConstant( { fld::q, fld::gAlp, fld::gDAlp } );
         }
-
-    if ( mpiSize() > 1 &&
-        ( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4
-            || slicing == SLICE_MS6 || slicing == SLICE_MS4D || slicing == SLICE_MS4G ) )
-    {
-        slog << "*** Error: Maximal slicing is not compatible with MPI." << std::endl;
-        gridDriver->quit( -1 );
-    }
-
-    // Cached from the integrator
-    //
-    delta_t = integ.dt ();
-
-    // Sign up for the integration
-    //
-    integ.addToEvolution( this );
-
-    // Add our grid functions to the evolution
-    //
-    /*if( slicing != SLICE_KD || slicing != SLICE_SG || slicing != SLICE_MS2
-        || slicing != SLICE_MS2OPT || slicing != SLICE_MS4 || slicing != SLICE_MS4D
-        || slicing != SLICE_MS6 )*/
-    if( slicing == SLICE_KD || slicing == SLICE_SG || slicing == SLICE_MS2
-        || slicing == SLICE_MS2OPT || slicing == SLICE_MS4 || slicing == SLICE_MS4D
-        || slicing == SLICE_MS6 )
-    {
-        integ.keepConstant( { fld::q } );
-    }  // GFs that are kept constant in time
-
-    integ.keepEvolved( fld::bimEvolvedGF ); // GFs that are evolved by the integrator
-
-    if( isGR () || slicing == SLICE_CONSTGF ) {
-        integ.keepConstant( { fld::fAlp, fld::fDAlp } );
-    }
-
-    if ( slicing == SLICE_CONSTG || slicing == SLICE_CONSTGF ) {
-        integ.keepConstant( { fld::gAlp, fld::gDAlp } );
-    }
-    else if ( slicing == SLICE_SG )
-    {
-        const static std::vector<fld::EvolvedBy> evolvedGaugeGF = {
-            { fld::gAlp,  fld::gAlp_t  },
-            { fld::gDAlp, fld::gDAlp_t },
-            { fld::q,     fld::q_t     },
-            { fld::Bq,    fld::Bq_t    }
-        };
-        integ.keepEvolved( evolvedGaugeGF );
-    }
-    else if ( slicing == SLICE_MS4G )
-    {
-        const static std::vector<fld::EvolvedBy> evolvedGaugeGF = {
-            { fld::q,     fld::q_t     },
-            { fld::Bq,    fld::Bq_t    }
-        };
-        integ.keepEvolved( evolvedGaugeGF );
-    }
-    else if ( slicing == SLICE_KD )
-    {
-        const static std::vector<fld::EvolvedBy> evolvedGaugeGF = {
-            { fld::gAlp,  fld::gAlp_t  }
-            //{ fld::gDAlp, fld::gDAlp_t },
-        };
-        integ.keepEvolved( evolvedGaugeGF );
-    }
-    else if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4
-                || slicing == SLICE_MS4D || slicing == SLICE_MS6 )
-    {
-        const static std::vector<fld::EvolvedBy> evolvedGaugeGF = {
-            { fld::q,     fld::q_t     },
-            { fld::Bq,    fld::Bq_t    }
-        };
-        integ.keepEvolved( evolvedGaugeGF );
-    }
+        else if ( slicing == SLICE_SG )
+        {
+            evolvedGaugeGF = {
+                { fld::gAlp,  fld::gAlp_t  },
+                { fld::gDAlp, fld::gDAlp_t },
+                { fld::q,     fld::q_t     },
+                { fld::Bq,    fld::Bq_t    }
+            };
+            integ.keepEvolved( evolvedGaugeGF );
+        }
+        else if ( slicing == SLICE_MS4G )
+        {
+            //const static std::vector<fld::EvolvedBy> evolvedGaugeGF = {
+            evolvedGaugeGF = {
+                { fld::q,     fld::q_t     },
+                { fld::Bq,    fld::Bq_t    }
+            };
+            integ.keepEvolved( evolvedGaugeGF );
+        }
+        else if ( slicing == SLICE_KD )
+        {
+            evolvedGaugeGF = {
+                { fld::gAlp,  fld::gAlp_t  }
+                //{ fld::gDAlp, fld::gDAlp_t },
+            };
+            integ.keepEvolved( evolvedGaugeGF );
+        }
+        else if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4
+                    || slicing == SLICE_MS4D || slicing == SLICE_MS6 )
+        {
+            evolvedGaugeGF = {
+                { fld::q,     fld::q_t     },
+                { fld::Bq,    fld::Bq_t    }
+            };
+            integ.keepEvolved( evolvedGaugeGF );
+        }
 
     #endif // _TEST_MODE
+
+    // Allocate memory for the Jacobian used by DIRK
+
+    Jacobian = MatReal(
+        fld::bimEvolvedGF.size() + evolvedGaugeGF.size(),
+        fld::bimEvolvedGF.size() + evolvedGaugeGF.size(),
+        Real(0)
+    );
 
     // The list of the grid functions to be written to the output.
     //
@@ -3738,7 +3752,7 @@ void BimetricEvolve::computeNewtonIterationMatrix(
 
     #else
 
-        #include "jacobian-BSSN/DIRK_Jacobian_cBSSN.h"
+        #include "jacobian-BSSN/DIRK_Jacobian_cBSSN_RegRed_Eul.h"
 
     #endif // _TEST_MODE
 

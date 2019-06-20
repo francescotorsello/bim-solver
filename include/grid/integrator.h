@@ -1083,7 +1083,7 @@ void MoL::integrate_MoL(
 
     // Allocate the MatReal objects (the Newton iteration matrices) and return a pointer
     // to them ('new' returns the pointer)
-    OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+    OMP_parallel_for( Int n = 0; n < nLen; ++n )
     {
         NewtonItMats[n] = new MatReal( n_evolved, n_evolved, Real(0) );
     }
@@ -1095,7 +1095,7 @@ void MoL::integrate_MoL(
     // Allocate the LUDecomposition objects (storing the LU decompositions of
     // the NIMs at each grid point) and return a pointer to them ('new' returns the
     // pointer)
-    OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+    OMP_parallel_for( Int n = 0; n < nLen; ++n )
     {
         LU_Newtons[n] = new LUDecomposition( *NewtonItMats[n] );
     }
@@ -1189,7 +1189,7 @@ void MoL::integrate_MoL(
 
             DIRK_computeStep( next_m, m, BT );
 
-            integStep_End( next_m, m );
+            //integStep_End( next_m, m );
 
             /////////////////////////////////////////////////////////////////////////////
             //
@@ -1266,8 +1266,8 @@ void MoL::DIRK_computeStep(
             // iteration matrix, and stores them into the MatReal objects pointed
             // by NewtonItMats[n]
                 eom -> computeNewtonIterationMatrix( next_m, n, n_evolved, 3, BT,
-                                                    *NewtonItMats[n] );
-                LU_Newtons[n] -> LUDecompose( *NewtonItMats[n] );
+                                                 *NewtonItMats[ n - nGhost ] );
+                LU_Newtons[ n - nGhost ] -> LUDecompose( *NewtonItMats[ n - nGhost ] );
             }
         }
     }
@@ -1300,8 +1300,8 @@ void MoL::DIRK_computeStep(
                 // iteration matrix, and stores them into the MatReal objects pointed
                 // by NewtonItMats[n]
                     eom -> computeNewtonIterationMatrix( next_m, n, n_evolved, 3, BT,
-                                                        *NewtonItMats[n] );
-                    LU_Newtons[n] -> LUDecompose( *NewtonItMats[n] );
+                                                        *NewtonItMats[ n - nGhost ] );
+                    LU_Newtons[ n - nGhost ] -> LUDecompose(*NewtonItMats[ n - nGhost ]);
                 }
             }
         }
@@ -1360,8 +1360,8 @@ void MoL::DIRK_computeStep(
                 OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
                 {
                     eom -> computeNewtonIterationMatrix( next_m, n, n_evolved, 3, BT,
-                                                        *NewtonItMats[n] );
-                    LU_Newtons[n] -> LUDecompose( *NewtonItMats[n] );
+                                                        *NewtonItMats[ n - nGhost ] );
+                    LU_Newtons[ n - nGhost ] -> LUDecompose(*NewtonItMats[ n - nGhost ]);
                 }
             }
         }
@@ -1463,7 +1463,7 @@ void MoL::DIRK_computeStage(
             // Hence, we can solve the system L * U * dis = res for dis.
 
             // solve the system for the displacements of the fields
-            LU_Newtons[n] -> solve( res, dis );
+            LU_Newtons[ n - nGhost ] -> solve( res, dis );
 
             // Compute the normalized displacement
             field_i = 0;
