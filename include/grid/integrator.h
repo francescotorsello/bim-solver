@@ -498,7 +498,6 @@ class MoL : GridUser
             eom->integStep_CalcEvolutionRHS( m );
         }
 
-
     }
 
     /** Executed at the end of each integration step.
@@ -1129,7 +1128,7 @@ void MoL::integrate_MoL(
     }
 
     slog << "Employing Method of Lines, " << BT.name
-         << ", s = " << BT.s << std::endl << std::endl
+         << ", number of stages s = " << BT.s << std::endl << std::endl
          << "  DIRK:" << std::endl << std::endl;
 
     if( updateJ == STEP )
@@ -1167,10 +1166,10 @@ void MoL::integrate_MoL(
         GF( fld::t, 0, n ) = t_0;
     }
     integStep_Begin( 0 );
-    for( auto eom: eomList )
+    /* for( auto eom: eomList )
     {
         eom -> integStep_CalcEvolutionRHS( 0 );
-    }
+    }*/
     integStep_End( 1, 0 );
     integStep_Checkpoint( 0 );
 
@@ -1221,6 +1220,8 @@ void MoL::integrate_MoL(
             cur_t = GF( fld::t, next_m, nGhost ); // Get `t` from the current slice
 
         }
+
+        //running = false;
     }
 
     // Cleanup the allocated memory
@@ -1270,17 +1271,20 @@ void MoL::DIRK_computeStep(
             }
         }
 
+        // integStep_Begin computes the derived variables, apply boundary conditions and
+        // compute the RHS of the evolution equations
         integStep_Begin( next_m );
 
         // Compute the Newton iteration matrices at next_m
         // For each IntegFace* pointer in eomList (presently, only BimetricEvolve)
         for( auto eom: eomList )
         {
-            OMP_parallel_for( Int n = nGhost; n < nGhost + 1/*nLen + nGhost*/; ++n )
+            // For each grid point
+            OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
             {
             // Use this method of BimetricEvolve. This method computes the Newton
             // iteration matrix, and stores them into the MatReal objects pointed
-            // by NewtonItMats[n]
+            // by NewtonItMats[ n - nGhost ]
                 eom -> computeNewtonIterationMatrix( next_m, n, n_evolved, 3, BT,
                                                  *NewtonItMats[ n - nGhost ] );
                 LU_Newtons[ n - nGhost ] -> LUDecompose( *NewtonItMats[ n - nGhost ] );
@@ -1304,9 +1308,10 @@ void MoL::DIRK_computeStep(
             }
         }
 
+        integStep_Begin( next_m );
+
         if( ( mStep % modulo ) == 0 )
         {
-            integStep_Begin( next_m );
 
             // Compute the Newton iteration matrices at next_m
             // For each IntegFace* pointer in eomList (presently, only BimetricEvolve)
@@ -1347,6 +1352,8 @@ void MoL::DIRK_computeStep(
                     GF( e.f, next_m, n ) = GF( e.f, m, n )
                                             + delta_t * GF( e.f_t, m, n );
                 }
+                integStep_Begin( next_m );
+
             } else if( stage_i != 0 ) // else if it is not the first iteration
             {
                 for( auto e: evolvedGF )
@@ -1357,18 +1364,17 @@ void MoL::DIRK_computeStep(
                                             + ( BT.c[stage_i] - BT.c[stage_i - 1] )
                                                 * delta_t * GF( e.f_t, next_m, n );
                 }
+                integStep_Begin( next_m );
             }
         }
-
-        integStep_Begin( next_m );
 
         // At this point, the initial guesses are known in all cases and stages.
         // Hence, we can compute the evolution equations at next_m, needed in the first
         // Newton iteration in DIRK_computeStage, when computing the residual vector
-        for( auto eom: eomList )
+        /*for( auto eom: eomList )
         {
             eom -> integStep_CalcEvolutionRHS( next_m );
-        }
+        }*/ /// This is done by integStep_Begin
 
         // If the Jacobian needs to be updated at each stage
         if( updateJ == STAGE )
@@ -1417,129 +1423,168 @@ void MoL::DIRK_computeStage(
         const ButcherTable& BT                  // Butcher table
     )
 {
-    VecReal res     ( n_evolved, Real(0) );     // The residual vector
-    VecReal norRes  ( n_evolved, Real(0) );     // The normalized residual vector
-    VecReal X       ( n_evolved, Real(0) );     // A vector storing part of the
-                                                // residual vector
-    VecReal dis     ( n_evolved, Real(10e+3) ); // The displacement vector
-    VecReal norDis  ( n_evolved, Real(10e+3) ); // The normalized displacement vector
+    std::cout << std::endl << std::endl << "stage_i = " << stage_i
+        << std::endl << std::endl;
+
+    VecReal res     ( nLen * n_evolved, Real(0) );     // The residual vector
+    VecReal norRes  ( nLen * n_evolved, Real(0) );     // The normalized residual vector
+    VecReal X       ( nLen * n_evolved, Real(0) );     // A vector storing part of the
+                                                       // residual vector
+    VecReal dis     ( nLen * n_evolved, Real(10e+3) ); // The displacement vector
+    VecReal norDis  ( nLen * n_evolved, Real(10e+3) ); // The normalized displacement
+                                                       // vector
 
     Real norDis_norm = 10e+3;   // The norm of the normalized displacement vector
     Real norRes_norm = 10e+3;   // The norm of the normalized residual vector
 
-    OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n ) // for each grid point
+    Int field_i = 0;
+    for( auto e: evolvedGF ) // for each field
+    // note that evolvedGF must contain the evolved fields in the correct order
     {
-        Int field_i = 0;
-        for( auto e: evolvedGF ) // for each field
-        // note that evolvedGF must contain the evolved fields in the correct order
+        OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n ) // for each grid point
         {
             // Compute the sum in the residual [1, p.42, eq.(81)]
             for( Int j = 0; j <= stage_i - 1; ++j )
             {
-                X[field_i] += delta_t * BT.A[stage_i][j]
+                X[ nLen * field_i + ( n - nGhost ) ] += delta_t * BT.A[stage_i][j]
                                 * (*F[ nLen * stage_i + ( n - nGhost ) ])[ field_i ];
+            }
+            //std::cout << std::endl << (*F[ nLen * stage_i + ( n - nGhost ) ])[ field_i ];
+            //std::cout << std::endl << X[ field_i ];
+            /*if( ISNAN( X[field_i] ) )
+            {
+                std::cerr << "\n\n*** X[" << field_i << "] is a NaN at (t,r) = (";
+                std::cerr << t(m,n) << "," << r(m,n) << "), ";
+                std::cerr << "(mStep, n) = (" << mStep << "," << n << ").\n\n";
+                exit(EXIT_FAILURE);
+            }*/
+            /*if( ISNAN( (*F[ nLen * stage_i + ( n - nGhost ) ])[ field_i ] ) )
+            {
+                std::cerr << "\n\n*** F[" << field_i << "] is a NaN at (t,r) = (";
+                std::cerr << t(m,n) << "," << r(m,n) << "), ";
+                std::cerr << "(mStep, n) = (" << mStep << "," << n << ").\n\n";
+                exit(EXIT_FAILURE);
+            }*/
+            ++field_i;
+        }
+    }
+    /*
+        Note that, in the loop above, in the first iteration stage_i = 0, the loop
+        does not do anything. This is correct, and the formula (81) in [1, p.42]
+        shares the same feature. This is because there are no previous stages to sum
+        over. When stage_i = 1, there is only one term, which will have an assigned
+        value. The value is assigned at the end of the Newton iteration. that is, at
+        the end of the following while loop.
+    */
+
+    //////////////////////////////////////////////////////////////////////////////////
+    // The quantities above do not depend on the Newton iteration step.
+    // Below is the implementation of the Newton iterative method.
+    //////////////////////////////////////////////////////////////////////////////////
+
+    /** The iteration works by overwriting the value of GF( e.f, m, n )
+     *  at each iteration.
+     */
+    // While the desired accuracy isn't met yet, and the number of steps is less than
+    // a reasonable upper bound
+    Int iteration_counter = 0;
+    while(
+            norDis_norm > relError * toleranceRatio // displacement test
+            //resDis_norm > relError * toleranceRatio // residual test
+            &&
+            iteration_counter < 10e+2 // stop the iteration if too many steps
+         )
+    {
+        std::cout << std::endl << std::endl << "iteration_counter = "
+            << iteration_counter << std::endl << std::endl;
+        // Compute the residuals for each field
+        field_i = 0;
+        for( auto e: evolvedGF )
+        {
+            OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
+            {
+                /// TODO: check this formula
+                res[ nLen * field_i + ( n - nGhost ) ]
+                                = -( GF( e.f, next_m, n ) - GF( e.f, m, n ) )
+                                    + X[ nLen * field_i + ( n - nGhost ) ]
+                                    + delta_t * BT.A[stage_i - 1][stage_i - 1]
+                                        * GF( e.f_t, next_m, n );
             }
             ++field_i;
         }
-        /*
-            Note that, in the loop above, in the first iteration stage_i = 0, the loop
-            does not do anything. This is correct, and the formula (81) in [1, p.42]
-            shares the same feature. This is because there are no previous stages to sum
-            over. When stage_i = 1, there is only one term, which will have an assigned
-            value. The value is assigned at the end of the Newton iteration. that is, at
-            the end of the following while loop.
-        */
 
-        //////////////////////////////////////////////////////////////////////////////////
-        // The quantities above do not depend on the Newton iteration step.
-        // Below is the implementation of the Newton iterative method.
-        //////////////////////////////////////////////////////////////////////////////////
+        // The Jacobian is not updated at every iteration of the Newton method
+        // (it could, though).
+        // Hence, we can solve the system L * U * dis = res for dis.
 
-        /** The iteration works by overwriting the value of GF( e.f, m, n )
-         *  at each iteration.
-         */
-        // While the desired accuracy isn't met yet, and the number of steps is less than
-        // a reasonable upper bound
-        Int iteration_counter = 0;
-        while(
-                norDis_norm > relError * toleranceRatio // displacement test
-                //resDis_norm > relError * toleranceRatio // residual test
-                &&
-                iteration_counter < 10e+2 // stop the iteration if too many steps
-             )
+        // solve the system for the displacements of the fields
+        LU_Newtons[ n - nGhost ] -> solve( res[ n - nGhost ], dis[ n - nGhost ] );
+
+        /*field_i = 0;
+        for( auto e: evolvedGF )
         {
-            // Compute the residuals for each field
-            field_i = 0;
-            for( auto e: evolvedGF )
-            {
-                /// TODO: check this formula
-                res[ field_i ] = -( GF( e.f, next_m, n ) - GF( e.f, m, n ) )
-                                    + X[field_i]
-                                    + delta_t * BT.A[stage_i - 1][stage_i - 1]
-                                        * GF( e.f_t, next_m, n );
-                ++field_i;
-            }
+            std::cout << std::endl << res[field_i];
+            //std::cout << std::endl << dis[field_i];
+        }*/
 
-            // The Jacobian is not updated at every iteration of the Newton method
-            // (it could, though).
-            // Hence, we can solve the system L * U * dis = res for dis.
-
-            // solve the system for the displacements of the fields
-            LU_Newtons[ n - nGhost ] -> solve( res, dis );
-
-            // Compute the normalized displacement
-            field_i = 0;
-            for( auto e: evolvedGF )
+        // Compute the normalized displacement
+        field_i = 0;
+        for( auto e: evolvedGF )
+        {
+            OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
             {
                 norDis[ field_i ] = dis[ field_i ] /
                                     ( abs( GF( e.f, next_m, n ) ) + absError / relError );
                 norDis_norm += pow2( norDis[ field_i ] );
-                ++field_i;
             }
+            ++field_i;
+        }
 
-            // Compute the normalized residual
-            field_i = 0;
-            for( auto e: evolvedGF )
+        // Compute the normalized residual
+        field_i = 0;
+        for( auto e: evolvedGF )
+        {
+            OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
             {
                 norRes[ field_i ] = res[ field_i ] /
                                     ( abs( GF( e.f, next_m, n ) ) + absError / relError );
                 norRes_norm += pow2( norRes[ field_i ] );
-                ++field_i;
             }
+            ++field_i;
+        }
 
-            // Displace the fields
-            field_i = 0;
-            for( auto e: evolvedGF )
+        // Displace the fields
+        field_i = 0;
+        for( auto e: evolvedGF )
+        {
+            OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
             {
                 GF( e.f, next_m, n ) += dis[field_i];
-                ++field_i;
             }
-
-            // Recompute the evolution equations with the new displaced fields
-            for( auto eom: eomList )
-            {
-                eom -> integStep_CalcEvolutionRHS( next_m );
-            }
-
-            // Store the n_evolved evolution equations at next_m, stage stage_i,
-            // in the nLen VecReal objects with n_evolved components
-            OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
-            {
-                Int field_i = 0;
-                for( auto e : evolvedGF )
-                {
-                    (*F[ stage_i * nLen + ( n - nGhost ) ])[ field_i ]
-                        = GF( e.f_t, next_m, n );
-                    ++field_i;
-                }
-            }
-
-            ++iteration_counter;
-
+            ++field_i;
         }
-        // After this while loop, the grid functions at ( m, n ), iteration stage_i
-        // have updated values
+
+        // Recompute the evolution equations with the new displaced fields
+        integStep_Begin( next_m );
+
+        // Store the n_evolved evolution equations at next_m, stage stage_i,
+        // in the nLen VecReal objects with n_evolved components
+        Int field_i = 0;
+        for( auto e : evolvedGF )
+        {
+            OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
+            {
+                (*F[ stage_i * nLen + ( n - nGhost ) ])[ field_i ]
+                    = GF( e.f_t, next_m, n );
+            }
+            ++field_i;
+        }
+
+        ++iteration_counter;
+
     }
+    // After this while loop, the grid functions at ( m, n ), iteration stage_i
+    // have updated values
 
 }
                                                                                    /*@}*/
