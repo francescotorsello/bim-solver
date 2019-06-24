@@ -1070,6 +1070,9 @@ void MoL::integrate_MoL( const MoLDescriptor& MoL, bool adaptiveStepSize )
  *  [2] @cite Butcher:2008num
  */
 
+ /** The implementation of the DIRK algorithm is based on [1, p.42].
+ */
+
 /** Overloading of integrate_MoL.
  *  An implicit Runge-Kutta method (IRK) requires a different input than an explicit one.
  *  Hence, we overload integrate_MoL in order to accept the needed input.
@@ -1241,6 +1244,10 @@ void MoL::integrate_MoL(
     {
         delete NewtonItMats[n];
         delete LU_Newtons[n];
+        delete F[n];
+        delete X[n];
+        delete res[n];
+        delete dis[n];
     }
     delete[] NewtonItMats;
     delete[] LU_Newtons;
