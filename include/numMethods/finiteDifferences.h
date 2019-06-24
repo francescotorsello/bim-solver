@@ -377,6 +377,7 @@
  */
 
 #if !defined(KO_ORDER) || KO_ORDER <= 0
+    #undef KO_ORDER
     /** KO_ORDER defines the order of the Kreiss-Oliger term order.
      *  Defaults to CFDS_ORDER, if it is undefined or set to a non-positive value.
      */

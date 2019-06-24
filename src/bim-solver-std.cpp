@@ -79,7 +79,12 @@ namespace fld
         fA_r, fB_r, fK_r, fKD_r, fDA_r, fDB_r,
         pfD_r, pfS_r, pftau_r, pfv_r,
         p_r, p_rr, q_r, q_rr, eq_pr_r, eq_qr_r,
-        gAlp_r, gDAlp_r, fAlp_r, fAlp_rr, fDAlp_r,
+        gAlp_r, gAlp_rr, gDAlp_r,
+        fAlp_r, fAlp_rr, fDAlp_r,
+
+        // A profile that is used to regularize the fields around 0
+        //
+        regularizer,
 
         // Grid functions uses for storing temporary data
         //
@@ -99,7 +104,8 @@ namespace fld
         fA, fB, fK, fKD, fDA, fDB, fSig,
         q, gAlp, fAlp, gDAlp,
         p,
-        pfD, pfS, pftau
+        pfD, pfS, pftau,
+        regularizer
     };
 
     /** The grid functions that are involved in time.
@@ -331,6 +337,7 @@ class BimetricEvolve
 
     emitDerivative_rr( p    )   // used in eq_gDA_t and eq_fDA_t
     emitDerivative_rr( q    )   // used in eq_gDA_t and eq_fDA_t
+    emitDerivative_rr( gAlp )   // used in gDAlp_r
     emitDerivative_rr( fAlp )   // used in fDAlp_r
 
     // The extrinsic curvature relations
@@ -666,6 +673,8 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
     integ.keepConstant( { fld::q } );  // GFs that are kept constant in time
     integ.keepEvolved( fld::bimEvolvedGF ); // GFs that are evolved by the integrator
 
+    integ.keepConstant( { fld::regularizer } ); // Keep regularizer the same
+
     if( isGR () || slicing == SLICE_CONSTGF ) {
         integ.keepConstant( { fld::fAlp, fld::fDAlp } );
     }
@@ -804,6 +813,8 @@ void BimetricEvolve::integStep_Prepare( Int m )
 {
     OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
     {
+        // gKD(m,n) *= GF( fld::regularizer, m, n );
+        // fKD(m,n) *= GF( fld::regularizer, m, n );
         calculateDerivedVariables( m, n );
     }
 }
@@ -886,7 +897,13 @@ void BimetricEvolve::determineGaugeFunctions( Int m )
             gW( m, n ) = gW0(m,n) + r(m,n) * ( gW1(m,n) + r(m,n) * gW2(m,n) );
             fW( m, n ) = fW0(m,n) + r(m,n) * ( fW1(m,n) + r(m,n) * fW2(m,n) );
 
+            // ALT0:
             fAlp( m, n ) = eq_fAlp( m, n );
+            // ALT1:
+            // Real w = sqrt( -fW(m,n) / gW(m,n) );
+            // Real l = sqrt( Lt(m,n) );
+            // gAlp( m, n ) = l * w;
+            // fAlp( m, n ) = l / w;
 
             // Finally, normalize gW and fW (this will be displayed at the output)
             gW( m, n ) /= cW( m, n ) * r(m,n) * r(m,n);
@@ -895,31 +912,47 @@ void BimetricEvolve::determineGaugeFunctions( Int m )
 
         if( smooth ) {
             smoothenGF( m, fld::fAlp, fld::tmp, fld::fAlp, 1 );
+            // ALT1:
+            // smoothenGF( m, fld::gAlp, fld::tmp, fld::gAlp, 1 );
         }
         else {
             applyBoundaryConditions( m, fld::fAlp, +1 );
+            // ALT1:
+            // applyBoundaryConditions( m, fld::gAlp, +1 );
         }
 
         OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n ) {
             fAlp_r( m, n ) = GF_r( fAlp, m, n );
+            // ALT1:
+            // gAlp_r( m, n ) = GF_r( gAlp, m, n );
         }
 
         if( smooth ) {
             smoothenGF( m, fld::fAlp_r, fld::tmp, fld::fAlp_r, -1 );
+            // ALT1:
+            // smoothenGF( m, fld::gAlp_r, fld::tmp, fld::gAlp_r, -1 );
         }
         else {
             applyBoundaryConditions( m, fld::fAlp_r, -1 );
+            // ALT1:
+            // applyBoundaryConditions( m, fld::gAlp_r, -1 );
         }
 
         OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n ) {
             fAlp_rr( m, n ) = GF_r( fAlp_r, m, n );
+            // ALT1:
+            // gAlp_rr( m, n ) = GF_r( gAlp_r, m, n );
         }
 
         if( smooth ) {
             smoothenGF( m, fld::fAlp_rr, fld::tmp, fld::fAlp_rr, 1 );
+            // ALT1:
+            // smoothenGF( m, fld::gAlp_rr, fld::tmp, fld::gAlp_rr, 1 );
         }
         else {
             applyBoundaryConditions( m, fld::fAlp_rr, 1 );
+            // ALT1:
+            // applyBoundaryConditions( m, fld::gAlp_rr, 1 );
         }
 
         OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
@@ -927,6 +960,10 @@ void BimetricEvolve::determineGaugeFunctions( Int m )
             fDAlp  ( m, n ) = fAlp_r(m,n) / fAlp(m,n);
             fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n) / fAlp(m,n) )
                                / fAlp(m,n);
+            // ALT1:
+            // gDAlp  ( m, n ) = gAlp_r(m,n) / gAlp(m,n);
+            // gDAlp_r( m, n ) = ( gAlp_rr(m,n) - gAlp_r(m,n) * gAlp_r(m,n) / gAlp(m,n) )
+            //                    / gAlp(m,n);
         }
     }
 }
@@ -999,6 +1036,10 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
         g_rho (m,n) = eq_g_rho (m,n);      f_rho (m,n) = eq_f_rho (m,n);
         g_JK  (m,n) = eq_g_JK  (m,n);      f_JK  (m,n) = eq_f_JK  (m,n);
         g_JKD (m,n) = eq_g_JKD (m,n);      f_JKD (m,n) = eq_f_JKD (m,n);
+
+        // g_JKD(m,n) *= GF( fld::regularizer, m, n );
+        // f_JKD(m,n) *= GF( fld::regularizer, m, n );
+
         #ifdef TWEAK_MK3
         g_JKD (m,n) = f_JKD (m,n) = 0;
         #endif
