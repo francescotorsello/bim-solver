@@ -21,7 +21,7 @@
 //#include "sys/nr3.h"
 
 #ifndef _TEST_MODE
-    #define _TEST_MODE 0
+    #define _TEST_MODE 1
 #endif // _TEST_MODE
 
 #ifndef OBSERVER
@@ -1451,6 +1451,9 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
     : BimetricModel( params ), GridUser( ug )
 {
     #if _TEST_MODE
+
+        std::vector<fld::EvolvedBy> evolvedGaugeGF;
+        evolvedGaugeGF = {};
 
         // Cached from the integrator
         //
