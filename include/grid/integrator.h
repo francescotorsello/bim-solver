@@ -268,15 +268,13 @@ class MoL : GridUser
     VecReal** F;              //!< A pointer to a set of nLen vectors of length n_evolved
 
     VecReal** res;            //!< The residual vector
-    VecReal** norRes;         //!< The normalized residual vector
     VecReal** X;              //!< A vector storing part of the residual vector
     VecReal** dis;            //!< The displacement vector
-    VecReal** norDis;         //!< The normalized displacement vector
 
-    Real norDis_norm = 10e+3; //!< The norm of the normalized displacement vector
-    Real norRes_norm = 10e+3; //!< The norm of the normalized residual vector
-    Real max_norDis_norm = 0; //!< The maximum norDis_norm over the grid
-    Real max_norRes_norm = 0; //!< The maximum norRes_norm over the grid
+    Real norDis_norm = 0;     //!< The norm of the normalized displacement vector
+    Real norRes_norm = 0;     //!< The norm of the normalized residual vector
+    Real max_norDis_norm = -1;//!< The maximum norDis_norm over the grid
+    Real max_norRes_norm = -1;//!< The maximum norRes_norm over the grid
 
     enum UpdateJ              //!< Possibilities to update the Jacobian in DIRK
     {
@@ -1129,19 +1127,14 @@ void MoL::integrate_MoL(
         }
     }
 
-    // Definition of 5 vectors containing nLen pointers to VecReal objects.
+    // Definition of vectors containing nLen pointers to VecReal objects.
     // At each grid point, they point, respectively, to VecReal objects storing:
     //  X       : the part of the residual vector not depending on the iteration step
     //  res     : the residual vector
     //  dis     : the displacement vector
-    //  norDis  : the normalized displacement vector
-    //  norRes  : the normalized residual vector
     X       = new VecReal*[ nLen ];
     res     = new VecReal*[ nLen ];
     dis     = new VecReal*[ nLen ];
-    norRes  = new VecReal*[ nLen ];
-    norDis  = new VecReal*[ nLen ];
-
 
     // Allocate the memory for all the objects pointed by the previously defined pointers.
     // Each vector has n_evolved components, one per each evolved field.
@@ -1150,8 +1143,6 @@ void MoL::integrate_MoL(
         X       [n] = new VecReal( n_evolved, Real(0) );
         res     [n] = new VecReal( n_evolved, Real(0) );
         dis     [n] = new VecReal( n_evolved, Real(0) );
-        norRes  [n] = new VecReal( n_evolved, Real(10e3) );
-        norDis  [n] = new VecReal( n_evolved, Real(10e3) );
     }
 
     // Adaptive stepsize control
@@ -1241,19 +1232,20 @@ void MoL::integrate_MoL(
             cur_t = GF( fld::t, next_m, nGhost ); // Get `t` from the current slice
 
         }
-
-        //running = false;
     }
 
     // Cleanup the allocated memory
     /*for( Int n = nGhost; n < nLen + nGhost; ++n )
     {
-        delete[] NewtonItMats[n];
-        delete[] LU_Newtons[n];
+        delete NewtonItMats[n];
+        delete LU_Newtons[n];
     }*/
     delete[] NewtonItMats;
     delete[] LU_Newtons;
     delete[] F;
+    delete[] X;
+    delete[] res;
+    delete[] dis;
 }
 
 /** MoL_DIRK_computeStep updates the Jacobian when required, computed the first guesses
@@ -1358,36 +1350,38 @@ void MoL::DIRK_computeStep(
     // Loop over the stages within one time step
     for( Int stage_i = 0; stage_i < BT.s; ++stage_i ) // for each stage
     {
-
         // Find the initial guesses at stage_i with Euler method
-        OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+        // If it is the first iteration, and its initial guess has not be computed
+        // yet, because the Jacobian is required to be updated at every stage,
+        if( stage_i == 0 && updateJ == STAGE )
         {
-            // If it is the first iteration, and its initial guess has not be computed
-            // yet, because the Jacobian is required to be updated at every stage,
-            if( stage_i == 0 && updateJ == STAGE )
+            for( auto e: evolvedGF )
             {
-                for( auto e: evolvedGF )
+                // Note that GF( e.f, m, n ) = GF( e.f, next_m, n ) of the previous
+                // iteration over m, hence it stores the last (hence best) iteration
+                // of Newton method. Same for GF( e.f_t, m, n ).
+                OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
                 {
-                    // Note that GF( e.f, m, n ) = GF( e.f, next_m, n ) of the previous
-                    // iteration over m, hence it stores the last (hence best) iteration
-                    // of Newton method. Same for GF( e.f_t, m, n ).
                     GF( e.f, next_m, n ) = GF( e.f, m, n )
                                             + delta_t * GF( e.f_t, m, n );
                 }
-                integStep_Begin( next_m );
+            }
+            integStep_Begin( next_m );
 
-            } else if( stage_i != 0 ) // else if it is not the first iteration
+        } else if( stage_i != 0 ) // else if it is not the first iteration
+        {
+            for( auto e: evolvedGF )
             {
-                for( auto e: evolvedGF )
+                // Euler method using the previous iteration
+                // (updated by MoL_DIRK_computeStage, see below)
+                OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
                 {
-                    // Euler method using the previous iteration
-                    // (updated by MoL_DIRK_computeStage, see below)
                     GF( e.f, next_m, n ) = GF( e.f, next_m, n )
                                             + ( BT.c[stage_i] - BT.c[stage_i - 1] )
                                                 * delta_t * GF( e.f_t, next_m, n );
                 }
-                integStep_Begin( next_m );
             }
+            integStep_Begin( next_m );
         }
 
         // At this point, the initial guesses are known in all cases and stages.
@@ -1438,20 +1432,21 @@ void MoL::DIRK_computeStage(
         const ButcherTable& BT                  // Butcher table
     )
 {
-   /* std::cout << std::endl << std::endl << "stage_i = " << stage_i
+   /*std::cout << std::endl << std::endl << "stage_i = " << stage_i
         << std::endl << std::endl;*/
 
     Int field_i = 0;
     for( auto e: evolvedGF ) // for each field
     // note that evolvedGF must contain the evolved fields in the correct order
     {
-        OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n ) // for each grid point
+        // Compute the sum in the residual [1, p.42, eq.(81)]
+        for( Int j = 0; j < stage_i; ++j )
         {
-            // Compute the sum in the residual [1, p.42, eq.(81)]
-            for( Int j = 0; j < stage_i - 1; ++j )
+            /// TODO: check this again
+            OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
             {
                 (*X[ n - nGhost ])[field_i] += delta_t * BT.A[stage_i][j]
-                                * (*F[ nLen * stage_i + ( n - nGhost ) ])[field_i];
+                                * (*F[ nLen * j + ( n - nGhost ) ])[field_i];
             }
         }
         ++field_i;
@@ -1476,12 +1471,7 @@ void MoL::DIRK_computeStage(
     // While the desired accuracy isn't met yet, and the number of steps is less than
     // a reasonable upper bound
     Int iteration_counter = 0;
-    while(
-            max_norDis_norm > relError * toleranceRatio // displacement test
-            //max_resDis_norm > relError * toleranceRatio // residual test
-            &&
-            iteration_counter < 10e+2 // stop the iteration if too many steps
-         )
+    do
     {
         /*std::cout << std::endl << std::endl << "iteration_counter = "
             << iteration_counter << std::endl << std::endl;*/
@@ -1506,12 +1496,12 @@ void MoL::DIRK_computeStage(
         // Hence, we can solve the system L * U * dis = res for dis.
 
         // solve the system for the displacements of the fields
-        OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
+        OMP_parallel_for( Int n = 0; n < nLen; ++n )
         {
-            LU_Newtons[ n - nGhost ] ->
+            LU_Newtons[ n ] ->
                 solve(
-                    *res[ n - nGhost ],
-                    *dis[ n - nGhost ]
+                    *res[ n ], // RHS vector
+                    *dis[ n ]  // unknown vector
                 );
         }
 
@@ -1521,9 +1511,10 @@ void MoL::DIRK_computeStage(
             field_i = 0;
             for( auto e: evolvedGF )
             {
-                (*norDis[ n - nGhost ])[field_i] = (*dis[ n - nGhost ])[ field_i ] /
-                                    ( abs( GF( e.f, next_m, n ) ) + absError / relError );
-                norDis_norm += pow2( (*norDis[ n - nGhost ])[field_i] );
+                norDis_norm += pow2(
+                                    (*dis[ n - nGhost ])[ field_i ] /
+                                    ( abs( GF( e.f, next_m, n ) ) + absError / relError )
+                                );
             }
             ++field_i;
             if( norDis_norm > max_norDis_norm )
@@ -1532,22 +1523,23 @@ void MoL::DIRK_computeStage(
             }
         }
 
-        // Compute the normalized displacement
-        OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
+        // Compute the normalized residual
+        /*OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
         {
             field_i = 0;
             for( auto e: evolvedGF )
             {
-                (*norRes[ n - nGhost ])[field_i] = (*res[ n - nGhost ])[ field_i ] /
-                                    ( abs( GF( e.f, next_m, n ) ) + absError / relError );
-                norRes_norm += pow2( (*norRes[ n - nGhost ])[field_i] );
+                norRes_norm += pow2(
+                                    (*res[ n - nGhost ])[ field_i ] /
+                                    ( abs( GF( e.f, next_m, n ) ) + absError / relError )
+                                );
             }
             ++field_i;
             if( norRes_norm > max_norRes_norm )
             {
                 max_norRes_norm = norRes_norm;
             }
-        }
+        }*/
 
         // Displace the fields
         field_i = 0;
@@ -1578,7 +1570,12 @@ void MoL::DIRK_computeStage(
 
         ++iteration_counter;
 
-    }
+    } while (
+        max_norDis_norm > pow2( relError * toleranceRatio ) // displacement test
+        //max_resDis_norm > relError * toleranceRatio // residual test
+        &&
+        iteration_counter < 100 // stop the iteration if too many steps
+    );
     // After this while loop, the grid functions at ( m, n ), iteration stage_i
     // have updated values
 

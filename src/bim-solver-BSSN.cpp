@@ -2088,7 +2088,8 @@ void BimetricEvolve::determineGaugeFunctions( Int m )
 
 #if _TEST_MODE
 
-    #include "eom-test/eomTest_StiffSystem.h"
+    //#include "eom-test/eomTest_StiffSystem.h"
+    #include "eom-test/eomTestFlame.h"
 
 #else
 
@@ -3760,7 +3761,7 @@ void BimetricEvolve::computeNewtonIterationMatrix(
 {
     #if _TEST_MODE
 
-        #include "jacobian-test/DIRK_Jacobian_test_StiffSystem.h"
+        #include "jacobian-test/DIRK_Jacobian_test_Flame.h"
 
     #else
 
