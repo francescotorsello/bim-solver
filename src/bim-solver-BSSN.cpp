@@ -21,7 +21,7 @@
 //#include "sys/nr3.h"
 
 #ifndef _TEST_MODE
-    #define _TEST_MODE 1
+    #define _TEST_MODE 0
 #endif // _TEST_MODE
 
 #ifndef OBSERVER
@@ -2394,7 +2394,8 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
                 fDAlp  ( m, n ) = fAlp_r(m,n) / (TINY_Real + fAlp(m,n));
                 fDAlp_r( m, n ) = ( fAlp_rr(m,n) - fAlp_r(m,n) * fAlp_r(m,n)
-                                   / (TINY_Real + fAlp(m,n)) ) / (TINY_Real + fAlp(m,n));*/
+                                   / (TINY_Real + fAlp(m,n)) ) / (TINY_Real +
+                                                                   fAlp(m,n));*/
 
                 }
 
@@ -3214,7 +3215,7 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
             gJK  (m,n)  = eq_gJK    (m,n);        fJK  (m,n) = eq_fJK  (m,n);
             gJA1 (m,n)  = eq_gJA1   (m,n);        fJA1 (m,n) = eq_fJA1 (m,n);
-            gJA2 (m,n)  = - eq_gJA1   (m,n)/2;    fJA2 (m,n) = - eq_fJA1 (m,n)/2;
+            gJA2 (m,n)  = - eq_gJA1 (m,n)/2;      fJA2 (m,n) = - eq_fJA1 (m,n)/2;
 
             gJL  (m,n)  = eq_gJL    (m,n);    fJL  (m,n) = eq_fJL  (m,n);
 
@@ -3262,6 +3263,8 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
             std::cout << "\n\n eq_v_t = " << eq_v_t(m,n);*/
 
         #else
+
+            Real dgb1 = gDAlp(0,n);
 
             // The time evolution right-hand side
             //
@@ -3780,7 +3783,8 @@ void BimetricEvolve::computeNewtonIterationMatrix(
             {
                 std::cerr << "*** Jacobian[" << i << "," << j << "] is a NaN at t = "
                           << t(m,n) << ", r = " << r(m,n) << std::endl;
-                exit(EXIT_FAILURE);
+
+                //exit(EXIT_FAILURE);
             }
 
             NewItMat[i][j] = ( i == j ) ? 1 : 0
@@ -3797,7 +3801,105 @@ void BimetricEvolve::computeNewtonIterationMatrix(
                       << "      ";
         }
         std::cout << std::endl << std::endl;
-    }
+    }*/
+
+    std::cout << std::endl << "INITIAL DATA" << std::endl << std::endl;
+
+    std::cout << "Primary fields" << std::endl << std::endl;
+
+    std::cout << "gconf(" << m << "," << n << ") = " << gconf(0,n) << std::endl;
+    std::cout << "fconf(" << m << "," << n << ") = " << fconf(0,n) << std::endl;
+    std::cout << "gDconf(" << m << "," << n << ") = " << gDconf(0,n) << std::endl;
+    std::cout << "fDconf(" << m << "," << n << ") = " << fDconf(0,n) << std::endl;
+    std::cout << "gtrK(" << m << "," << n << ") = " << gtrK(0,n) << std::endl;
+    std::cout << "ftrK(" << m << "," << n << ") = " << ftrK(0,n) << std::endl;
+    std::cout << "gA(" << m << "," << n << ") = " << gA(0,n) << std::endl;
+    std::cout << "gB(" << m << "," << n << ") = " << gB(0,n) << std::endl;
+    std::cout << "gDA(" << m << "," << n << ") = " << gDA(0,n) << std::endl;
+    std::cout << "gDB(" << m << "," << n << ") = " << gDB(0,n) << std::endl;
+    std::cout << "fA(" << m << "," << n << ") = " << fA(0,n) << std::endl;
+    std::cout << "fB(" << m << "," << n << ") = " << fB(0,n) << std::endl;
+    std::cout << "fDA(" << m << "," << n << ") = " << fDA(0,n) << std::endl;
+    std::cout << "fDB(" << m << "," << n << ") = " << fDB(0,n) << std::endl;
+    std::cout << "gA1(" << m << "," << n << ") = " << gA1(0,n) << std::endl;
+    std::cout << "fA1(" << m << "," << n << ") = " << fA1(0,n) << std::endl;
+    std::cout << "gL(" << m << "," << n << ") = " << gL(0,n) << std::endl;
+    std::cout << "fL(" << m << "," << n << ") = " << fL(0,n) << std::endl;
+    std::cout << "gsig(" << m << "," << n << ") = " << gsig(0,n) << std::endl;
+    std::cout << "fsig(" << m << "," << n << ") = " << fsig(0,n) << std::endl;
+    std::cout << "gAsig(" << m << "," << n << ") = " << gAsig(0,n) << std::endl;
+    std::cout << "fAsig(" << m << "," << n << ") = " << fAsig(0,n) << std::endl;
+    std::cout << "pfD(" << m << "," << n << ") = " << pfD(0,n) << std::endl;
+    std::cout << "pfS(" << m << "," << n << ") = " << pfS(0,n) << std::endl;
+    std::cout << "pftau(" << m << "," << n << ") = " << pftau(0,n) << std::endl;
+    std::cout << "q(" << m << "," << n << ") = " << q(0,n) << std::endl;
+    std::cout << "Bq(" << m << "," << n << ") = " << Bq(0,n) << std::endl;
+
+    std::cout << std::endl << "Derived fields" << std::endl << std::endl;
+
+    std::cout << "p(" << m << "," << n << ") = " << p(0,n) << std::endl;
+    std::cout << "R(" << m << "," << n << ") = " << R(0,n) << std::endl;
+    std::cout << "Lt(" << m << "," << n << ") = " << Lt(0,n) << std::endl;
+    std::cout << "Lt2(" << m << "," << n << ") = " << Lt2(0,n) << std::endl;
+    std::cout << "pfv(" << m << "," << n << ") = " << pfv(0,n) << std::endl;
+    std::cout << "pfW(" << m << "," << n << ") = " << pfW(0,n) << std::endl;
+    std::cout << "gDconfr(" << m << "," << n << ") = " << gDconfr(0,n) << std::endl;
+    std::cout << "gLr(" << m << "," << n << ") = " << gLr(0,n) << std::endl;
+    std::cout << "gBr(" << m << "," << n << ") = " << gBr(0,n) << std::endl;
+    std::cout << "fDconfr(" << m << "," << n << ") = " << fDconfr(0,n) << std::endl;
+    std::cout << "fLr(" << m << "," << n << ") = " << fLr(0,n) << std::endl;
+    std::cout << "pr(" << m << "," << n << ") = " << pr(0,n) << std::endl;
+    std::cout << "qr(" << m << "," << n << ") = " << qr(0,n) << std::endl;
+    std::cout << "r(" << m << "," << n << ") = " << r(0,n) << std::endl;
+
+    std::cout << std::endl << "Gauge fields" << std::endl << std::endl;
+
+    std::cout << "gAlp(" << m << "," << n << ") = " << gAlp(0,n) << std::endl;
+    std::cout << "fAlp(" << m << "," << n << ") = " << fAlp(0,n) << std::endl;
+    std::cout << "gBet(" << m << "," << n << ") = " << gBet(0,n) << std::endl;
+    std::cout << "fBet(" << m << "," << n << ") = " << fBet(0,n) << std::endl;
+
+    std::cout << std::endl << "Derivative of the gauge fields" << std::endl << std::endl;
+
+    std::cout << "gDAlp(" << m << "," << n << ") = " << gDAlp(0,n) << std::endl;
+    std::cout << "fDAlp(" << m << "," << n << ") = " << fDAlp(0,n) << std::endl;
+    std::cout << "gAlp_r(" << m << "," << n << ") = " << gAlp_r(0,n) << std::endl;
+    std::cout << "fAlp_r(" << m << "," << n << ") = " << fAlp_r(0,n) << std::endl;
+    std::cout << "gBet_r(" << m << "," << n << ") = " << gBet_r(0,n) << std::endl;
+    std::cout << "fBet_r(" << m << "," << n << ") = " << fBet_r(0,n) << std::endl;
+
+    std::cout << std::endl << "Derivative of the primary fields" << std::endl
+        << std::endl;
+
+    std::cout << "gconf_r(" << m << "," << n << ") = " << gconf_r(0,n) << std::endl;
+    std::cout << "fconf_r(" << m << "," << n << ") = " << fconf_r(0,n) << std::endl;
+    std::cout << "gDconf_r(" << m << "," << n << ") = " << gDconf_r(0,n) << std::endl;
+    std::cout << "fDconf_r(" << m << "," << n << ") = " << fDconf_r(0,n) << std::endl;
+    std::cout << "gtrK_r(" << m << "," << n << ") = " << gtrK_r(0,n) << std::endl;
+    std::cout << "ftrK_r(" << m << "," << n << ") = " << ftrK_r(0,n) << std::endl;
+    std::cout << "gA_r(" << m << "," << n << ") = " << gA_r(0,n) << std::endl;
+    std::cout << "gB_r(" << m << "," << n << ") = " << gB_r(0,n) << std::endl;
+    std::cout << "gDA_r(" << m << "," << n << ") = " << gDA_r(0,n) << std::endl;
+    std::cout << "gDB_r(" << m << "," << n << ") = " << gDB_r(0,n) << std::endl;
+    std::cout << "fA_r(" << m << "," << n << ") = " << fA_r(0,n) << std::endl;
+    std::cout << "fB_r(" << m << "," << n << ") = " << fB_r(0,n) << std::endl;
+    std::cout << "fDA_r(" << m << "," << n << ") = " << fDA_r(0,n) << std::endl;
+    std::cout << "fDB_r(" << m << "," << n << ") = " << fDB_r(0,n) << std::endl;
+    std::cout << "gA1_r(" << m << "," << n << ") = " << gA1_r(0,n) << std::endl;
+    std::cout << "fA1_r(" << m << "," << n << ") = " << fA1_r(0,n) << std::endl;
+    std::cout << "gL_r(" << m << "," << n << ") = " << gL_r(0,n) << std::endl;
+    std::cout << "fL_r(" << m << "," << n << ") = " << fL_r(0,n) << std::endl;
+    std::cout << "gsig_r(" << m << "," << n << ") = " << gsig_r(0,n) << std::endl;
+    std::cout << "fsig_r(" << m << "," << n << ") = " << fsig_r(0,n) << std::endl;
+    std::cout << "gAsig_r(" << m << "," << n << ") = " << gAsig_r(0,n) << std::endl;
+    std::cout << "fAsig_r(" << m << "," << n << ") = " << fAsig_r(0,n) << std::endl;
+    std::cout << "pfD_r(" << m << "," << n << ") = " << pfD_r(0,n) << std::endl;
+    std::cout << "pfS_r(" << m << "," << n << ") = " << pfS_r(0,n) << std::endl;
+    std::cout << "pftau_r(" << m << "," << n << ") = " << pftau_r(0,n) << std::endl;
+    std::cout << "q_r(" << m << "," << n << ") = " << q_r(0,n) << std::endl;
+    std::cout << "Bq_r(" << m << "," << n << ") = " << Bq_r(0,n) << std::endl;
+
+    std::cout << "-------------------------------------------" << std::endl << std::endl;
 
     std::cout << "Primary fields" << std::endl << std::endl;
 
@@ -3891,7 +3993,7 @@ void BimetricEvolve::computeNewtonIterationMatrix(
     std::cout << "pfS_r(" << m << "," << n << ") = " << pfS_r(m,n) << std::endl;
     std::cout << "pftau_r(" << m << "," << n << ") = " << pftau_r(m,n) << std::endl;
     std::cout << "q_r(" << m << "," << n << ") = " << q_r(m,n) << std::endl;
-    std::cout << "Bq_r(" << m << "," << n << ") = " << Bq_r(m,n) << std::endl;*/
+    std::cout << "Bq_r(" << m << "," << n << ") = " << Bq_r(m,n) << std::endl;
 
 }
 
