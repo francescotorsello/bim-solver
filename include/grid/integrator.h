@@ -1138,11 +1138,13 @@ void MoL::integrate_MoL(
 
     // Allocate the memory for all the objects pointed by the previously defined pointers.
     // Each vector has n_evolved components, one per each evolved field.
+    // The initialization of these vectors to 0 is done by DIRK_computeStage,
+    // since it has to be done at the beginning of every stage.
     OMP_parallel_for( Int n = 0; n < nLen; ++n )
     {
-        X       [n] = new VecReal( n_evolved, Real(0) );
-        res     [n] = new VecReal( n_evolved, Real(0) );
-        dis     [n] = new VecReal( n_evolved, Real(0) );
+        X       [n] = new VecReal( n_evolved );
+        res     [n] = new VecReal( n_evolved );
+        dis     [n] = new VecReal( n_evolved );
     }
 
     // Adaptive stepsize control
@@ -1235,11 +1237,11 @@ void MoL::integrate_MoL(
     }
 
     // Cleanup the allocated memory
-    /*for( Int n = nGhost; n < nLen + nGhost; ++n )
+    for( Int n = 0; n < nLen; ++n )
     {
         delete NewtonItMats[n];
         delete LU_Newtons[n];
-    }*/
+    }
     delete[] NewtonItMats;
     delete[] LU_Newtons;
     delete[] F;
@@ -1432,18 +1434,26 @@ void MoL::DIRK_computeStage(
         const ButcherTable& BT                  // Butcher table
     )
 {
-   /*std::cout << std::endl << std::endl << "stage_i = " << stage_i
-        << std::endl << std::endl;*/
+    // Initialize the stage-dependent vectors to 0
+    for( Int field_i = 0; field_i < n_evolved; ++field_i)
+    {
+        OMP_parallel_for( Int n = 0; n < nLen; ++n )
+        {
+            (*X  [n])[field_i] = 0;
+            (*res[n])[field_i] = 0;
+            (*dis[n])[field_i] = 0;
+        }
+    }
 
     Int field_i = 0;
     for( auto e: evolvedGF ) // for each field
     // note that evolvedGF must contain the evolved fields in the correct order
     {
         // Compute the sum in the residual [1, p.42, eq.(81)]
-        for( Int j = 0; j < stage_i; ++j )
+        /// TODO: check this again
+        OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
         {
-            /// TODO: check this again
-            OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
+            for( Int j = 0; j < stage_i; ++j )
             {
                 (*X[ n - nGhost ])[field_i] += delta_t * BT.A[stage_i][j]
                                 * (*F[ nLen * j + ( n - nGhost ) ])[field_i];
@@ -1456,8 +1466,8 @@ void MoL::DIRK_computeStage(
         does not do anything. This is correct, and the formula (81) in [1, p.42]
         shares the same feature. This is because there are no previous stages to sum
         over. When stage_i = 1, there is only one term, which will have an assigned
-        value. The value is assigned at the end of the Newton iteration. that is, at
-        the end of the following while loop.
+        value. The value is assigned at the end of the Newton iteration, that is, at
+        the end of the following dowhile loop.
     */
 
     //////////////////////////////////////////////////////////////////////////////////
@@ -1473,8 +1483,6 @@ void MoL::DIRK_computeStage(
     Int iteration_counter = 0;
     do
     {
-        /*std::cout << std::endl << std::endl << "iteration_counter = "
-            << iteration_counter << std::endl << std::endl;*/
         // Compute the residuals for each field
         field_i = 0;
         for( auto e: evolvedGF )
@@ -1485,8 +1493,8 @@ void MoL::DIRK_computeStage(
                 (*res[ n - nGhost ])[field_i]
                                 = -( GF( e.f, next_m, n ) - GF( e.f, m, n ) )
                                     + (*X[ n - nGhost ])[field_i]
-                                    + delta_t * BT.A[stage_i - 1][stage_i - 1]
-                                        * GF( e.f_t, next_m, n );
+                                        + delta_t * BT.A[stage_i][stage_i]
+                                            * GF( e.f_t, next_m, n );
             }
             ++field_i;
         }
@@ -1495,7 +1503,7 @@ void MoL::DIRK_computeStage(
         // (it could, though).
         // Hence, we can solve the system L * U * dis = res for dis.
 
-        // solve the system for the displacements of the fields
+        // Solve the system for the displacements of the fields
         OMP_parallel_for( Int n = 0; n < nLen; ++n )
         {
             LU_Newtons[ n ] ->

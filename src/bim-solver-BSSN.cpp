@@ -2088,8 +2088,9 @@ void BimetricEvolve::determineGaugeFunctions( Int m )
 
 #if _TEST_MODE
 
-    //#include "eom-test/eomTest_StiffSystem.h"
-    #include "eom-test/eomTestFlame.h"
+    //#include "eom-test/eomTest.h"
+    //#include "eom-test/eomTestFlame.h"
+    #include "eom-test/eomTest_StiffSystem.h"
 
 #else
 
@@ -3761,7 +3762,9 @@ void BimetricEvolve::computeNewtonIterationMatrix(
 {
     #if _TEST_MODE
 
-        #include "jacobian-test/DIRK_Jacobian_test_Flame.h"
+        //#include "jacobian-test/DIRK_Jacobian_test.h"
+        //#include "jacobian-test/DIRK_Jacobian_test_Flame.h"
+        #include "jacobian-test/DIRK_Jacobian_test_StiffSystem.h"
 
     #else
 
@@ -3777,7 +3780,7 @@ void BimetricEvolve::computeNewtonIterationMatrix(
             {
                 std::cerr << "*** Jacobian[" << i << "," << j << "] is a NaN at t = "
                           << t(m,n) << ", r = " << r(m,n) << std::endl;
-                //exit(EXIT_FAILURE);
+                exit(EXIT_FAILURE);
             }
 
             NewItMat[i][j] = ( i == j ) ? 1 : 0
