@@ -350,8 +350,9 @@ public:
             {
                 std::cout << std::endl << std::endl << "*** The field n."
                           << e - fld::bimFirst - 1
-                          << " is a NaN at t = " << t(m,n) << ",   r = " << r(m,n) << "."
-                          << " The total number of fields is " << fld::bimLast - 1
+                          << " is a NaN at t = " << GF( fld::t, m, n )
+                          << ",   r = " << GF( fld::r, m, n ) << "." << std::endl
+                          << "    The total number of fields is " << fld::bimLast - 1
                           << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
@@ -365,9 +366,10 @@ public:
             {
                 std::cout << std::endl << std::endl << "*** The field n. "
                           << e - fld::bimFirst - 1
-                          << " is a NaN at t = " << t(m,n) << ",   r = " << r(m,n)
-                          << ",   stage = " << stage << "."
-                          << " The total number of fields is " << fld::bimLast - 1
+                          << " is a NaN at t = " << GF( fld::t, m, n )
+                          << ",   r = " << GF( fld::r, m, n )
+                          << ",   stage = " << stage << "." << std::endl
+                          << "    The total number of fields is " << fld::bimLast - 1
                           << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
@@ -381,10 +383,11 @@ public:
             {
                 std::cout << std::endl << std::endl << "*** The field n. "
                           << e - fld::bimFirst - 1
-                          << " is a NaN at t = " << t(m,n) << ",   r = " << r(m,n)
+                          << " is a NaN at t = " << GF( fld::t, m, n )
+                          << ",   r = " << GF( fld::r, m, n )
                           << ",   stage = " << stage
-                          << ",   iteration = " << iteration << "."
-                          << " The total number of fields is " << fld::bimLast - 1
+                          << ",   iteration = " << iteration << "." << std::endl
+                          << "    The total number of fields is " << fld::bimLast - 1
                           << "." << std::endl;
                 exit(EXIT_FAILURE);
             }

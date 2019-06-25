@@ -3805,7 +3805,7 @@ void BimetricEvolve::computeNewtonIterationMatrix(
 
 
     //FINDNAN( stage_i, m, n );
-    Real dbg1 = GF( fld::gDers, m, n );
+    //Real dbg1 = GF( fld::gDers, m, n );
     //Real dbg1 = GF( fld::t, m, n );
     //Real dbg2 = GF( fld::r, m, n );
 

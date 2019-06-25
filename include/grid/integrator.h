@@ -1367,6 +1367,13 @@ void MoL::DIRK_computeStep(
         std::cout << "    stage = " << stage_i << "              \r";
         std::flush( std::cout );
 
+        // Evolve time
+        OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
+        {
+            GF( fld::t, next_m, n ) = GF( fld::t, m, n )
+                                        + BT.c[stage_i] * delta_t;
+        }
+
         // Find the initial guesses at stage_i with Euler method
         // If it is the first iteration, and its initial guess has not be computed
         // yet, because the Jacobian is required to be updated at every stage,
@@ -1483,6 +1490,10 @@ void MoL::DIRK_computeStep(
 
             }
         }*/
+        for( Int n = nGhost; n < nLen + nGhost; ++n )
+        {
+            FINDNAN( stage_i, next_m, n );
+        }
 
         // If the Jacobian needs to be updated at each stage
         if( updateJ == STAGE )
@@ -1500,13 +1511,6 @@ void MoL::DIRK_computeStep(
         }
         // At this point, for all the three cases STAGE, STEP and MULTIPLE_STEPS,
         // the Newton iteration matrices are computed.
-
-        // Evolve time
-        OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
-        {
-            GF( fld::t, next_m, n ) = GF( fld::t, m, n )
-                                        + BT.c[stage_i] * delta_t;
-        }
 
         // Compute the stage value, i.e., perform the Newton iteration
         DIRK_computeStage( stage_i, next_m, m, BT );
