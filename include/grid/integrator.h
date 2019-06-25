@@ -253,6 +253,9 @@ class MoL : GridUser
     // DIRK variables
     /////////////////////////////////////////////////////////////////////////////////////
 
+    Int stage_counter = 0;
+    Int iter_counter  = 0;
+
     Real     relError;        //!< Tolerance required by the Newton method in DIRKs
     Real     absError;        //!< Tolerance required by the Newton method in DIRKs
     Real     toleranceRatio;  //!< Default tolerance DIRKs
@@ -440,7 +443,8 @@ class MoL : GridUser
 
         /// @todo convert to sprintf()
 
-        std::cout << "    t = " << std::setw(6) << std::setprecision(2) << std::fixed
+        std::cout
+             << "   t = " << std::setw(6) << std::setprecision(2) << std::fixed
              << tnow << std::setw(-1) << std::setprecision(-1) << std::defaultfloat
              << ",   real = " << round( elapsed )
              << " s   (" << round( 100 * ( tnow - t_0 ) / ( t_1 - t_0 ) )
@@ -520,7 +524,7 @@ class MoL : GridUser
             for( auto f: constantGF ) {
                 GF( f, m1, n ) = GF( f, m, n );
             }
-        } /// Moved to integStep_Begin (DIRK wants this at the beginning)
+        }
 
         /// - Finalize the integration step (e.g., doing diagnostic and post
         ///   processing of EoM like calculating the constraint violations).
@@ -1303,7 +1307,7 @@ void MoL::DIRK_computeStep(
         for( auto eom: eomList )
         {
             // For each grid point
-            OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+            for( Int n = nGhost; n < nLen + nGhost; ++n )
             {
             // Use this method of BimetricEvolve. This method computes the Newton
             // iteration matrix, and stores them into the MatReal objects pointed
@@ -1340,7 +1344,7 @@ void MoL::DIRK_computeStep(
             // For each IntegFace* pointer in eomList (presently, only BimetricEvolve)
             for( auto eom: eomList )
             {
-                OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+                for( Int n = nGhost; n < nLen + nGhost; ++n )
                 {
                 // Use this method of BimetricEvolve. This method computes the Newton
                 // iteration matrix, and stores them into the MatReal objects pointed
@@ -1356,9 +1360,13 @@ void MoL::DIRK_computeStep(
     // MULTIPLE_STEPS are assigned. The initial guesses for the case STAGE are not
     // assigned yet.
 
+    std::cout << std::endl;
     // Loop over the stages within one time step
     for( Int stage_i = 0; stage_i < BT.s; ++stage_i ) // for each stage
     {
+        std::cout << "    stage = " << stage_i << "              \r";
+        std::flush( std::cout );
+
         // Find the initial guesses at stage_i with Euler method
         // If it is the first iteration, and its initial guess has not be computed
         // yet, because the Jacobian is required to be updated at every stage,
@@ -1374,6 +1382,12 @@ void MoL::DIRK_computeStep(
                     GF( e.f, next_m, n ) = GF( e.f, m, n )
                                             + delta_t * GF( e.f_t, m, n );
                 }
+            }
+
+
+            OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+            {
+                Real dbg31 = GF( fld::gA1, next_m, n );
             }
             integStep_Begin( next_m );
 
@@ -1397,13 +1411,86 @@ void MoL::DIRK_computeStep(
         // Hence, we can compute the evolution equations at next_m, needed in the first
         // Newton iteration in DIRK_computeStage, when computing the residual vector
 
+        /*if( stage_i >= 1 )
+        {
+
+
+            OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+            {
+                //Real dbg1 = GF( fld::gconf, next_m, n );
+                //Real dbg2 = GF( fld::gtrK, next_m, n );
+                //Real dbg3 = GF( fld::gA, next_m, n );
+                //Real dbg4 = GF( fld::gB, next_m, n );
+                Real dbg5 = GF( fld::gA1, next_m, n );
+                Real dbg6 = GF( fld::gL, next_m, n );
+                Real dbg7 = GF( fld::gsig, next_m, n );
+                Real dbg8 = GF( fld::gAsig, next_m, n );
+                //Real dbg9 = GF( fld::gDconf, next_m, n );
+                //Real dbg10 = GF( fld::gDA, next_m, n );
+                //Real dbg11 = GF( fld::gDB, next_m, n );
+                Real dbg12 = GF( fld::pfD, next_m, n );
+                Real dbg13 = GF( fld::pfS, next_m, n );
+                Real dbg14 = GF( fld::pftau, next_m, n );
+                //Real dbg15 = GF( fld::q, next_m, n );
+                Real dbg16 = GF( fld::Bq, next_m, n );
+                Real dbg17 = GF( fld::Bq_t, next_m, n );
+                Real dbg18 = GF( fld::gBet, next_m, n );
+                Real dbg19 = GF( fld::gBet_r, next_m, n );
+                Real dbg20 = GF( fld::gBet_rr, next_m, n );
+                //Real dbg21 = GF( fld::p, next_m, n );
+                //Real dbg22 = GF( fld::Lt, next_m, n );
+                Real dbg32 = GF( fld::gA1, next_m, n );
+                Real dbg33 = GF( fld::gA1_t, next_m, n );
+                Real dbg34 = GF( fld::gB_rr, next_m, n );
+                Real dbg35 = GF( fld::gL_r, next_m, n );
+                Real dbg36 = GF( fld::gA_r, next_m, n );
+                //Real dbg37 = GF( fld::gAlp, next_m, n );
+
+                Real dbg37 = GF( fld::gconf_r, next_m, n );
+                Real dbg38 = GF( fld::gtrK_r, next_m, n );
+                Real dbg39 = GF( fld::gA_r, next_m, n );
+                Real dbg40 = GF( fld::gB_r, next_m, n );
+                Real dbg41 = GF( fld::gA1_r, next_m, n );
+                Real dbg42 = GF( fld::gL_r, next_m, n );
+                Real dbg43 = GF( fld::gsig_r, next_m, n );
+                Real dbg44 = GF( fld::gAsig_r, next_m, n );
+                Real dbg45 = GF( fld::gDconf_r, next_m, n );
+                Real dbg46 = GF( fld::gDA_r, next_m, n );
+                Real dbg47 = GF( fld::gDB_r, next_m, n );
+                Real dbg48 = GF( fld::pfD_r, next_m, n );
+                Real dbg49 = GF( fld::pfS_r, next_m, n );
+                Real dbg50 = GF( fld::pftau_r, next_m, n );
+                Real dbg51 = GF( fld::q_r, next_m, n );
+                Real dbg52 = GF( fld::Bq_r, next_m, n );
+
+                Real dbg53 = GF( fld::gconf_rr, next_m, n );
+                Real dbg54 = GF( fld::gtrK_rr, next_m, n );
+                Real dbg55 = GF( fld::gA_rr, next_m, n );
+                Real dbg56 = GF( fld::gB_rr, next_m, n );
+                Real dbg57 = GF( fld::gA1_rr, next_m, n );
+                Real dbg59 = GF( fld::gsig_rr, next_m, n );
+                Real dbg67 = GF( fld::q_rr, next_m, n );
+
+                Real dbg68 = GF( fld::gRicci, next_m, n );
+                Real dbg69 = GF( fld::gDers, next_m, n );
+                Real dbg70 = GF( fld::gDconfr, next_m, n );
+                Real dbg71 = GF( fld::gLr, next_m, n );
+                Real dbg72 = GF( fld::gBr, next_m, n );
+                Real dbg73 = GF( fld::fDconfr, next_m, n );
+                Real dbg74 = GF( fld::fLr, next_m, n );
+                //Real dbg75 = GF( fld::pr, next_m, n );
+                //Real dbg76 = GF( fld::qr, next_m, n );
+
+            }
+        }*/
+
         // If the Jacobian needs to be updated at each stage
         if( updateJ == STAGE )
         {
             // Compute the Newton iteration matrices and LU decompose them
             for( auto eom: eomList )
             {
-                OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+                for( Int n = nGhost; n < nLen + nGhost; ++n )
                 {
                     eom -> computeNewtonIterationMatrix( next_m, n, n_evolved, 3, BT,
                                                         *NewtonItMats[ n - nGhost ] );
@@ -1477,6 +1564,15 @@ void MoL::DIRK_computeStage(
         the end of the following dowhile loop.
     */
 
+    /*OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
+    {
+        GF( fld::gAlp, next_m, n ) = 1;
+        GF( fld::gDAlp, next_m, n ) = 0;
+        GF( fld::gBet, next_m, n ) = 0;
+        GF( fld::gBet_r, next_m, n ) = 0;
+        GF( fld::gBet_rr, next_m, n ) = 0;
+    }*/
+
     //////////////////////////////////////////////////////////////////////////////////
     // The quantities above do not depend on the Newton iteration step.
     // Below is the implementation of the Newton iterative method.
@@ -1487,9 +1583,13 @@ void MoL::DIRK_computeStage(
      */
     // While the desired accuracy isn't met yet, and the number of steps is less than
     // a reasonable upper bound
+    std::cout << std::endl;
     Int iteration_counter = 0;
     do
     {
+        std::cout << "    iter_cnt = " << iteration_counter << "              \r";
+        std::flush( std::cout );
+
         // Compute the residuals for each field
         field_i = 0;
         for( auto e: evolvedGF )
@@ -1570,6 +1670,84 @@ void MoL::DIRK_computeStage(
         // Recompute the evolution equations with the new displaced fields
         integStep_Begin( next_m );
 
+        if( stage_i >= 1 )
+        {
+
+            /*OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+            {
+                FINDNAN( iteration_counter, stage_i, next_m, n );
+                //Real dbg1 = GF( fld::t, next_m, n );
+                //Real dbg2 = GF( fld::r, next_m, n );
+            }*/
+            /*OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+            {
+                //Real dbg1 = GF( fld::gconf, next_m, n );
+                //Real dbg2 = GF( fld::gtrK, next_m, n );
+                //Real dbg3 = GF( fld::gA, next_m, n );
+                //Real dbg4 = GF( fld::gB, next_m, n );
+                Real dbg5 = GF( fld::gA1, next_m, n );
+                Real dbg6 = GF( fld::gL, next_m, n );
+                Real dbg7 = GF( fld::gsig, next_m, n );
+                Real dbg8 = GF( fld::gAsig, next_m, n );
+                //Real dbg9 = GF( fld::gDconf, next_m, n );
+                //Real dbg10 = GF( fld::gDA, next_m, n );
+                //Real dbg11 = GF( fld::gDB, next_m, n );
+                Real dbg12 = GF( fld::pfD, next_m, n );
+                Real dbg13 = GF( fld::pfS, next_m, n );
+                Real dbg14 = GF( fld::pftau, next_m, n );
+                //Real dbg15 = GF( fld::q, next_m, n );
+                Real dbg16 = GF( fld::Bq, next_m, n );
+                Real dbg17 = GF( fld::Bq_t, next_m, n );
+                Real dbg18 = GF( fld::gBet, next_m, n );
+                Real dbg19 = GF( fld::gBet_r, next_m, n );
+                Real dbg20 = GF( fld::gBet_rr, next_m, n );
+                //Real dbg21 = GF( fld::p, next_m, n );
+                //Real dbg22 = GF( fld::Lt, next_m, n );
+                Real dbg32 = GF( fld::gA1, next_m, n );
+                Real dbg33 = GF( fld::gA1_t, next_m, n );
+                Real dbg34 = GF( fld::gB_rr, next_m, n );
+                Real dbg35 = GF( fld::gL_r, next_m, n );
+                Real dbg36 = GF( fld::gA_r, next_m, n );
+                //Real dbg37 = GF( fld::gAlp, next_m, n );
+
+                Real dbg37 = GF( fld::gconf_r, next_m, n );
+                Real dbg38 = GF( fld::gtrK_r, next_m, n );
+                Real dbg39 = GF( fld::gA_r, next_m, n );
+                Real dbg40 = GF( fld::gB_r, next_m, n );
+                Real dbg41 = GF( fld::gA1_r, next_m, n );
+                Real dbg42 = GF( fld::gL_r, next_m, n );
+                Real dbg43 = GF( fld::gsig_r, next_m, n );
+                Real dbg44 = GF( fld::gAsig_r, next_m, n );
+                Real dbg45 = GF( fld::gDconf_r, next_m, n );
+                Real dbg46 = GF( fld::gDA_r, next_m, n );
+                Real dbg47 = GF( fld::gDB_r, next_m, n );
+                Real dbg48 = GF( fld::pfD_r, next_m, n );
+                Real dbg49 = GF( fld::pfS_r, next_m, n );
+                Real dbg50 = GF( fld::pftau_r, next_m, n );
+                Real dbg51 = GF( fld::q_r, next_m, n );
+                Real dbg52 = GF( fld::Bq_r, next_m, n );
+
+                Real dbg53 = GF( fld::gconf_rr, next_m, n );
+                Real dbg54 = GF( fld::gtrK_rr, next_m, n );
+                Real dbg55 = GF( fld::gA_rr, next_m, n );
+                Real dbg56 = GF( fld::gB_rr, next_m, n );
+                Real dbg57 = GF( fld::gA1_rr, next_m, n );
+                Real dbg59 = GF( fld::gsig_rr, next_m, n );
+                Real dbg67 = GF( fld::q_rr, next_m, n );
+
+                Real dbg68 = GF( fld::gRicci, next_m, n );
+                Real dbg69 = GF( fld::gDers, next_m, n );
+                Real dbg70 = GF( fld::gDconfr, next_m, n );
+                Real dbg71 = GF( fld::gLr, next_m, n );
+                Real dbg72 = GF( fld::gBr, next_m, n );
+                Real dbg73 = GF( fld::fDconfr, next_m, n );
+                Real dbg74 = GF( fld::fLr, next_m, n );
+                //Real dbg75 = GF( fld::pr, next_m, n );
+                //Real dbg76 = GF( fld::qr, next_m, n );
+
+            }*/
+        }
+
         // Store the n_evolved evolution equations at next_m, stage stage_i,
         // in the nLen VecReal objects with n_evolved components
         Int field_i = 0;
@@ -1589,7 +1767,7 @@ void MoL::DIRK_computeStage(
         max_norDis_norm > pow2( relError * toleranceRatio ) // displacement test
         //max_resDis_norm > relError * toleranceRatio // residual test
         &&
-        iteration_counter < 100 // stop the iteration if too many steps
+        iteration_counter < 10 // stop the iteration if too many steps
     );
     // After this while loop, the grid functions at ( m, n ), iteration stage_i
     // have updated values

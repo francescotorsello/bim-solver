@@ -40,6 +40,34 @@
     #define CFDS_ORDER 2
 #endif // _TEST_MODE
 
+template <typename EnumType, typename... More>
+void write_enum_value(std::ostream& out, EnumType t,
+        const char* names, size_t index, EnumType head, More... tail) {
+    if (t == head) {
+        for (size_t i = 0; i < index; ++i) {
+            names = strchr(names, ',');
+            names += strspn(names, " ,");
+        }
+        out.write(names, strcspn(names, " ,"));
+    } else {
+        write_enum_value(out, t, names, index + 1, tail...);
+    }
+}
+
+template <typename EnumType>
+void write_enum_value(std::ostream& out, EnumType t,
+        const char*, size_t) {
+    out << long(t);
+}
+
+#define DEFINE_ENUM(EnumType, ...) \
+    enum EnumType { bimFirst = GFCNT - 1, __VA_ARGS__ }; \
+    inline std::ostream& operator<<(std::ostream& out, EnumType t) { \
+        write_enum_value(out, t, # __VA_ARGS__, 0, \
+            __VA_ARGS__); \
+        return out; \
+    }
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // Declare our grid functions (they must be in advance known to the grid-driver)
 
@@ -319,6 +347,7 @@ namespace fld
     bimLast };
     #undef GFCNT // Clear the old number of grid functions then...
     #define GFCNT fld::bimLast // update the number of grid functions on a grid point.
+
     /////////////////////////////////////////////////////////////////////////////////////
 
     /** The grid functions that will be read from the initial data.
@@ -1625,7 +1654,8 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
             integ.keepEvolved( evolvedGaugeGF );
         }
         else if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4
-                    || slicing == SLICE_MS4D || slicing == SLICE_MS6 )
+                    || slicing == SLICE_MS4D || slicing == SLICE_MS6
+                    || slicing == SLICE_MS4G )
         {
             evolvedGaugeGF = {
                 { fld::q,     fld::q_t     },
@@ -3264,8 +3294,6 @@ void BimetricEvolve::integStep_CalcEvolutionRHS( Int m )
 
         #else
 
-            Real dgb1 = gDAlp(0,n);
-
             // The time evolution right-hand side
             //
             p_t      (m,n) = isGR() ? 0 : eq_p_t(m,n);
@@ -3588,7 +3616,7 @@ void BimetricEvolve::integStep_Finalize( Int m1, Int m )
         gAlp( m, 0 ) = gAlp ( m , 1 );
 
         if( slicing == SLICE_MS2 || slicing == SLICE_MS2OPT || slicing == SLICE_MS4
-           || slicing == SLICE_MS4D || slicing == SLICE_MS6 )
+           || slicing == SLICE_MS4D || slicing == SLICE_MS6 || slicing == SLICE_MS4G )
         {
            gAlp    ( m1, n )  =  gAlp   ( m, n );
            gDAlp   ( m1, n )  =  gDAlp  ( m, n );
@@ -3775,6 +3803,12 @@ void BimetricEvolve::computeNewtonIterationMatrix(
 
     #endif // _TEST_MODE
 
+
+    //FINDNAN( stage_i, m, n );
+    Real dbg1 = GF( fld::gDers, m, n );
+    //Real dbg1 = GF( fld::t, m, n );
+    //Real dbg2 = GF( fld::r, m, n );
+
     for( Int i = 0; i < n_evolved; ++i )
     {
         for( Int j = 0; j < n_evolved; ++j )
@@ -3783,7 +3817,6 @@ void BimetricEvolve::computeNewtonIterationMatrix(
             {
                 std::cerr << "*** Jacobian[" << i << "," << j << "] is a NaN at t = "
                           << t(m,n) << ", r = " << r(m,n) << std::endl;
-
                 //exit(EXIT_FAILURE);
             }
 
@@ -3803,7 +3836,7 @@ void BimetricEvolve::computeNewtonIterationMatrix(
         std::cout << std::endl << std::endl;
     }*/
 
-    std::cout << std::endl << "INITIAL DATA" << std::endl << std::endl;
+    /*std::cout << std::endl << "INITIAL DATA" << std::endl << std::endl;
 
     std::cout << "Primary fields" << std::endl << std::endl;
 
@@ -3899,9 +3932,10 @@ void BimetricEvolve::computeNewtonIterationMatrix(
     std::cout << "q_r(" << m << "," << n << ") = " << q_r(0,n) << std::endl;
     std::cout << "Bq_r(" << m << "," << n << ") = " << Bq_r(0,n) << std::endl;
 
-    std::cout << "-------------------------------------------" << std::endl << std::endl;
+    std::cout << "-------------------------------------------" << std::endl
+              << std::endl;*/
 
-    std::cout << "Primary fields" << std::endl << std::endl;
+    /*std::cout << "Primary fields" << std::endl << std::endl;
 
     std::cout << "gconf(" << m << "," << n << ") = " << gconf(m,n) << std::endl;
     std::cout << "fconf(" << m << "," << n << ") = " << fconf(m,n) << std::endl;
@@ -3993,7 +4027,7 @@ void BimetricEvolve::computeNewtonIterationMatrix(
     std::cout << "pfS_r(" << m << "," << n << ") = " << pfS_r(m,n) << std::endl;
     std::cout << "pftau_r(" << m << "," << n << ") = " << pftau_r(m,n) << std::endl;
     std::cout << "q_r(" << m << "," << n << ") = " << q_r(m,n) << std::endl;
-    std::cout << "Bq_r(" << m << "," << n << ") = " << Bq_r(m,n) << std::endl;
+    std::cout << "Bq_r(" << m << "," << n << ") = " << Bq_r(m,n) << std::endl;*/
 
 }
 

@@ -342,12 +342,62 @@ public:
         }
     }
 
+    void FINDNAN( Int m, Int n )
+    {
+        for( const auto e : { fld::bimFirst + 1, fld::bimLast - 16 } )
+        {
+            if( ISNAN( GF( e, m, n ) ) )
+            {
+                std::cout << std::endl << std::endl << "*** The field n."
+                          << e - fld::bimFirst - 1
+                          << " is a NaN at t = " << t(m,n) << ",   r = " << r(m,n) << "."
+                          << " The total number of fields is " << fld::bimLast - 1
+                          << "." << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+    void FINDNAN( Int stage, Int m, Int n )
+    {
+        for( const auto e : { fld::bimFirst + 1, fld::bimLast - 16 } )
+        {
+            if( ISNAN( GF( e, m, n ) ) )
+            {
+                std::cout << std::endl << std::endl << "*** The field n. "
+                          << e - fld::bimFirst - 1
+                          << " is a NaN at t = " << t(m,n) << ",   r = " << r(m,n)
+                          << ",   stage = " << stage << "."
+                          << " The total number of fields is " << fld::bimLast - 1
+                          << "." << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+    void FINDNAN( Int iteration, Int stage, Int m, Int n )
+    {
+        for( const auto e : { fld::bimFirst + 1, fld::bimLast - 16 } )
+        {
+            if( ISNAN( GF( e, m, n ) ) )
+            {
+                std::cout << std::endl << std::endl << "*** The field n. "
+                          << e - fld::bimFirst - 1
+                          << " is a NaN at t = " << t(m,n) << ",   r = " << r(m,n)
+                          << ",   stage = " << stage
+                          << ",   iteration = " << iteration << "."
+                          << " The total number of fields is " << fld::bimLast - 1
+                          << "." << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+
     /////////////////////////////////////////////////////////////////////////////////////
 
     void applyBoundaryConditions( Int m, Int gf, Int parity );
     void smoothenGF( Int m, Int outgf, Int tmpgf, Int ingf, Int parity );
     void smoothenGF2( Int m, Int outgf, Int tmpgf, Int ingf, Int parity );
-    void smoothenGF0( Int m, Int nCopyFrom, Int nCopyTo, Int sgRadius, Int outgf, Int tmpgf, Int ingf, Int parity );
+    void smoothenGF0( Int m, Int nCopyFrom, Int nCopyTo, Int sgRadius, Int outgf,
+                        Int tmpgf, Int ingf, Int parity );
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////

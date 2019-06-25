@@ -122,6 +122,11 @@ Real BimetricEvolve::gDAlp_at_N( Int m, Int N, Real h )
             x = ( gAlp( m, N - 4 )/4. - 4./3. * gAlp( m, N - 3 ) + 3. * gAlp( m, N-2 )
                  - 4 * gAlp( m, N - 1 ) + 25./12. * gAlp( m, N ) ) / h;
 
+        case SLICE_MS4G:
+
+            x = ( gAlp( m, N - 4 )/4. - 4./3. * gAlp( m, N - 3 ) + 3. * gAlp( m, N-2 )
+                 - 4 * gAlp( m, N - 1 ) + 25./12. * gAlp( m, N ) ) / h;
+
         case SLICE_MS6:
 
             x = (gAlp(m,-6 + N)/6. - (6*gAlp(m,-5 + N))/5. + (15*gAlp(m,-4 + N))/4.
@@ -532,6 +537,12 @@ void BimetricEvolve::maximalSlice_4_gDAlp
     maximalSlice_compute_gDAlp( m, N );
 
     //Real dbg1 = gDAlp_at_N( m, offset + N, h );
+    OMP_parallel_for( Int n = nGhost + 1; n < nGhost + nLen + 1; ++n )
+    {
+        Real dbg1 = gAlp(m,n);
+        Real dbg11 = gDAlp(m,n);
+    }
+
 
     /////////////////////////////////////////////////////////////////////////////////////
 
@@ -906,7 +917,7 @@ void BimetricEvolve::maximalSlice_PostSteps( Int m, Int N )
     /*for( Int i = 0; i < nGhost; ++i ) {
         gAlp( m, nGhost - 1 - i  ) = gAlp( m, nGhost + i );
     }*/
-    for( Int i = 0; i < nGhost +1; ++i )
+    for( Int i = 0; i < nGhost + 1; ++i )
     {
         Int n  = nGhost - i - 1;
         Int nR = nGhost + i;
@@ -978,8 +989,8 @@ void BimetricEvolve::maximalSlice_PostSteps( Int m, Int N )
         Real dbg50 = - r(m,n) * (3 * gA2_r(m,n)
       + gtrK_r(m,n));*/
 
-        gAlp( m, n+1 ) = ( ( 4  + 2 * h * h * QQ( m,n) ) * gAlp(m,n)
-             - ( 2 + h * PP( m,n) ) * gAlp(m,n-1) ) / ( 2 - h * PP( m,n) );
+        gAlp( m, n + 1 ) = ( ( 4 + 2 * h * h * QQ(m,n) ) * gAlp(m,n)
+             - ( 2 + h * PP(m,n) ) * gAlp(m,n-1) ) / ( 2 - h * PP(m,n) );
         //extrapolate_R( fld::gAlp,  m, n );
     }
 }
@@ -1007,6 +1018,14 @@ void BimetricEvolve::maximalSlice_compute_gDAlp( Int m, Int N )
         gDAlp(m,n) = gAlp_r(m,n) /*/ (TINY_Real + gAlp(m,n))*/;
 
     }
+
+    OMP_parallel_for( Int n = nGhost + 1; n < nGhost + nLen + 1; ++n )
+    {
+        Real dbg1 = gAlp(m,n);
+        Real dbg2 = gDAlp(m,n);
+        Real dbg3 = gAlp_r(m,n);
+    }
+
 
     // The accuracy is very low at low r. Assume that a few first cells are linear,
     // then apply a six-point cubic spline to smooth the region around r = 0.
