@@ -1223,8 +1223,6 @@ void MoL::integrate_MoL(
 
             DIRK_computeStep( next_m, m, BT );
 
-            integStep_End( next_m, m );
-
             /////////////////////////////////////////////////////////////////////////////
             //
             if( adaptiveStepSize )
@@ -1279,6 +1277,13 @@ void MoL::DIRK_computeStep(
         Otherwise, it does. Nonetheless, one has to choose one of the
         diagonal elements. Here we are using stage 3.
     */
+
+    // Propagate r to the next time step. Its value is needed in all the
+    // successive computations
+    OMP_parallel_for( Int n = 0; n < nTotal; ++n )
+    {
+        GF( fld::r, next_m, n ) = GF( fld::r, m, n );
+    }
 
     // If the Jacobian needs to be updated at each time step
     /// TODO: this could (or should?) be a precompilator if
@@ -1360,12 +1365,12 @@ void MoL::DIRK_computeStep(
     // MULTIPLE_STEPS are assigned. The initial guesses for the case STAGE are not
     // assigned yet.
 
-    std::cout << std::endl;
+    //std::cout << std::endl;
     // Loop over the stages within one time step
     for( Int stage_i = 0; stage_i < BT.s; ++stage_i ) // for each stage
     {
-        std::cout << "    stage = " << stage_i << "              \r";
-        std::flush( std::cout );
+        //std::cout << "    stage = " << stage_i << "              \r";
+        //std::flush( std::cout );
 
         // Evolve time
         OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
@@ -1490,9 +1495,11 @@ void MoL::DIRK_computeStep(
 
             }
         }*/
+
+
         for( Int n = nGhost; n < nLen + nGhost; ++n )
         {
-            FINDNAN( stage_i, next_m, n );
+            //FINDNAN( stage_i, next_m, n );
         }
 
         // If the Jacobian needs to be updated at each stage
@@ -1503,8 +1510,14 @@ void MoL::DIRK_computeStep(
             {
                 for( Int n = nGhost; n < nLen + nGhost; ++n )
                 {
-                    eom -> computeNewtonIterationMatrix( next_m, n, n_evolved, 3, BT,
-                                                        *NewtonItMats[ n - nGhost ] );
+                    eom -> computeNewtonIterationMatrix(
+                                next_m,
+                                n,
+                                n_evolved,
+                                stage_i,
+                                BT,
+                                *NewtonItMats[ n - nGhost ]
+                            );
                     LU_Newtons[ n - nGhost ] -> LUDecompose(*NewtonItMats[ n - nGhost ]);
                 }
             }
@@ -1518,6 +1531,8 @@ void MoL::DIRK_computeStep(
     }
     // At this point, the final value of the grid functions at time step m and grid point
     // n are computed
+
+    integStep_End( next_m, m );
 
 }
 
@@ -1587,12 +1602,12 @@ void MoL::DIRK_computeStage(
      */
     // While the desired accuracy isn't met yet, and the number of steps is less than
     // a reasonable upper bound
-    std::cout << std::endl;
+    //std::cout << std::endl;
     Int iteration_counter = 0;
     do
     {
-        std::cout << "    iter_cnt = " << iteration_counter << "              \r";
-        std::flush( std::cout );
+        //std::cout << "    iter_cnt = " << iteration_counter << "              \r";
+        //std::flush( std::cout );
 
         // Compute the residuals for each field
         field_i = 0;
@@ -1674,10 +1689,10 @@ void MoL::DIRK_computeStage(
         // Recompute the evolution equations with the new displaced fields
         integStep_Begin( next_m );
 
-        if( stage_i >= 1 )
+        /*if( stage_i >= 1 )
         {
 
-            /*OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
+            OMP_parallel_for( Int n = nGhost; n < nLen + nGhost; ++n )
             {
                 FINDNAN( iteration_counter, stage_i, next_m, n );
                 //Real dbg1 = GF( fld::t, next_m, n );
@@ -1749,8 +1764,8 @@ void MoL::DIRK_computeStage(
                 //Real dbg75 = GF( fld::pr, next_m, n );
                 //Real dbg76 = GF( fld::qr, next_m, n );
 
-            }*/
-        }
+            }
+        }*/
 
         // Store the n_evolved evolution equations at next_m, stage stage_i,
         // in the nLen VecReal objects with n_evolved components

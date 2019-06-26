@@ -1619,7 +1619,7 @@ BimetricEvolve::BimetricEvolve( Parameters& params,
 
         std::vector<fld::EvolvedBy> evolvedGaugeGF;
 
-        if( isGR () || slicing == SLICE_CONSTGF ) {
+        if( isGR () && slicing == SLICE_CONSTGF ) {
             integ.keepConstant( { fld::q, fld::fAlp, fld::fDAlp } );
         }
 
@@ -3803,12 +3803,6 @@ void BimetricEvolve::computeNewtonIterationMatrix(
 
     #endif // _TEST_MODE
 
-
-    //FINDNAN( stage_i, m, n );
-    //Real dbg1 = GF( fld::gDers, m, n );
-    //Real dbg1 = GF( fld::t, m, n );
-    //Real dbg2 = GF( fld::r, m, n );
-
     for( Int i = 0; i < n_evolved; ++i )
     {
         for( Int j = 0; j < n_evolved; ++j )
@@ -3817,7 +3811,7 @@ void BimetricEvolve::computeNewtonIterationMatrix(
             {
                 std::cerr << "*** Jacobian[" << i << "," << j << "] is a NaN at t = "
                           << t(m,n) << ", r = " << r(m,n) << std::endl;
-                //exit(EXIT_FAILURE);
+                exit(EXIT_FAILURE);
             }
 
             NewItMat[i][j] = ( i == j ) ? 1 : 0
