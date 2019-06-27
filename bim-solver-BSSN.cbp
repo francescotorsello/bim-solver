@@ -60,6 +60,7 @@
 		<Unit filename="include/bimetricModel.h" />
 		<Unit filename="include/cBSSNmaximalSlice.h" />
 		<Unit filename="include/documentation.h" />
+		<Unit filename="include/enum_extended.h" />
 		<Unit filename="include/eom-BSSN.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNBimetricSourcesReg.h" />
 		<Unit filename="include/eom-BSSN/eomBSSNConstraintsEul.h" />
@@ -82,6 +83,7 @@
 		<Unit filename="include/eom-test/eomTest.h" />
 		<Unit filename="include/eom-test/eomTestFlame.h" />
 		<Unit filename="include/eom-test/eomTest_StiffSystem.h" />
+		<Unit filename="include/fields.h" />
 		<Unit filename="include/grid/gridDriver.h" />
 		<Unit filename="include/grid/gridFunctions.h" />
 		<Unit filename="include/grid/gridInitialData.h" />
