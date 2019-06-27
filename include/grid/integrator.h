@@ -1505,7 +1505,8 @@ void MoL::DIRK_computeStep(
             // Check for NaNs over all the fields except t and r
             for( Int n = nGhost; n < nGhost + nLen; ++n )
             {
-                FINDNAN( stage_i, next_m, n );
+                Real dbg222 = GF( fld::gA2_t, next_m, n );
+                //FINDNAN( stage_i, next_m, n );
             }
 
         #endif // _DETECT_NAN

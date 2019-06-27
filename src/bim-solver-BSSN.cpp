@@ -82,24 +82,24 @@ namespace fld
 {
     BETTER_ENUM(
 
-        better_bimIndex,    // Name of the Better Enum
+        better_bimIndex,        // Name of the Better Enum
 
-        Int,                // Type of its elements
+        Int,                    // Type of its elements
 
-        bimFirst = GFCNT - 1,
+        bimFirst = GFCNT - 1,   // The enumeraiton starts form here
 
         /// Evolved fields in the `g`-sector
         gconf, gDconf, gtrK, gA, gDA, gB, gDB, gA1, gA2, gL, gsig, gAsig,
 
         /// The evolution RHS for `g`
-        gconf_t, gDconf_t, gtrK_t, gA_t, gDA_t, gB_t, gDB_t, gA1_t, gA2_t, gL_t,
+        gconf_t, gDconf_t, gtrK_t, gA_t, gDA_t, gB_t, gDB_t, gA1_t, /*gA2_t,*/ gL_t,
         gsig_t, gAsig_t,
 
         /// Evolved fields in the `f`-sector
         fconf, fDconf, ftrK, fA, fDA, fB, fDB, fA1, fA2, fL, fsig, fAsig,
 
         /// The evolution RHS for `f`
-        fconf_t, fDconf_t, ftrK_t, fA_t, fDA_t, fB_t, fDB_t, fA1_t, fA2_t, fL_t,
+        fconf_t, fDconf_t, ftrK_t, fA_t, fDA_t, fB_t, fDB_t, fA1_t, /*fA2_t,*/ fL_t,
         fsig_t, fAsig_t,
 
         /// The traces of the shifted extrinsic curvatures
