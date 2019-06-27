@@ -395,8 +395,13 @@ public:
     }*/
     void FINDNAN( Int m, Int n )
     {
-        for( fld::better_bimIndex e : fld::better_bimIndex::_values() )
+        for(
+            size_t index = fld::bimFirst + 1;
+            index < fld::better_bimIndex::_size() - 17;
+            ++index
+        )
         {
+            fld::better_bimIndex e = fld::better_bimIndex::_values()[index];
             if( ISNAN( GF( e, m, n ) ) )
             {
                 std::cout << std::endl << std::endl << "*** The field "
@@ -410,8 +415,14 @@ public:
     }
     void FINDNAN( Int stage, Int m, Int n )
     {
-        for( fld::better_bimIndex e : fld::better_bimIndex::_values() )
+        //for( fld::better_bimIndex e : fld::better_bimIndex::_values() )
+        for(
+            size_t index = fld::bimFirst + 1;
+            index < fld::better_bimIndex::_size() - 17;
+            ++index
+        )
         {
+            fld::better_bimIndex e = fld::better_bimIndex::_values()[index];
             if( ISNAN( GF( e, m, n ) ) )
             {
                 std::cout << std::endl << std::endl << "*** The field "
@@ -426,8 +437,13 @@ public:
     }
     void FINDNAN( Int iteration, Int stage, Int m, Int n )
     {
-        for( fld::better_bimIndex e : fld::better_bimIndex::_values() )
+        for(
+            size_t index = fld::bimFirst + 1;
+            index < fld::better_bimIndex::_size() - 17;
+            ++index
+        )
         {
+            fld::better_bimIndex e = fld::better_bimIndex::_values()[index];
             if( ISNAN( GF( e, m, n ) ) )
             {
                 std::cout << std::endl << std::endl << "*** The field "

@@ -332,7 +332,6 @@ namespace fld
         bimLast
     )
 
-
     /////////////////////////////////////////////////////////////////////////////////////
     /// The bimetric grid functions (indices on the grid).
     enum bimIndex { bimFirst = GFCNT - 1,
