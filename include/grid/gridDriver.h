@@ -393,70 +393,81 @@ public:
             }
         }
     }*/
-    void FINDNAN( Int m, Int n )
-    {
-        for(
-            size_t index = fld::bimFirst + 1;
-            index < fld::better_bimIndex::_size() - 17;
-            ++index
-        )
+
+    #if _DETECT_NAN
+
+        void FINDNAN( Int m, Int n )
         {
-            fld::better_bimIndex e = fld::better_bimIndex::_values()[index];
-            if( ISNAN( GF( e, m, n ) ) )
+            for(
+                size_t index = fld::bimFirst + 1;
+                index < fld::better_bimIndex::_size() - 17;
+                ++index
+            )
             {
-                std::cout << std::endl << std::endl << "*** The field "
-                          << e._to_string()
-                          << " is a NaN at t = " << GF( fld::t, m, n )
-                          << ",   r = " << GF( fld::r, m, n ) << "." << std::endl
-                          << "." << std::endl;
-                exit(EXIT_FAILURE);
+                fld::better_bimIndex e = fld::better_bimIndex::_values()[index];
+                if( ISNAN( GF( e, m, n ) ) )
+                {
+                    std::cout << std::endl << std::endl << "*** The field "
+                              << e._to_string()
+                              << " is a NaN at t = " << GF( fld::t, m, n )
+                              << ",   r = " << GF( fld::r, m, n )
+                              << ",   m = " << m
+                              << ",   n = " << n
+                              << "." << std::endl;
+                    exit(EXIT_FAILURE);
+                }
             }
         }
-    }
-    void FINDNAN( Int stage, Int m, Int n )
-    {
-        //for( fld::better_bimIndex e : fld::better_bimIndex::_values() )
-        for(
-            size_t index = fld::bimFirst + 1;
-            index < fld::better_bimIndex::_size() - 17;
-            ++index
-        )
+        void FINDNAN( Int stage, Int m, Int n )
         {
-            fld::better_bimIndex e = fld::better_bimIndex::_values()[index];
-            if( ISNAN( GF( e, m, n ) ) )
+            //for( fld::better_bimIndex e : fld::better_bimIndex::_values() )
+            for(
+                size_t index = fld::bimFirst + 1;
+                index < fld::better_bimIndex::_size() - 17;
+                ++index
+            )
             {
-                std::cout << std::endl << std::endl << "*** The field "
-                          << e._to_string()
-                          << " is a NaN at t = " << GF( fld::t, m, n )
-                          << ",   r = " << GF( fld::r, m, n )
-                          << ",   stage = " << stage << "." << std::endl
-                          << "." << std::endl;
-                exit(EXIT_FAILURE);
+                fld::better_bimIndex e = fld::better_bimIndex::_values()[index];
+                if( ISNAN( GF( e, m, n ) ) )
+                {
+                    std::cout << std::endl << std::endl << "*** The field "
+                              << e._to_string()
+                              << " is a NaN at t = " << GF( fld::t, m, n )
+                              << ",   r = " << GF( fld::r, m, n )
+                              << ",   stage = " << stage
+                              << ",   m = " << m
+                              << ",   n = " << n
+                              << "." << std::endl;
+                    exit(EXIT_FAILURE);
+                }
             }
         }
-    }
-    void FINDNAN( Int iteration, Int stage, Int m, Int n )
-    {
-        for(
-            size_t index = fld::bimFirst + 1;
-            index < fld::better_bimIndex::_size() - 17;
-            ++index
-        )
+        void FINDNAN( Int iteration, Int stage, Int m, Int n )
         {
-            fld::better_bimIndex e = fld::better_bimIndex::_values()[index];
-            if( ISNAN( GF( e, m, n ) ) )
+            for(
+                size_t index = fld::bimFirst + 1;
+                index < fld::better_bimIndex::_size() - 17;
+                ++index
+            )
             {
-                std::cout << std::endl << std::endl << "*** The field "
-                          << e._to_string()
-                          << " is a NaN at t = " << GF( fld::t, m, n )
-                          << ",   r = " << GF( fld::r, m, n )
-                          << ",   stage = " << stage
-                          << ",   iteration = " << iteration << "." << std::endl
-                          << "." << std::endl;
-                exit(EXIT_FAILURE);
+                fld::better_bimIndex e = fld::better_bimIndex::_values()[index];
+                if( ISNAN( GF( e, m, n ) ) )
+                {
+                    std::cout << std::endl << std::endl << "*** The field "
+                              << e._to_string()
+                              << " is a NaN at t = " << GF( fld::t, m, n )
+                              << ",   r = " << GF( fld::r, m, n )
+                              << ",   stage = " << stage
+                              << ",   iteration = " << iteration
+                              << ",   m = " << m
+                              << ",   n = " << n
+                              << "." << std::endl;
+                    exit(EXIT_FAILURE);
+                }
             }
         }
-    }
+
+    #endif // _DETECT_NAN
 
     /////////////////////////////////////////////////////////////////////////////////////
 

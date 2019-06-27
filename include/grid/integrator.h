@@ -253,12 +253,10 @@ class MoL : GridUser
     // DIRK variables
     /////////////////////////////////////////////////////////////////////////////////////
 
-    Int stage_counter = 0;
-    Int iter_counter  = 0;
-
     Real     relError;        //!< Tolerance required by the Newton method in DIRKs
     Real     absError;        //!< Tolerance required by the Newton method in DIRKs
     Real     toleranceRatio;  //!< Default tolerance DIRKs
+    Real     threshold;
     Real     maxIterations;   //!< Maximum number of Newton iterations
     Int      updateJ;         //!< Parameter from config.ini setting the update of the
                               //!< Jacobian in DIRKs
@@ -459,6 +457,40 @@ class MoL : GridUser
         std::cout << "                        \r";
         std::flush( std::cout );
     }
+    void reportIntegrationTime( Int iteration, Int stage, Int m )
+    {
+        if ( mpiRank() > 1 ) {
+            return; // only the first in rank can access the standard output
+        }
+
+        Real tnow = GF( fld::t, m, nGhost ); // current integration time
+
+        auto elapsed = 1e-3 * std::chrono::duration_cast<std::chrono::milliseconds>
+                ( std::chrono::high_resolution_clock::now () - rt_start ).count ();
+
+        auto rt_factor = elapsed / ( tnow - t_0 );  // real time/integration time
+        auto rt_total = round( ( t_1 - t_0 ) * rt_factor ); // projected total time
+        auto rt_left = round( ( t_1 - tnow ) * rt_factor ); // estimated time to cover
+
+        /// @todo convert to sprintf()
+
+        std::cout
+             << "   iteration = " << iteration
+             << ",   stage = " << stage
+             << ",   t = " << std::setw(6) << std::setprecision(5) << std::fixed
+             << tnow << std::setw(-1) << std::setprecision(-1) << std::defaultfloat
+             << ",   real = " << round( elapsed )
+             << " s   (" << round( 100 * ( tnow - t_0 ) / ( t_1 - t_0 ) )
+             << "% of " << rt_total
+             << " s),   ETA " << rt_left << " s";
+
+        if( adpt.isEnabled () ) {
+            adpt.showInfo( m );
+        }
+
+        std::cout << "                        \r";
+        std::flush( std::cout );
+    }
 
     /** Executed at the beginning of each integration step.
      *  Eventually calculates the RHS (`f_t`) needed for the integration.
@@ -641,6 +673,7 @@ public:
             params.get( "DIRK.toleranceRatio", toleranceRatio, 0.01 );
             params.get( "DIRK.maxIterations",  maxIterations,  50 );
             updateJ_ID = params.get( "DIRK.updateJ", updateJ, STEP, updateJacobian );
+            threshold = pow2( relError * toleranceRatio );
         }
 
         if( updateJ == MULTIPLE_STEPS )
@@ -1369,12 +1402,9 @@ void MoL::DIRK_computeStep(
     // MULTIPLE_STEPS are assigned. The initial guesses for the case STAGE are not
     // assigned yet.
 
-    //std::cout << std::endl;
     // Loop over the stages within one time step
     for( Int stage_i = 0; stage_i < BT.s; ++stage_i ) // for each stage
     {
-        //std::cout << "    stage = " << stage_i << "              \r";
-        //std::flush( std::cout );
 
         // Evolve time
         OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
@@ -1505,8 +1535,8 @@ void MoL::DIRK_computeStep(
             // Check for NaNs over all the fields except t and r
             for( Int n = nGhost; n < nGhost + nLen; ++n )
             {
-                Real dbg222 = GF( fld::gA2_t, next_m, n );
-                //FINDNAN( stage_i, next_m, n );
+                Real dbg222 = GF( fld::gL_t, next_m, n );
+                FINDNAN( stage_i, next_m, n );
             }
 
         #endif // _DETECT_NAN
@@ -1602,12 +1632,10 @@ void MoL::DIRK_computeStage(
      */
     // While the desired accuracy isn't met yet, and the number of steps is less than
     // a reasonable upper bound
-    //std::cout << std::endl;
+
     Int iteration_counter = 0;
     do
     {
-        //std::cout << "    iter_cnt = " << iteration_counter << "              \r";
-        //std::flush( std::cout );
 
         // Compute the residuals for each field
         field_i = 0;
@@ -1780,10 +1808,12 @@ void MoL::DIRK_computeStage(
             ++field_i;
         }
 
+        reportIntegrationTime( iteration_counter, stage_i, next_m );
+
         ++iteration_counter;
 
     } while (
-        max_norDis_norm > pow2( relError * toleranceRatio ) // displacement test
+        max_norDis_norm > threshold // displacement test
         //max_resDis_norm > relError * toleranceRatio // residual test
         &&
         iteration_counter < maxIterations // stop the iteration if too many steps
