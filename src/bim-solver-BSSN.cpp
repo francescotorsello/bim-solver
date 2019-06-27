@@ -40,7 +40,7 @@
     #define CFDS_ORDER 2
 #endif // _TEST_MODE
 
-template <typename EnumType, typename... More>
+/*template <typename EnumType, typename... More>
 void write_enum_value(std::ostream& out, EnumType t,
         const char* names, size_t index, EnumType head, More... tail) {
     if (t == head) {
@@ -66,7 +66,7 @@ void write_enum_value(std::ostream& out, EnumType t,
         write_enum_value(out, t, # __VA_ARGS__, 0, \
             __VA_ARGS__); \
         return out; \
-    }
+    }*/
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Declare our grid functions (they must be in advance known to the grid-driver)

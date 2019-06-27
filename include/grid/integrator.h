@@ -259,6 +259,7 @@ class MoL : GridUser
     Real     relError;        //!< Tolerance required by the Newton method in DIRKs
     Real     absError;        //!< Tolerance required by the Newton method in DIRKs
     Real     toleranceRatio;  //!< Default tolerance DIRKs
+    Real     maxIterations;   //!< Maximum number of Newton iterations
     Int      updateJ;         //!< Parameter from config.ini setting the update of the
                               //!< Jacobian in DIRKs
     Int      modulo;          //!< When the Jacobian is updated after m steps, modulo = m
@@ -638,6 +639,7 @@ public:
             params.get( "DIRK.relativeError",  relError,       1e-3 );
             params.get( "DIRK.absoluteError",  absError,       1e-15 );
             params.get( "DIRK.toleranceRatio", toleranceRatio, 0.01 );
+            params.get( "DIRK.maxIterations",  maxIterations,  50 );
             updateJ_ID = params.get( "DIRK.updateJ", updateJ, STEP, updateJacobian );
         }
 
@@ -1189,6 +1191,8 @@ void MoL::integrate_MoL(
          << "    Absolute error = " << absError
          << std::endl
          << "    Tolerance ratio = " << toleranceRatio
+         << std::endl
+         << "    Maximum number of Newton iterations = " << maxIterations
          << std::endl << std::endl;
 
     cur_t = t_0;    // The initial `t`
@@ -1496,11 +1500,15 @@ void MoL::DIRK_computeStep(
             }
         }*/
 
+        #if _DETECT_NAN
 
-        for( Int n = nGhost; n < nLen + nGhost; ++n )
-        {
-            //FINDNAN( stage_i, next_m, n );
-        }
+            // Check for NaNs over all the fields except t and r
+            for( Int n = nGhost; n < nGhost + nLen; ++n )
+            {
+                FINDNAN( stage_i, next_m, n );
+            }
+
+        #endif // _DETECT_NAN
 
         // If the Jacobian needs to be updated at each stage
         if( updateJ == STAGE )
@@ -1582,15 +1590,6 @@ void MoL::DIRK_computeStage(
         value. The value is assigned at the end of the Newton iteration, that is, at
         the end of the following dowhile loop.
     */
-
-    /*OMP_parallel_for( Int n = nGhost; n < nGhost + nLen; ++n )
-    {
-        GF( fld::gAlp, next_m, n ) = 1;
-        GF( fld::gDAlp, next_m, n ) = 0;
-        GF( fld::gBet, next_m, n ) = 0;
-        GF( fld::gBet_r, next_m, n ) = 0;
-        GF( fld::gBet_rr, next_m, n ) = 0;
-    }*/
 
     //////////////////////////////////////////////////////////////////////////////////
     // The quantities above do not depend on the Newton iteration step.
@@ -1786,7 +1785,7 @@ void MoL::DIRK_computeStage(
         max_norDis_norm > pow2( relError * toleranceRatio ) // displacement test
         //max_resDis_norm > relError * toleranceRatio // residual test
         &&
-        iteration_counter < 10 // stop the iteration if too many steps
+        iteration_counter < maxIterations // stop the iteration if too many steps
     );
     // After this while loop, the grid functions at ( m, n ), iteration stage_i
     // have updated values
