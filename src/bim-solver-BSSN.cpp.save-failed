@@ -334,7 +334,7 @@ namespace fld
     /////////////////////////////////////////////////////////////////////////////////////
     bimLast };
 
-
+    enum foo {};
 
     #if _DETECT_NAN
 
@@ -986,7 +986,6 @@ namespace fld
         /* add GFs here that are optionally written to output */
     };
 }
-
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // After defining the grid functions, we can use the grid-driver and the other modules

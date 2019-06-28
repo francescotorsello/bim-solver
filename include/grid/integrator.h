@@ -1532,10 +1532,78 @@ void MoL::DIRK_computeStep(
 
         #if _DETECT_NAN
 
+            /*for( Int n = nGhost; n < nGhost + nLen; ++n )
+            {
+                Real dbg1 = GF( fld::gconf, next_m, n );
+                Real dbg2 = GF( fld::gtrK, next_m, n );
+                Real dbg3 = GF( fld::gA, next_m, n );
+                Real dbg4 = GF( fld::gB, next_m, n );
+                Real dbg5 = GF( fld::gA1, next_m, n );
+                Real dbg6 = GF( fld::gL, next_m, n );
+                Real dbg7 = GF( fld::gsig, next_m, n );
+                Real dbg8 = GF( fld::gAsig, next_m, n );
+                Real dbg9 = GF( fld::gDconf, next_m, n );
+                Real dbg10 = GF( fld::gDA, next_m, n );
+                Real dbg11 = GF( fld::gDB, next_m, n );
+                Real dbg12 = GF( fld::pfD, next_m, n );
+                Real dbg13 = GF( fld::pfS, next_m, n );
+                Real dbg14 = GF( fld::pftau, next_m, n );
+                Real dbg15 = GF( fld::q, next_m, n );
+                Real dbg16 = GF( fld::Bq, next_m, n );
+                Real dbg17 = GF( fld::Bq_t, next_m, n );
+                Real dbg18 = GF( fld::gBet, next_m, n );
+                Real dbg19 = GF( fld::gBet_r, next_m, n );
+                Real dbg20 = GF( fld::gBet_rr, next_m, n );
+                Real dbg21 = GF( fld::p, next_m, n );
+                Real dbg22 = GF( fld::Lt, next_m, n );
+                Real dbg32 = GF( fld::gA1, next_m, n );
+                Real dbg33 = GF( fld::gA1_t, next_m, n );
+                Real dbg34 = GF( fld::gB_rr, next_m, n );
+                Real dbg35 = GF( fld::gL_r, next_m, n );
+                Real dbg36 = GF( fld::gA_r, next_m, n );
+                Real dbg37 = GF( fld::gAlp, next_m, n );
+
+                Real dbg371 = GF( fld::gconf_r, next_m, n );
+                Real dbg38 = GF( fld::gtrK_r, next_m, n );
+                Real dbg39 = GF( fld::gA_r, next_m, n );
+                Real dbg40 = GF( fld::gB_r, next_m, n );
+                Real dbg41 = GF( fld::gA1_r, next_m, n );
+                Real dbg42 = GF( fld::gL_r, next_m, n );
+                Real dbg43 = GF( fld::gsig_r, next_m, n );
+                Real dbg44 = GF( fld::gAsig_r, next_m, n );
+                Real dbg45 = GF( fld::gDconf_r, next_m, n );
+                Real dbg46 = GF( fld::gDA_r, next_m, n );
+                Real dbg47 = GF( fld::gDB_r, next_m, n );
+                Real dbg48 = GF( fld::pfD_r, next_m, n );
+                Real dbg49 = GF( fld::pfS_r, next_m, n );
+                Real dbg50 = GF( fld::pftau_r, next_m, n );
+                Real dbg51 = GF( fld::q_r, next_m, n );
+                Real dbg52 = GF( fld::Bq_r, next_m, n );
+
+                Real dbg53 = GF( fld::gconf_rr, next_m, n );
+                Real dbg54 = GF( fld::gtrK_rr, next_m, n );
+                Real dbg55 = GF( fld::gA_rr, next_m, n );
+                Real dbg56 = GF( fld::gB_rr, next_m, n );
+                Real dbg57 = GF( fld::gA1_rr, next_m, n );
+                Real dbg59 = GF( fld::gsig_rr, next_m, n );
+                Real dbg67 = GF( fld::q_rr, next_m, n );
+
+                Real dbg68 = GF( fld::gRicci, next_m, n );
+                Real dbg69 = GF( fld::gDers, next_m, n );
+                Real dbg70 = GF( fld::gDconfr, next_m, n );
+                Real dbg71 = GF( fld::gLr, next_m, n );
+                Real dbg72 = GF( fld::gBr, next_m, n );
+                Real dbg73 = GF( fld::fDconfr, next_m, n );
+                Real dbg74 = GF( fld::fLr, next_m, n );
+                Real dbg75 = GF( fld::pr, next_m, n );
+                Real dbg76 = GF( fld::qr, next_m, n );
+            }*/
+
             // Check for NaNs over all the fields except t and r
             for( Int n = nGhost; n < nGhost + nLen; ++n )
             {
                 Real dbg222 = GF( fld::gL_t, next_m, n );
+                //std::cout << GF( fld::gL_t, next_m, n );
                 FINDNAN( stage_i, next_m, n );
             }
 
@@ -1568,8 +1636,7 @@ void MoL::DIRK_computeStep(
         DIRK_computeStage( stage_i, next_m, m, BT );
 
     }
-    // At this point, the final value of the grid functions at time step m and grid point
-    // n are computed
+    // At this point, the final value of the grid functions at time step m are computed
 
     integStep_End( next_m, m );
 
